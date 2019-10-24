@@ -35,7 +35,7 @@ def tokenize(formula):
             continue
 
         if char in '([':
-            if token.kind is Token.Kind.NAME:
+            if token.kind in (Token.Kind.NAME, Token.Kind.PYTHON):
                 token.update(char, i, kind=Token.Kind.PYTHON)
                 quote_context.append(')' if char == '(' else ']')
             else:
