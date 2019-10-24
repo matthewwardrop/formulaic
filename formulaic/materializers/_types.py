@@ -61,3 +61,8 @@ class ScopedTerm:
         if isinstance(other, ScopedTerm):
             return self.factors == other.factors
         return NotImplemented
+
+    def __repr__(self):
+        if not self.factors:
+            return "1"
+        return ":".join(f.__repr__() for f in self.factors)

@@ -1,6 +1,5 @@
 import functools
 import itertools
-from collections import defaultdict
 
 import numpy
 import pandas
@@ -29,22 +28,21 @@ class PandasMaterializer(FormulaMaterializer):
         return False
 
     @override
-    def _encode_constant(self, value):
+    def _encode_constant(self, value, encoder_state):
         if self.sparse:
             return spsparse.csc_matrix(numpy.array([value]*self.nrows).reshape((self.nrows, 1)))
         return value
 
     @override
-    def _encode_numerical(self, values):
+    def _encode_numerical(self, values, encoder_state):
         if self.sparse:
             return spsparse.csc_matrix(numpy.array(values).reshape((self.nrows, 1)))
         return values
 
     @override
-    def _encode_categorical(self, values, reduced_rank=False):
-        if self.sparse:
-            return categorical_encode_series_to_sparse_csc_matrix(values, reduced_rank=reduced_rank)
-        return dict(pandas.get_dummies(values, drop_first=reduced_rank))
+    def _encode_categorical(self, values, encoder_state, reduced_rank=False):
+        from ._transforms import encode_categorical
+        return encode_categorical(values, state=encoder_state, reduced_rank=reduced_rank, sparse=self.sparse)
 
     @override
     def _get_columns_for_factors(self, factors, scale=1):
@@ -60,26 +58,3 @@ class PandasMaterializer(FormulaMaterializer):
         if self.sparse:
             return spsparse.hstack(list(cols.values()))
         return pandas.DataFrame(cols)
-
-
-# Utility methods
-
-def categorical_encode_series_to_sparse_csc_matrix(series, reduced_rank=False):
-    results = defaultdict(lambda: [])
-    for i, value in enumerate(series):
-        results[value].append(i)
-    if reduced_rank:
-        del results[sorted(results)[0]]
-    return {
-        value: spsparse.csc_matrix(
-            (
-                numpy.ones(len(indices), dtype=float),  # data
-                (
-                    indices,  # row
-                    numpy.zeros(len(indices), dtype=int)  # column
-                )
-            ),
-            shape=(series.shape[0], 1)
-        )
-        for value, indices in results.items()
-    }

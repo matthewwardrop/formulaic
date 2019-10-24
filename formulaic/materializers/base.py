@@ -7,7 +7,9 @@ from interface_meta import InterfaceMeta, quirk_docs
 
 from formulaic.model_matrix import ModelMatrix
 from formulaic.utils.context import LayeredContext
+from formulaic.utils.stateful_transforms import stateful_eval
 
+from ._transforms import TRANSFORMS
 from ._types import EvaluatedFactor, ScopedFactor, ScopedTerm
 
 
@@ -43,12 +45,13 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     # Public API
 
     @quirk_docs(method='_init')
-    def __init__(self, data, context, **kwargs):
+    def __init__(self, data, context=None, **kwargs):
         self.data = data
-        self.context = context
+        self.context = context or {}
+        self.factor_cache = {}
         self._init(**kwargs)
 
-        self.layered_context = LayeredContext(self.data_context, self.context)
+        self.layered_context = LayeredContext(self.data_context, self.context, TRANSFORMS)
 
     def _init(self):
         pass
@@ -61,26 +64,42 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     def nrows(self):
         return len(self.data)
 
-    def get_model_matrix(self, formula, ensure_full_rank=True):
+    def get_model_matrix(self, spec, ensure_full_rank=True):
+        from formulaic.formula import Formula
+        from formulaic.model_spec import ModelSpec
 
+        if isinstance(spec, Formula):
+            spec = ModelSpec(formula=spec, materializer=self, ensure_full_rank=ensure_full_rank)
+        if not isinstance(spec, ModelSpec):
+            raise RuntimeError("`spec` must be a `ModelSpec` or `Formula` instance.")
+
+        # Step 1: Evaluate all factors
+        for term in spec.formula.terms:
+            for factor in term.factors:
+                self._evaluate_factor(factor, spec.transforms, spec.encoding)
+
+        # Step 2: Determine strategy to maintain structural full-rankness of output matrix
+        scoped_terms = self._get_scoped_terms(spec.formula.terms, ensure_full_rank=spec.ensure_full_rank)
+
+        # Step 3: Generate the columns which will be collated into the full matrix
         cols = {}
-
-        scoped_terms = self._get_scoped_terms(formula.terms, ensure_full_rank=ensure_full_rank)
-
-        # Step 2: Generate the columns which will be collated into the full matrix
         for scoped_term in scoped_terms:
             if not scoped_term.factors:
-                cols['Intercept'] = self._encode_constant(1)
+                cols['Intercept'] = self._encode_constant(1, spec.encoding)
             else:
                 cols.update(
                     self._get_columns_for_factors([
-                        self._encode_evaled_factor(scoped_factor.factor, reduced_rank=scoped_factor.reduced)
+                        self._encode_evaled_factor(scoped_factor.factor, spec.encoding, reduced_rank=scoped_factor.reduced)
                         for scoped_factor in sorted(scoped_term.factors)
                     ], scale=scoped_term.scale)
                 )
 
-        # Step 3: Collate factors into one ModelMatrix
-        return ModelMatrix(formula, self._combine_columns(cols), feature_names=list(cols), materializer=self)
+        # Step 4: Populate remaining model spec fields
+        spec.feature_names = list(cols)
+        spec.materializer = self
+
+        # Step 5: Collate factors into one ModelMatrix
+        return ModelMatrix(self._combine_columns(cols), spec=spec)
 
     # Methods related to ensuring out matrices are structurally full-rank
 
@@ -99,6 +118,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             ensure_full_rank (bool): Whether evaluated terms should be scoped
                 to ensure that their combination will result in a full-rank
                 matrix.
+            transform_state (dict): The state of any stateful transforms
+                (will be populated if empty).
 
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.
@@ -108,7 +129,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
         for term in terms:
             evaled_factors = [
-                self._evaluate_factor(factor)
+                self.factor_cache[factor.expr]
                 for factor in term.factors
             ]
 
@@ -183,43 +204,55 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     # Methods related to looking-up, evaluating and encoding terms and factors
 
-    def _evaluate_factor(self, factor):
-        if factor.kind.value == 'name':
-            value = self._lookup(factor.expr)
-        elif factor.kind.value == 'python':
-            value = self._evaluate(factor.expr)
-        elif factor.kind.value == 'value':
-            value = EvaluatedFactor(factor, self._evaluate(factor.expr), kind='constant')
-        else:
-            raise ValueError(factor)
+    def _evaluate_factor(self, factor, transform_state, encoder_state):
+        if factor.expr not in self.factor_cache:
+            # TODO: Cache identical evaluations
+            if factor.kind.value == 'name':
+                value = self._lookup(factor.expr)
+            elif factor.kind.value == 'python':
+                value = self._evaluate(factor.expr, transform_state)
+            elif factor.kind.value == 'value':
+                value = EvaluatedFactor(factor, self._evaluate(factor.expr, transform_state), kind='constant')
+            else:
+                raise ValueError(factor)
 
-        if not isinstance(value, EvaluatedFactor):
-            value = EvaluatedFactor(
-                factor=factor,
-                values=value,
-                kind='categorical' if self._is_categorical(value) else 'numerical'
-            )
-        return value
+            if not isinstance(value, EvaluatedFactor):
+                if factor.expr in encoder_state:
+                    kind = encoder_state[factor.expr][0]
+                elif self._is_categorical(value):
+                    kind = 'categorical'
+                else:
+                    kind = 'numerical'
+                value = EvaluatedFactor(
+                    factor=factor,
+                    values=value,
+                    kind=kind
+                )
+            self.factor_cache[factor.expr] = value
+        return self.factor_cache[factor.expr]
 
     def _lookup(self, name):
         return self.layered_context[name]
 
-    def _evaluate(self, expr):
-        return eval(expr, {}, self.layered_context)
+    def _evaluate(self, expr, transform_state):
+        return stateful_eval(expr, self.layered_context, transform_state)
 
     @abstractmethod
     def _is_categorical(self, values):
         pass
 
-    def _encode_evaled_factor(self, factor, reduced_rank=False):
+    def _encode_evaled_factor(self, factor, encoder_state, reduced_rank=False):
+        state = encoder_state.get(factor.expr, [None, {}])[1]
         if factor.kind.value == 'categorical':
-            encoded = self._encode_categorical(factor.values, reduced_rank=reduced_rank)
+            encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
         elif factor.kind.value == 'numerical':
-            encoded = self._encode_numerical(factor.values)
+            encoded = self._encode_numerical(factor.values, state)
         elif factor.kind.value == 'constant':
-            encoded = self._encode_constant(factor.values)
+            encoded = self._encode_constant(factor.values, state)
         else:
             raise RuntimeError()
+
+        encoder_state[factor.expr] = (factor.kind, state)
 
         if isinstance(encoded, dict):
             return {
@@ -229,15 +262,15 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         return {factor.expr: encoded}
 
     @abstractmethod
-    def _encode_constant(self, value):
+    def _encode_constant(self, value, encoder_state):
         pass
 
     @abstractmethod
-    def _encode_categorical(self, values, reduced_rank=False):
+    def _encode_categorical(self, values, encoder_state, reduced_rank=False):
         pass
 
     @abstractmethod
-    def _encode_numerical(self, values):
+    def _encode_numerical(self, values, encoder_state):
         pass
 
     # Methods related to ModelMatrix output
