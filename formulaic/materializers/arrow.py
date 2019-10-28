@@ -9,9 +9,9 @@ class ArrowMaterializer(PandasMaterializer):
     DEFAULT_FOR = ['pyarrow.lib.Table']
 
     @override
-    def _init(self, sparse=False):
-        super()._init(sparse=False)
+    def _init_config(self, sparse=False):
         self.__data_context = LazyArrowTableProxy(self.data)
+        return super()._init(sparse=False)
 
     @override
     @property

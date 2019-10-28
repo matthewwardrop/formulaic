@@ -21,6 +21,13 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     REGISTRY_NAME = None
     DEFAULT_FOR = None
 
+    class Config:
+        __slots__ = ('bespoke', 'sparse')
+
+        def __init__(self, sparse=False, **bespoke):
+            self.sparse = sparse
+            self.bespoke = bespoke
+
     # Registry methods
 
     @classmethod
@@ -44,17 +51,18 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     # Public API
 
-    @quirk_docs(method='_init')
+    @quirk_docs(method='_init_config')
     def __init__(self, data, context=None, **kwargs):
         self.data = data
         self.context = context or {}
-        self.factor_cache = {}
-        self._init(**kwargs)
+        self.config = self._init_config(**kwargs)
 
         self.layered_context = LayeredContext(self.data_context, self.context, TRANSFORMS)
 
-    def _init(self):
-        pass
+        self.factor_cache = {}
+
+    def _init_config(self):
+        return self.Config()
 
     @property
     def data_context(self):
@@ -164,14 +172,12 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         scale = 1
         factors = []
         for factor in evaled_factors:
-            if factor.kind.value == 'categorical':
-                factors.append((1, ScopedFactor(factor, reduced=True)))
-            elif factor.kind.value == 'numerical':
-                factors.append((ScopedFactor(factor),))
-            elif factor.kind.value == 'constant':
+            if factor.kind.value == 'constant':
                 scale *= factor.values
+            elif factor.spans_intercept:
+                factors.append((1, ScopedFactor(factor, reduced=True)))
             else:
-                raise RuntimeError("Unknown factor type.")
+                factors.append((ScopedFactor(factor),))
         return set(
             ScopedTerm(factors=tuple(sorted(p for p in prod if p != 1)), scale=scale)
             for prod in itertools.product(*factors)
@@ -206,7 +212,6 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     def _evaluate_factor(self, factor, transform_state, encoder_state):
         if factor.expr not in self.factor_cache:
-            # TODO: Cache identical evaluations
             if factor.kind.value == 'name':
                 value = self._lookup(factor.expr)
             elif factor.kind.value == 'python':
@@ -217,16 +222,22 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 raise ValueError(factor)
 
             if not isinstance(value, EvaluatedFactor):
-                if factor.expr in encoder_state:
-                    kind = encoder_state[factor.expr][0]
+                if isinstance(value, dict) and '__kind__' in value:
+                    kind = value['__kind__']
+                    spans_intercept = value.get('__spans_intercept__', False)
                 elif self._is_categorical(value):
                     kind = 'categorical'
+                    spans_intercept = True
                 else:
                     kind = 'numerical'
+                    spans_intercept = False
+                if factor.expr in encoder_state:
+                    assert kind == encoder_state[factor.expr][0]
                 value = EvaluatedFactor(
                     factor=factor,
                     values=value,
-                    kind=kind
+                    kind=kind,
+                    spans_intercept=spans_intercept,
                 )
             self.factor_cache[factor.expr] = value
         return self.factor_cache[factor.expr]
@@ -235,31 +246,51 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         return self.layered_context[name]
 
     def _evaluate(self, expr, transform_state):
-        return stateful_eval(expr, self.layered_context, transform_state)
+        return stateful_eval(expr, self.layered_context, transform_state, self.config)
 
-    @abstractmethod
     def _is_categorical(self, values):
-        pass
+        if isinstance(values, dict):
+            return values.get('__spans_intercept__', False)
+        return False
 
     def _encode_evaled_factor(self, factor, encoder_state, reduced_rank=False):
-        state = encoder_state.get(factor.expr, [None, {}])[1]
-        if factor.kind.value == 'categorical':
-            encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
-        elif factor.kind.value == 'numerical':
-            encoded = self._encode_numerical(factor.values, state)
-        elif factor.kind.value == 'constant':
-            encoded = self._encode_constant(factor.values, state)
+        if isinstance(factor.values, dict) and factor.values.get('__encoded__', False):
+            if reduced_rank and factor.spans_intercept:
+                assert '__drop_field__' in factor.values
+                encoded = factor.values.copy()
+                del encoded[factor.values['__drop_field__']]
+            else:
+                encoded = factor.values
         else:
-            raise RuntimeError()
+            state = encoder_state.get(factor.expr, [None, {}])[1]
+            if factor.kind.value == 'categorical':
+                encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
+            elif factor.kind.value == 'numerical':
+                encoded = self._encode_numerical(factor.values, state)
+            elif factor.kind.value == 'constant':
+                encoded = self._encode_constant(factor.values, state)
+            else:
+                raise RuntimeError()
+            encoder_state[factor.expr] = (factor.kind, state)
+        return self._flatten_encoded_evaled_factor(factor.expr, encoded)
 
-        encoder_state[factor.expr] = (factor.kind, state)
+    def _flatten_encoded_evaled_factor(self, name, values):
+        if not isinstance(values, dict):
+            return {name: values}
 
-        if isinstance(encoded, dict):
-            return {
-                f'{factor.expr}[{category}]': values
-                for category, values in encoded.items()
-            }
-        return {factor.expr: encoded}
+        name_format = values.get('__format__', '{name}[{field}]')
+
+        flattened = {}
+        for subfield, value in values.items():
+            if isinstance(subfield, str) and subfield.startswith('__'):
+                continue
+            subname = name_format.format(name=name, field=subfield)
+            if isinstance(value, dict):
+                flattened.update(self._flatten_encoded_evaled_factor(subname, value))
+            else:
+                flattened[subname] = value
+
+        return flattened
 
     @abstractmethod
     def _encode_constant(self, value, encoder_state):

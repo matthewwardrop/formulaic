@@ -8,10 +8,11 @@ class EvaluatedFactor:
         CATEGORICAL = 'categorical'
         CONSTANT = 'constant'
 
-    def __init__(self, factor, values, kind='numerical'):
+    def __init__(self, factor, values, kind='numerical', spans_intercept=False):
         self.factor = factor
         self.values = values
         self.kind = EvaluatedFactor.Kind(kind)
+        self.spans_intercept = spans_intercept
 
     @property
     def expr(self):
