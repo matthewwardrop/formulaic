@@ -4,7 +4,7 @@ import inspect
 
 import astor
 
-from .context import LayeredContext
+from .layered_mapping import LayeredMapping
 
 
 def stateful_transform(func):
@@ -13,7 +13,10 @@ def stateful_transform(func):
     def wrapper(data, *args, state=None, config=None, **kwargs):
         from formulaic.materializers.base import FormulaMaterializer
         state = {} if state is None else state
-        config = config or FormulaMaterializer.Config()
+        if isinstance(config, dict):
+            config = FormulaMaterializer.Config(**config)
+        else:
+            config = config or FormulaMaterializer.Config()
         extra_params = {'config': config} if 'config' in params else {}
         if isinstance(data, dict):
             results = {}
@@ -65,4 +68,4 @@ def stateful_eval(expr, env, state, config):
     assert "__FORMULAIC_CONFIG__" not in env
 
     # Evaluate and return
-    return eval(code, {}, LayeredContext({'__FORMULAIC_CONFIG__': config, '__FORMULAIC_STATE__': state}, env))
+    return eval(code, {}, LayeredMapping({'__FORMULAIC_CONFIG__': config, '__FORMULAIC_STATE__': state}, env))  # nosec

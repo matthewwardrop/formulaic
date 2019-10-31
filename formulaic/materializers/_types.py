@@ -66,4 +66,4 @@ class ScopedTerm:
     def __repr__(self):
         if not self.factors:
             return "1"
-        return ":".join(f.__repr__() for f in self.factors)
+        return ":".join(f.__repr__() for f in sorted(self.factors))

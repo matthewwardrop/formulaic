@@ -43,4 +43,4 @@ class Operator:
         return self._to_terms(*args)
 
     def __repr__(self):
-        return self.symbol.__repr__()
+        return self.symbol

@@ -66,5 +66,8 @@ class Token:
     def to_terms(self):
         return {Term([self.to_factor()])}
 
+    def flatten(self, str_args=False):
+        return str(self) if str_args else self
+
     def __repr__(self):
         return self.token

@@ -1,5 +1,7 @@
 import re
 
+from formulaic.errors import FormulaParsingError
+
 from ..types import Token
 
 
@@ -66,23 +68,19 @@ def tokenize(formula):
                 token.update(char, i, kind='value')
                 quote_context.append(char)
             else:
-                raise ValueError
+                raise FormulaParsingError(f"Unexpected character {repr(char)} following token '{token}'.")
             continue
 
         if WORD_CHAR.match(char):
+            assert token.kind in (None, Token.Kind.OPERATOR, Token.Kind.VALUE, Token.Kind.NAME), f"Unexpected token kind {token.kind}."
             if token and token.kind is Token.Kind.OPERATOR:
                 yield token
                 token = Token(source=formula)
-            if not token or token.kind in (Token.Kind.VALUE, Token.Kind.NAME):
-                if NUMERIC_CHAR.match(char) and token.kind in (None, Token.Kind.VALUE):
-                    kind = 'value'
-                else:
-                    kind = 'name'
-                token.update(char, i, kind=kind)
+            if NUMERIC_CHAR.match(char) and token.kind in (None, Token.Kind.VALUE):
+                kind = 'value'
             else:
-                if token:
-                    yield token
-                token = Token(source=formula)
+                kind = 'name'
+            token.update(char, i, kind=kind)
             continue
         else:
             if token and token.kind is not Token.Kind.OPERATOR:

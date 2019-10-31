@@ -10,7 +10,7 @@ class Term:
 
     @property
     def _tuple(self):
-        return tuple(factor.expr for factor in self.factors)
+        return tuple(factor.expr for factor in sorted(self.factors))
 
     def __hash__(self):
         return hash(self._tuple)
@@ -30,4 +30,4 @@ class Term:
         return NotImplemented
 
     def __repr__(self):
-        return ':'.join(repr(factor) for factor in sorted(self.factors))
+        return ':'.join(self._tuple)

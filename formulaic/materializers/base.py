@@ -5,8 +5,9 @@ from abc import abstractmethod
 
 from interface_meta import InterfaceMeta, quirk_docs
 
+from formulaic.errors import FactorEncodingError, FactorEvaluationError, FormulaMaterializerNotFoundError
 from formulaic.model_matrix import ModelMatrix
-from formulaic.utils.context import LayeredContext
+from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
 from ._transforms import TRANSFORMS
@@ -41,6 +42,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     @classmethod
     def for_materializer(cls, materializer):
         if isinstance(materializer, str):
+            if materializer not in cls.REGISTRY:
+                raise FormulaMaterializerNotFoundError(materializer)
             materializer = cls.REGISTRY[materializer]
         return materializer
 
@@ -51,18 +54,19 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     # Public API
 
-    @quirk_docs(method='_init_config')
+    @quirk_docs(method='_init')
     def __init__(self, data, context=None, **kwargs):
         self.data = data
         self.context = context or {}
-        self.config = self._init_config(**kwargs)
+        self._init(kwargs)
+        self.config = self.Config(**kwargs)
 
-        self.layered_context = LayeredContext(self.data_context, self.context, TRANSFORMS)
+        self.layered_context = LayeredMapping(self.data_context, self.context, TRANSFORMS)
 
         self.factor_cache = {}
 
-    def _init_config(self):
-        return self.Config()
+    def _init(self, kwargs):
+        pass
 
     @property
     def data_context(self):
@@ -79,7 +83,14 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         if isinstance(spec, Formula):
             spec = ModelSpec(formula=spec, materializer=self, ensure_full_rank=ensure_full_rank)
         if not isinstance(spec, ModelSpec):
-            raise RuntimeError("`spec` must be a `ModelSpec` or `Formula` instance.")
+            spec = ModelSpec(formula=Formula(spec), materializer=self, ensure_full_rank=ensure_full_rank)
+
+        # Step 0: Check whether formula separators are in play, and if so, recurse.
+        if isinstance(spec.formula.terms, tuple):
+            return tuple(
+                self.get_model_matrix(Formula(terms), ensure_full_rank=ensure_full_rank)
+                for terms in spec.formula.terms
+            )
 
         # Step 1: Evaluate all factors
         for term in spec.formula.terms:
@@ -96,7 +107,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 cols['Intercept'] = self._encode_constant(1, spec.encoding)
             else:
                 cols.update(
-                    self._get_columns_for_factors([
+                    self._get_columns_for_term([
                         self._encode_evaled_factor(scoped_factor.factor, spec.encoding, reduced_rank=scoped_factor.reduced)
                         for scoped_factor in sorted(scoped_term.factors)
                     ], scale=scoped_term.scale)
@@ -161,7 +172,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
         return scoped_terms
 
-    def _get_scoped_terms_spanned_by_evaled_factors(self, evaled_factors):
+    @classmethod
+    def _get_scoped_terms_spanned_by_evaled_factors(cls, evaled_factors):
         """
         Return the set of ScopedTerm instances which span the set of
         evaluated factors.
@@ -183,7 +195,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             for prod in itertools.product(*factors)
         )
 
-    def _simplify_scoped_terms(self, scoped_terms):
+    @classmethod
+    def _simplify_scoped_terms(cls, scoped_terms):
         """
         Return the minimal set of ScopedTerm instances that spans the same vectorspace.
 
@@ -201,7 +214,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 factor_new = next(iter(factors_diff))
                 if factor_new.reduced:
                     co_scoped_term.factors += (ScopedFactor(factor_new.factor, reduced=False), )
-                    terms = self._simplify_scoped_terms(scoped_terms)
+                    terms = cls._simplify_scoped_terms(terms)
                     combined = True
                     break
             if not combined:
@@ -219,7 +232,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             elif factor.kind.value == 'value':
                 value = EvaluatedFactor(factor, self._evaluate(factor.expr, transform_state), kind='constant')
             else:
-                raise ValueError(factor)
+                raise FactorEvaluationError(factor)
 
             if not isinstance(value, EvaluatedFactor):
                 if isinstance(value, dict) and '__kind__' in value:
@@ -231,8 +244,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 else:
                     kind = 'numerical'
                     spans_intercept = False
-                if factor.expr in encoder_state:
-                    assert kind == encoder_state[factor.expr][0]
+                if factor.expr in encoder_state and EvaluatedFactor.Kind(kind) is not encoder_state[factor.expr][0]:
+                    raise FactorEncodingError(f"Factor kind `{EvaluatedFactor.Kind(kind)}` does not match model specification of `{encoder_state[factor.expr][0]}`.")
                 value = EvaluatedFactor(
                     factor=factor,
                     values=value,
@@ -270,7 +283,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             elif factor.kind.value == 'constant':
                 encoded = self._encode_constant(factor.values, state)
             else:
-                raise RuntimeError()
+                raise FactorEncodingError(factor)
             encoder_state[factor.expr] = (factor.kind, state)
         return self._flatten_encoded_evaled_factor(factor.expr, encoded)
 
@@ -306,7 +319,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     # Methods related to ModelMatrix output
 
-    def _get_columns_for_factors(self, factors, scale=1):
+    def _get_columns_for_term(self, factors, scale=1):
         """
         Assemble the columns for a model matrix given factors and a scale.
 

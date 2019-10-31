@@ -4,6 +4,13 @@ version_info = {}
 with open('formulaic/_version.py') as version_file:
     exec(version_file.read(), version_info)
 
+test_deps = [
+    'bandit',
+    'flake8',
+    'pytest',
+    'pytest-cov',
+]
+
 setup(
     name='formulaic',
     version=version_info['__version__'],
@@ -13,7 +20,7 @@ setup(
     url="https://github.com/matthewwardrop/formulaic",
     description='An implementation of Wilkinson formulas.',
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
@@ -21,6 +28,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering :: Mathematics',
     ],
 
@@ -28,9 +36,16 @@ setup(
     python_requires='>=3.6',
     setup_requires=['setupmeta'],
     install_requires=[
+        'astor',
         'interface_meta',
         'pandas',
         'scipy',
         'wrapt',
-    ]
+    ],
+    tests_require=test_deps,
+    extras_require={
+        'arrow': ['pyarrow'],
+        'test': test_deps
+    },
+
 )

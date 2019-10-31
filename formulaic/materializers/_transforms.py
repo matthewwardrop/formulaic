@@ -1,9 +1,11 @@
+import warnings
 from functools import singledispatch
 
 import numpy
 import pandas
 import scipy.sparse as spsparse
 
+from formulaic.errors import DataMismatchWarning
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 from formulaic.utils.stateful_transforms import stateful_transform
 
@@ -17,7 +19,7 @@ def center(data, state=None):
     return data - state['mean']
 
 
-@center.register(spsparse.csc_matrix)
+@center.register(spsparse.spmatrix)
 def _(data, state=None):
     assert data.shape[1] == 1
     return center(data.toarray()[:, 0], state=state)
@@ -27,9 +29,10 @@ def _(data, state=None):
 @singledispatch
 def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=True):
     # TODO: Add support for specifying contrast matrix / etc
-    # TODO: Warn/error when new categories are added to data
     if 'categories' in state:
         data = pandas.Categorical(data, categories=state['categories'])
+        if data.shape[0] - data.value_counts().sum():
+            warnings.warn("Data has categories that were not seen in original dataset.", DataMismatchWarning)
     else:
         data = pandas.Categorical(data)
         state['categories'] = list(data.categories)

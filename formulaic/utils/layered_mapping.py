@@ -2,7 +2,7 @@ from collections.abc import Mapping
 import itertools
 
 
-class LayeredContext(Mapping):
+class LayeredMapping(Mapping):
 
     def __init__(self, *layers):
         self.layers = layers or []
@@ -22,4 +22,4 @@ class LayeredContext(Mapping):
                     yield key
 
     def __len__(self):
-        return len(set(itertools.chain(list(layer) for layer in self.layers)))
+        return len(set(itertools.chain(*[list(layer) for layer in self.layers])))

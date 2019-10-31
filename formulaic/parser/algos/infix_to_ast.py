@@ -46,4 +46,5 @@ def infix_to_ast(tokens, operators):
     while operator_stack:
         output_queue = operate(operator_stack.pop(), output_queue)
 
-    return output_queue[0]
+    if output_queue:
+        return output_queue[0]
