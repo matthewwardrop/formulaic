@@ -1,8 +1,9 @@
-name: Publish to PyPI
+name: Publish tagged releases to PyPI
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "v*"
 
 jobs:
   deploy:

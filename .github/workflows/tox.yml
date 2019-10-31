@@ -1,6 +1,9 @@
 name: Run Tox Tests
 
-on: [push]
+on:
+  push:
+    branches:
+      - "*"
 
 jobs:
   build:
