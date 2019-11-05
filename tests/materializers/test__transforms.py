@@ -116,7 +116,7 @@ def test_encode_categorical_sparse():
 
 def _compare_formulaic_dict(a, b, comp=lambda x, y: numpy.allclose(x, y)):
     assert isinstance(a, dict) and isinstance(b, dict)
-    assert len(a) == len(b)
+    assert sorted(a) == sorted(b)
     for key, value in a.items():
         if isinstance(key, str) and key.startswith('__'):
             assert value == b[key]

@@ -29,17 +29,27 @@ def _(data, state=None):
 @singledispatch
 def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=True):
     # TODO: Add support for specifying contrast matrix / etc
-    if 'categories' in state:
-        data = pandas.Categorical(data, categories=state['categories'])
-        if data.shape[0] - data.value_counts().sum():
-            warnings.warn("Data has categories that were not seen in original dataset.", DataMismatchWarning)
+    if config.sparse:
+        data = numpy.array(data)
+        categories, encoded = categorical_encode_series_to_sparse_csc_matrix(data, reduced_rank=reduced_rank)
     else:
         data = pandas.Categorical(data)
-        state['categories'] = list(data.categories)
-    if config.sparse:
-        encoded = categorical_encode_series_to_sparse_csc_matrix(data, reduced_rank=reduced_rank)
-    else:
+        categories = list(data.categories)
         encoded = dict(pandas.get_dummies(data, drop_first=reduced_rank))
+
+    # Update state
+    if 'categories' in state:
+        extra_categories = set(categories).difference(state['categories'])
+        if extra_categories:
+            warnings.warn(f"Data has categories that were not seen in original dataset: {extra_categories}. This will likely skew the results of your analyses.", DataMismatchWarning)
+            for category in extra_categories:
+                del encoded[category]
+
+        for missing_category in set(state['categories']).difference(categories):
+            encoded[missing_category] = spsparse.csc_matrix((data.shape[0], 1))
+    else:
+        state['categories'] = categories
+
     encoded.update({
         '__kind__': 'categorical',
         '__spans_intercept__': spans_intercept and not reduced_rank,
@@ -47,6 +57,7 @@ def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=
         '__format__': "{name}[T.{field}]",
         '__encoded__': True,
     })
+
     return encoded
 
 

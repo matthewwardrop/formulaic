@@ -34,17 +34,41 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _encode_categorical(self, values, encoder_state, reduced_rank=False):
+        # Even though we could reduce rank here, we do not, so that the same
+        # encoding can be cached for both reduced and unreduced rank. The
+        # rank will be reduced in the _encode_evaled_factor method.
         from ._transforms import encode_categorical
-        return encode_categorical(values, state=encoder_state, config=self.config, reduced_rank=reduced_rank)
+        return encode_categorical(values, state=encoder_state, config=self.config, reduced_rank=False)
 
     @override
     def _get_columns_for_term(self, factors, scale=1):
-        if self.config.sparse:
-            out = {}
-            for product in itertools.product(*(factor.items() for factor in factors)):
+        out = {}
+
+        # Pre-multiply factors with only one set of values (improves performance)
+        solo_factors = {}
+        indices = []
+        for i, factor in enumerate(factors):
+            if len(factor) == 1:
+                solo_factors.update(factor)
+                indices.append(i)
+        if solo_factors:
+            for index in reversed(indices):
+                factors.pop(index)
+            if self.config.sparse:
+                factors.append({
+                    ':'.join(solo_factors): functools.reduce(spsparse.csc_matrix.multiply, solo_factors.values())
+                })
+            else:
+                factors.append({
+                    ':'.join(solo_factors): pandas.Series(functools.reduce(lambda a, b: numpy.multiply(a, b), (p for p in solo_factors.values())))
+                })
+
+        for product in itertools.product(*(factor.items() for factor in factors)):
+            if self.config.sparse:
                 out[':'.join(p[0] for p in product)] = scale * functools.reduce(spsparse.csc_matrix.multiply, (p[1] for p in product))
-            return out
-        return super()._get_columns_for_term(factors, scale=scale)
+            else:
+                out[':'.join(p[0] for p in product)] = scale * functools.reduce(lambda a, b: numpy.multiply(a, b), (p[1].values for p in product))
+        return out
 
     @override
     def _combine_columns(self, cols):

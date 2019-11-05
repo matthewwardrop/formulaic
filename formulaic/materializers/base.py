@@ -64,6 +64,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         self.layered_context = LayeredMapping(self.data_context, self.context, TRANSFORMS)
 
         self.factor_cache = {}
+        self.encoded_cache = {}
 
     def _init(self, kwargs):
         pass
@@ -267,24 +268,38 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         return False
 
     def _encode_evaled_factor(self, factor, encoder_state, reduced_rank=False):
-        if isinstance(factor.values, dict) and factor.values.get('__encoded__', False):
-            if reduced_rank and factor.spans_intercept:
-                assert '__drop_field__' in factor.values
-                encoded = factor.values.copy()
-                del encoded[factor.values['__drop_field__']]
+        if not isinstance(factor.values, dict) or not factor.values.get('__encoded__', False):
+            if factor.expr in self.encoded_cache:
+                encoded = self.encoded_cache[factor.expr]
+            elif (factor.expr, reduced_rank) in self.encoded_cache:
+                encoded = self.encoded_cache[(factor.expr, reduced_rank)]
             else:
-                encoded = factor.values
+                state = encoder_state.get(factor.expr, [None, {}])[1]
+                if factor.kind.value == 'categorical':
+                    encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
+                elif factor.kind.value == 'numerical':
+                    encoded = self._encode_numerical(factor.values, state)
+                elif factor.kind.value == 'constant':
+                    encoded = self._encode_constant(factor.values, state)
+                else:
+                    raise FactorEncodingError(factor)
+                encoder_state[factor.expr] = (factor.kind, state)
+
+                if isinstance(encoded, dict) and encoded.get('__drop_field__'):
+                    cache_key = factor.expr
+                else:
+                    cache_key = (factor.expr, reduced_rank)
+
+                self.encoded_cache[cache_key] = encoded
         else:
-            state = encoder_state.get(factor.expr, [None, {}])[1]
-            if factor.kind.value == 'categorical':
-                encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
-            elif factor.kind.value == 'numerical':
-                encoded = self._encode_numerical(factor.values, state)
-            elif factor.kind.value == 'constant':
-                encoded = self._encode_constant(factor.values, state)
-            else:
-                raise FactorEncodingError(factor)
-            encoder_state[factor.expr] = (factor.kind, state)
+            encoded = factor.values
+
+        # Encoded factors will now all be dicts
+        if isinstance(encoded, dict) and encoded.get('__spans_intercept__') and reduced_rank:
+            assert '__drop_field__' in encoded
+            encoded = encoded.copy()
+            del encoded[encoded['__drop_field__']]
+
         return self._flatten_encoded_evaled_factor(factor.expr, encoded)
 
     def _flatten_encoded_evaled_factor(self, name, values):
