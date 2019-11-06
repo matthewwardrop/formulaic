@@ -38,6 +38,7 @@ setup(
     install_requires=[
         'astor',
         'interface_meta',
+        'numpy',
         'pandas',
         'scipy',
         'wrapt',
@@ -45,6 +46,7 @@ setup(
     tests_require=test_deps,
     extras_require={
         'arrow': ['pyarrow'],
+        'benchmarks': ['patsy', 'rpy2', 'uncertainties'],
         'test': test_deps
     },
 
