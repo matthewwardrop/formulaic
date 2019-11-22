@@ -8,9 +8,9 @@ class Token:
 
     class Kind(Enum):
         OPERATOR = 'operator'
+        VALUE = 'value'
         NAME = 'name'
         PYTHON = 'python'
-        VALUE = 'value'
 
     __slots__ = ('token', '_kind', 'source', 'source_start', 'source_end')
 
@@ -61,7 +61,15 @@ class Token:
         return (self.source_start, self.source_end)
 
     def to_factor(self):
-        return Factor(expr=self.token, kind=self.kind.value)
+        kind_to_eval_method = {
+            Token.Kind.NAME: 'lookup',
+            Token.Kind.PYTHON: 'python',
+            Token.Kind.VALUE: 'literal',
+        }
+        return Factor(
+            expr=self.token,
+            eval_method=kind_to_eval_method[self.kind],
+        )
 
     def to_terms(self):
         return {Term([self.to_factor()])}

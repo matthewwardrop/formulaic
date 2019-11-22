@@ -36,7 +36,7 @@ class FormulaParser:
             terms = arg.to_terms()
             if len(terms) > 1 and list(terms)[0].flatten() != '0':
                 raise FormulaParsingError("Unary negation is only implemented for '0', where it is substituted for '1'.")
-            return {Term(factors=[Factor('1', kind='value')])}
+            return {Term(factors=[Factor('1', eval_method='literal')])}
 
         return [
             Operator("~", arity=2, precedence=-100, associativity=None, to_terms=formula_separator_expansion),

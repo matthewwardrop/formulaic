@@ -226,14 +226,14 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     def _evaluate_factor(self, factor, transform_state, encoder_state):
         if factor.expr not in self.factor_cache:
-            if factor.kind.value == 'name':
+            if factor.eval_method.value == 'lookup':
                 value = self._lookup(factor.expr)
-            elif factor.kind.value == 'python':
+            elif factor.eval_method.value == 'python':
                 value = self._evaluate(factor.expr, transform_state)
-            elif factor.kind.value == 'value':
+            elif factor.eval_method.value == 'literal':
                 value = EvaluatedFactor(factor, self._evaluate(factor.expr, transform_state), kind='constant')
             else:
-                raise FactorEvaluationError(factor)
+                raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
 
             if not isinstance(value, EvaluatedFactor):
                 if isinstance(value, dict) and '__kind__' in value:

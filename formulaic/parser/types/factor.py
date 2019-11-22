@@ -5,24 +5,24 @@ from .term import Term
 
 class Factor:
 
-    class Kind(Enum):
-        NAME = 'name'
-        VALUE = 'value'
+    class EvalMethod(Enum):
+        LITERAL = 'literal'
+        LOOKUP = 'lookup'
         PYTHON = 'python'
 
-    __slots__ = ('expr', '_kind')
+    __slots__ = ('expr', '_eval_method')
 
-    def __init__(self, expr='', *, kind=None):
+    def __init__(self, expr='', *, eval_method=None):
         self.expr = expr
-        self.kind = kind
+        self.eval_method = eval_method
 
     @property
-    def kind(self):
-        return self._kind
+    def eval_method(self):
+        return self._eval_method
 
-    @kind.setter
-    def kind(self, kind):
-        self._kind = self.Kind(kind) if kind else kind
+    @eval_method.setter
+    def eval_method(self, eval_method):
+        self._eval_method = self.EvalMethod(eval_method) if eval_method else eval_method
 
     def __eq__(self, other):
         if isinstance(other, str):
