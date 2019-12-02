@@ -6,15 +6,24 @@ from .term import Term
 class Factor:
 
     class EvalMethod(Enum):
+        UNKNOWN = 'unknown'
         LITERAL = 'literal'
         LOOKUP = 'lookup'
         PYTHON = 'python'
 
-    __slots__ = ('expr', '_eval_method')
+    class Kind(Enum):
+        UNKNOWN = 'unknown'
+        CONSTANT = 'constant'
+        NUMERICAL = 'numerical'
+        CATEGORICAL = 'categorical'
 
-    def __init__(self, expr='', *, eval_method=None):
+    __slots__ = ('expr', '_eval_method', '_kind', 'metadata')
+
+    def __init__(self, expr='', *, eval_method=None, kind=None, metadata=None):
         self.expr = expr
         self.eval_method = eval_method
+        self.kind = kind
+        self.metadata = metadata
 
     @property
     def eval_method(self):
@@ -22,7 +31,15 @@ class Factor:
 
     @eval_method.setter
     def eval_method(self, eval_method):
-        self._eval_method = self.EvalMethod(eval_method) if eval_method else eval_method
+        self._eval_method = Factor.EvalMethod(eval_method or 'unknown')
+
+    @property
+    def kind(self):
+        return self._kind
+
+    @kind.setter
+    def kind(self, kind):
+        self._kind = Factor.Kind(kind or 'unknown')
 
     def __eq__(self, other):
         if isinstance(other, str):

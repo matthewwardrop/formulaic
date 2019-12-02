@@ -10,6 +10,8 @@ from formulaic.model_matrix import ModelMatrix
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
+from formulaic.parser.types import Factor
+
 from ._transforms import TRANSFORMS
 from ._types import EvaluatedFactor, ScopedFactor, ScopedTerm
 
@@ -245,8 +247,13 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 else:
                     kind = 'numerical'
                     spans_intercept = False
-                if factor.expr in encoder_state and EvaluatedFactor.Kind(kind) is not encoder_state[factor.expr][0]:
-                    raise FactorEncodingError(f"Factor kind `{EvaluatedFactor.Kind(kind)}` does not match model specification of `{encoder_state[factor.expr][0]}`.")
+                if factor.kind is not Factor.Kind.UNKNOWN and factor.kind.value != kind:
+                    if factor.kind.value == 'categorical':
+                        kind = factor.kind.value
+                    else:
+                        raise FactorEncodingError(f"Factor is expecting to be of kind '{factor.kind.value}' but is actually of kind '{kind}'.")
+                if factor.expr in encoder_state and Factor.Kind(kind) is not encoder_state[factor.expr][0]:
+                    raise FactorEncodingError(f"Factor kind `{kind}` does not match model specification of `{encoder_state[factor.expr][0]}`.")
                 value = EvaluatedFactor(
                     factor=factor,
                     values=value,
