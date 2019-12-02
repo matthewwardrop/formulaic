@@ -1,5 +1,6 @@
 import functools
 import itertools
+from collections import OrderedDict
 
 import numpy
 import pandas
@@ -42,7 +43,7 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _get_columns_for_term(self, factors, scale=1):
-        out = {}
+        out = OrderedDict()
 
         # Pre-multiply factors with only one set of values (improves performance)
         solo_factors = {}
@@ -73,5 +74,14 @@ class PandasMaterializer(FormulaMaterializer):
     @override
     def _combine_columns(self, cols):
         if self.config.sparse:
-            return spsparse.hstack(list(cols.values()))
-        return pandas.DataFrame(cols)
+            return spsparse.hstack([
+                col[1] for col in cols
+            ])
+        return pandas.concat(
+            [
+                pandas.Series(col[1], name=col[0])
+                for col in cols
+            ],
+            axis=1,
+            copy=False,
+        )

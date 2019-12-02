@@ -2,6 +2,7 @@ import functools
 import itertools
 import operator
 from abc import abstractmethod
+from collections import OrderedDict
 
 from interface_meta import InterfaceMeta, quirk_docs
 
@@ -101,27 +102,43 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 self._evaluate_factor(factor, spec.transforms, spec.encoding)
 
         # Step 2: Determine strategy to maintain structural full-rankness of output matrix
-        scoped_terms = self._get_scoped_terms(spec.formula.terms, ensure_full_rank=spec.ensure_full_rank)
+        scoped_terms_for_terms = self._get_scoped_terms(spec.formula.terms, ensure_full_rank=spec.ensure_full_rank)
 
         # Step 3: Generate the columns which will be collated into the full matrix
-        cols = {}
-        for scoped_term in scoped_terms:
-            if not scoped_term.factors:
-                cols['Intercept'] = self._encode_constant(1, spec.encoding)
-            else:
-                cols.update(
-                    self._get_columns_for_term([
-                        self._encode_evaled_factor(scoped_factor.factor, spec.encoding, reduced_rank=scoped_factor.reduced)
-                        for scoped_factor in sorted(scoped_term.factors)
-                    ], scale=scoped_term.scale)
-                )
+        cols = []
+        for term, scoped_terms in scoped_terms_for_terms:
+            scoped_cols = OrderedDict()
+            for scoped_term in scoped_terms:
+                if not scoped_term.factors:
+                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, {})
+                else:
+                    scoped_cols.update(
+                        self._get_columns_for_term([
+                            self._encode_evaled_factor(scoped_factor.factor, spec.encoding, reduced_rank=scoped_factor.reduced)
+                            for scoped_factor in sorted(scoped_term.factors)
+                        ], scale=scoped_term.scale)
+                    )
+            cols.append(
+                (term, scoped_terms, scoped_cols)
+            )
 
         # Step 4: Populate remaining model spec fields
-        spec.feature_names = list(cols)
+        spec.feature_names = [
+            name
+            for col in cols
+            for name in col[2]
+        ]
         spec.materializer = self
 
         # Step 5: Collate factors into one ModelMatrix
-        return ModelMatrix(self._combine_columns(cols), spec=spec)
+        return ModelMatrix(
+            self._combine_columns([
+                (name, values)
+                for term, scoped_terms, scoped_cols in cols
+                for name, values in scoped_cols.items()
+            ]),
+            spec=spec
+        )
 
     # Methods related to ensuring out matrices are structurally full-rank
 
@@ -146,7 +163,6 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.
         """
-        scoped_terms = []
         spanned = set()
 
         for term in terms:
@@ -157,23 +173,24 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
             if ensure_full_rank:
                 term_span = self._get_scoped_terms_spanned_by_evaled_factors(evaled_factors).difference(spanned)
-                scoped_terms.extend(self._simplify_scoped_terms(term_span))
+                scoped_terms = self._simplify_scoped_terms(term_span)
                 spanned.update(term_span)
             else:
-                scoped_terms.append(ScopedTerm(
-                    factors=tuple(
-                        ScopedFactor(evaled_factor, reduced=False)
-                        for evaled_factor in evaled_factors
-                        if evaled_factor.kind.value != 'constant'
-                    ),
-                    scale=functools.reduce(operator.mul, [
-                        evaled_factor.values
-                        for evaled_factor in evaled_factors
-                        if evaled_factor.kind.value == 'constant'
-                    ], 1)
-                ))
-
-        return scoped_terms
+                scoped_terms = [
+                    ScopedTerm(
+                        factors=(
+                            ScopedFactor(evaled_factor, reduced=False)
+                            for evaled_factor in evaled_factors
+                            if evaled_factor.kind.value != 'constant'
+                        ),
+                        scale=functools.reduce(operator.mul, [
+                            evaled_factor.values
+                            for evaled_factor in evaled_factors
+                            if evaled_factor.kind.value == 'constant'
+                        ], 1)
+                    )
+                ]
+            yield term, scoped_terms
 
     @classmethod
     def _get_scoped_terms_spanned_by_evaled_factors(cls, evaled_factors):
@@ -194,7 +211,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             else:
                 factors.append((ScopedFactor(factor),))
         return set(
-            ScopedTerm(factors=tuple(sorted(p for p in prod if p != 1)), scale=scale)
+            ScopedTerm(factors=(p for p in prod if p != 1), scale=scale)
             for prod in itertools.product(*factors)
         )
 
@@ -202,8 +219,6 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     def _simplify_scoped_terms(cls, scoped_terms):
         """
         Return the minimal set of ScopedTerm instances that spans the same vectorspace.
-
-        Warning: This method mutates inplace some scoped_terms.
         """
         terms = []
         for scoped_term in sorted(scoped_terms, key=lambda x: len(x.factors)):
@@ -221,7 +236,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                     combined = True
                     break
             if not combined:
-                terms.append(scoped_term)
+                terms.append(scoped_term.copy())
         return terms
 
     # Methods related to looking-up, evaluating and encoding terms and factors
@@ -354,7 +369,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         Returns:
             dict
         """
-        out = {}
+        out = OrderedDict()
         for product in itertools.product(*(factor.items() for factor in factors)):
             out[':'.join(p[0] for p in product)] = scale * functools.reduce(operator.mul, (p[1] for p in product))
         return out

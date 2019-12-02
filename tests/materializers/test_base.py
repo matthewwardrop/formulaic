@@ -2,7 +2,7 @@ import pandas
 import pytest
 
 from formulaic.errors import FormulaMaterializerNotFoundError
-from formulaic.materializers._types import EvaluatedFactor
+from formulaic.materializers._types import EvaluatedFactor, ScopedFactor, ScopedTerm
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.parser.types import Factor
@@ -35,10 +35,19 @@ class TestFormulaMaterializer:
         assert sorted([str(st) for st in FormulaMaterializer._get_scoped_terms_spanned_by_evaled_factors(evaled_factors)]) == sorted(['A-:b', 'b'])
 
     def test__simplify_scoped_terms(self, evaled_factors):
+        A, B, C = [
+            ScopedFactor(l, reduced=False)
+            for l in 'ABC'
+        ]
+        A_, B_, C_ = [
+            ScopedFactor(l, reduced=True)
+            for l in 'ABC'
+        ]
         assert (
-            sorted(
-                str(st) for st in FormulaMaterializer._simplify_scoped_terms(
-                    FormulaMaterializer._get_scoped_terms_spanned_by_evaled_factors(evaled_factors)
-                )
-            )
-        ) == sorted(['A:b'])
+            FormulaMaterializer._simplify_scoped_terms([
+                ScopedTerm((C_, )),
+                ScopedTerm((A_, C_)),
+                ScopedTerm((B_, C_)),
+                ScopedTerm((A_, B_, C_)),
+            ]) == [ScopedTerm((A, B, C_))]
+        )

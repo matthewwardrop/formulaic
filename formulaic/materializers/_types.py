@@ -61,7 +61,7 @@ class ScopedFactor:
 class ScopedTerm:
 
     def __init__(self, factors, scale=None):
-        self.factors = factors
+        self.factors = tuple(sorted(factors))
         self.scale = scale
 
     def __hash__(self):
