@@ -67,7 +67,7 @@ class TestFormulaParser:
 
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
-        generated_terms = PARSER(formula)
+        generated_terms = PARSER.get_terms(formula)
         if isinstance(generated_terms, tuple):
             comp = tuple(
                 sorted([str(term) for term in group])

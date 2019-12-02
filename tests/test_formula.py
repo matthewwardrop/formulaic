@@ -24,6 +24,10 @@ class TestFormula:
     def data(self):
         return pandas.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
 
+    def test_constructor(self):
+        assert [str(t) for t in Formula(['a', 'b', 'c']).terms] == ['a', 'b', 'c']
+        assert [str(t) for t in Formula(['a', 'c', 'b', '1']).terms] == ['a', 'c', 'b', '1']
+
     def test_terms(self, formula_expr, formula_exprs):
         assert [str(t) for t in formula_expr.terms] == ['1', 'a', 'b', 'c', 'a:b', 'a:c', 'b:c', 'a:b:c']
         assert tuple([str(t) for t in tg] for tg in formula_exprs.terms) == (['a'], ['b'], ['1', 'c'])
@@ -43,7 +47,7 @@ class TestFormula:
         with pytest.raises(FormulaInvalidError):
             Formula(None)
         with pytest.raises(FormulaInvalidError):
-            Formula((['a'], ['b']))
+            Formula({'a': 1, 'b': 2})
 
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):

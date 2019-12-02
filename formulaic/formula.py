@@ -9,10 +9,20 @@ from .parser.types import Term
 class Formula:
 
     def __init__(self, formula, parser=None):
+        parser = parser or FormulaParser()
         if isinstance(formula, str):
-            terms = (parser or FormulaParser())(formula)
-        elif isinstance(formula, (tuple, list, set)):
-            terms = formula
+            terms = parser.get_terms(formula, sort=True)
+        elif isinstance(formula, (list, set)):
+            terms = [
+                term
+                for value in formula
+                for term in (parser.get_terms(value, include_intercept=False) if isinstance(value, str) else [value])
+            ]
+        elif isinstance(formula, tuple):
+            terms = tuple(
+                Formula(group, parser=parser).terms
+                for group in formula
+            )
         else:
             raise FormulaInvalidError(f"Unrecognized formula specification: {repr(formula)}.")
         self.terms = terms
@@ -24,7 +34,7 @@ class Formula:
     @terms.setter
     def terms(self, terms):
         self.__check_terms(terms)
-        self._terms = self.__sort_terms(terms)
+        self._terms = terms
 
     @classmethod
     def __check_terms(cls, terms, depth=0):
@@ -35,13 +45,6 @@ class Formula:
             for term in terms:
                 if not isinstance(term, Term):
                     raise FormulaInvalidError(f"All terms in formula should be instances of `formulaic.parser.types.Term`; received term {repr(term)} of type `{type(term)}`.")
-
-    @classmethod
-    def __sort_terms(cls, terms):
-        if isinstance(terms, tuple):
-            return tuple(sorted(ts) for ts in terms)
-        else:
-            return sorted(terms)
 
     def get_model_matrix(self, data, context=None, materializer=None, ensure_full_rank=True, **kwargs):
         if materializer is None:

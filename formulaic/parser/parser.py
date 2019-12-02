@@ -63,10 +63,7 @@ class FormulaParser:
             }),
         ]
 
-    def __call__(self, formula):
-        return self.get_ast(formula).to_terms()
-
-    def get_tokens(self, formula):
+    def get_tokens(self, formula, *, include_intercept=True):
         tokens = list(tokenize(formula))
 
         # Insert "1" or "1 + " to beginning of RHS formula
@@ -74,19 +71,20 @@ class FormulaParser:
         plus = Token(token='+', kind='operator')
         minus = Token(token='-', kind='operator')
 
-        if len(tokens) == 0:
-            tokens = [one]
-        else:
-            try:
-                tilde_index = len(tokens) - 1 - tokens[::-1].index('~')
-                if tilde_index == len(tokens) - 1:
-                    tokens.append(one)
-                else:
-                    tokens.insert(tilde_index + 1, one)
-                    tokens.insert(tilde_index + 2, plus)
-            except ValueError:
-                tokens.insert(0, one)
-                tokens.insert(1, plus)
+        if include_intercept:
+            if len(tokens) == 0:
+                tokens = [one]
+            else:
+                try:
+                    tilde_index = len(tokens) - 1 - tokens[::-1].index('~')
+                    if tilde_index == len(tokens) - 1:
+                        tokens.append(one)
+                    else:
+                        tokens.insert(tilde_index + 1, one)
+                        tokens.insert(tilde_index + 2, plus)
+                except ValueError:
+                    tokens.insert(0, one)
+                    tokens.insert(1, plus)
 
         # Replace "0" with "-1"
         try:
@@ -99,5 +97,16 @@ class FormulaParser:
 
         return tokens
 
-    def get_ast(self, formula):
-        return infix_to_ast(self.get_tokens(formula), operators=self.operators)
+    def get_ast(self, formula, *, include_intercept=True):
+        return infix_to_ast(self.get_tokens(formula, include_intercept=include_intercept), operators=self.operators)
+
+    def get_terms(self, formula, *, sort=True, include_intercept=True):
+        terms = self.get_ast(formula, include_intercept=include_intercept).to_terms()
+
+        if sort:
+            if isinstance(terms, tuple):
+                terms = tuple(sorted(ts) for ts in terms)
+            else:
+                terms = sorted(terms)
+
+        return terms
