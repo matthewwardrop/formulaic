@@ -123,12 +123,14 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             )
 
         # Step 4: Populate remaining model spec fields
-        spec.feature_names = [
-            name
-            for col in cols
-            for name in col[2]
-        ]
         spec.materializer = self
+        if spec.structure:
+            cols = self._enforce_structure(cols, spec.structure)
+        else:
+            spec.structure = [
+                (term, scoped_terms, list(scoped_cols))
+                for term, scoped_terms, scoped_cols in cols
+            ]
 
         # Step 5: Collate factors into one ModelMatrix
         return ModelMatrix(
@@ -355,6 +357,26 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         pass
 
     # Methods related to ModelMatrix output
+
+    def _enforce_structure(self, cols, structure):
+        assert len(cols) == len(structure)
+        for i in range(len(cols)):
+            scoped_cols = cols[i][2]
+            target_cols = structure[i][2]
+            if len(scoped_cols) < len(target_cols):
+                if len(scoped_cols) == 0:
+                    col = self._encode_constant(0, None, None)
+                elif len(scoped_cols) == 1:
+                    col = next(scoped_cols.values())
+                else:
+                    raise FactorEncodingError(f"Structure of columns for term `{cols[i][0]}` inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+                scoped_cols = {
+                    name: col
+                    for name in target_cols
+                }
+            else:
+                assert list(scoped_cols) == target_cols
+            yield cols[i][0], cols[i][1], scoped_cols
 
     def _get_columns_for_term(self, factors, scale=1):
         """

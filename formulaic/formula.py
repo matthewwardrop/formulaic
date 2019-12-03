@@ -8,6 +8,12 @@ from .parser.types import Term
 
 class Formula:
 
+    @classmethod
+    def from_spec(cls, spec, parser=None):
+        if isinstance(spec, Formula):
+            return spec
+        return cls(spec, parser=parser)
+
     def __init__(self, formula, parser=None):
         parser = parser or FormulaParser()
         if isinstance(formula, str):
