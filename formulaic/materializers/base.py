@@ -110,7 +110,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             scoped_cols = OrderedDict()
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
-                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, {})
+                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, None, {})
                 else:
                     scoped_cols.update(
                         self._get_columns_for_term([
@@ -248,9 +248,9 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             if factor.eval_method.value == 'lookup':
                 value = self._lookup(factor.expr)
             elif factor.eval_method.value == 'python':
-                value = self._evaluate(factor.expr, transform_state)
+                value = self._evaluate(factor.expr, factor.metadata, transform_state)
             elif factor.eval_method.value == 'literal':
-                value = EvaluatedFactor(factor, self._evaluate(factor.expr, transform_state), kind='constant')
+                value = EvaluatedFactor(factor, self._evaluate(factor.expr, factor.metadata, transform_state), kind='constant')
             else:
                 raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
 
@@ -283,8 +283,8 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
     def _lookup(self, name):
         return self.layered_context[name]
 
-    def _evaluate(self, expr, transform_state):
-        return stateful_eval(expr, self.layered_context, transform_state, self.config)
+    def _evaluate(self, expr, metadata, transform_state):
+        return stateful_eval(expr, self.layered_context, {expr: metadata}, transform_state, self.config)
 
     def _is_categorical(self, values):
         if isinstance(values, dict):
@@ -300,11 +300,11 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             else:
                 state = encoder_state.get(factor.expr, [None, {}])[1]
                 if factor.kind.value == 'categorical':
-                    encoded = self._encode_categorical(factor.values, state, reduced_rank=reduced_rank)
+                    encoded = self._encode_categorical(factor.values, factor.metadata, state, reduced_rank=reduced_rank)
                 elif factor.kind.value == 'numerical':
-                    encoded = self._encode_numerical(factor.values, state)
+                    encoded = self._encode_numerical(factor.values, factor.metadata, state)
                 elif factor.kind.value == 'constant':
-                    encoded = self._encode_constant(factor.values, state)
+                    encoded = self._encode_constant(factor.values, factor.metadata, state)
                 else:
                     raise FactorEncodingError(factor)
                 encoder_state[factor.expr] = (factor.kind, state)
@@ -345,15 +345,15 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
         return flattened
 
     @abstractmethod
-    def _encode_constant(self, value, encoder_state):
+    def _encode_constant(self, value, metadata, encoder_state):
         pass
 
     @abstractmethod
-    def _encode_categorical(self, values, encoder_state, reduced_rank=False):
+    def _encode_categorical(self, values, metadata, encoder_state, reduced_rank=False):
         pass
 
     @abstractmethod
-    def _encode_numerical(self, values, encoder_state):
+    def _encode_numerical(self, values, metadata, encoder_state):
         pass
 
     # Methods related to ModelMatrix output

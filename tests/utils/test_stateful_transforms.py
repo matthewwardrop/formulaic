@@ -21,14 +21,14 @@ def test_stateful_transform():
 def test_stateful_eval():
     state = {}
 
-    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': 1}, state, None) == 1
+    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': 1}, None, state, None) == 1
     assert state == {"dummy_transform(data)": {'data': 1}}
-    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': 2}, state, None) == 1
+    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': 2}, None, state, None) == 1
 
 
 def test_stateful_eval_distribution():
     state = {}
 
-    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value', 'a': 1, 'b': 2}}, state, None) == {'__property__': 'value', 'a': 1, 'b': 2}
+    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value', 'a': 1, 'b': 2}}, None, state, None) == {'__property__': 'value', 'a': 1, 'b': 2}
     assert state == {"dummy_transform(data)": {'a': {'data': 1}, 'b': {'data': 2}}}
-    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value2', 'a': 3, 'b': 4}}, state, None) == {'__property__': 'value2', 'a': 1, 'b': 2}
+    assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value2', 'a': 3, 'b': 4}}, None, state, None) == {'__property__': 'value2', 'a': 1, 'b': 2}

@@ -10,14 +10,18 @@ from .layered_mapping import LayeredMapping
 def stateful_transform(func):
     params = inspect.signature(func).parameters.keys()
     @functools.wraps(func)
-    def wrapper(data, *args, state=None, config=None, **kwargs):
+    def wrapper(data, *args, metadata=None, state=None, config=None, **kwargs):
         from formulaic.materializers.base import FormulaMaterializer
         state = {} if state is None else state
-        if isinstance(config, dict):
-            config = FormulaMaterializer.Config(**config)
-        else:
-            config = config or FormulaMaterializer.Config()
-        extra_params = {'config': config} if 'config' in params else {}
+        extra_params = {}
+        if 'metadata' in params:
+            extra_params['metadata'] = metadata
+        if 'config' in params:
+            if isinstance(config, dict):
+                config = FormulaMaterializer.Config(**config)
+            else:
+                config = config or FormulaMaterializer.Config()
+            extra_params['config'] = config
         if isinstance(data, dict):
             results = {}
             for key, datum in data.items():
@@ -34,7 +38,7 @@ def stateful_transform(func):
     return wrapper
 
 
-def stateful_eval(expr, env, state, config):
+def stateful_eval(expr, env, metadata, state, config):
     """
     Evaluate an expression with a given state.
 
@@ -42,6 +46,7 @@ def stateful_eval(expr, env, state, config):
     create a copy before passing it to this function.
     """
 
+    metadata = {} if metadata is None else metadata
     state = {} if state is None else state
 
     # Parse Python code
@@ -58,14 +63,24 @@ def stateful_eval(expr, env, state, config):
         name = name.replace('"', r'\\\\"')
         if name not in state:
             state[name] = {}
+        node.keywords.append(ast.keyword('metadata', ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode='eval').body))
         node.keywords.append(ast.keyword('state', ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode='eval').body))
         node.keywords.append(ast.keyword('config', ast.parse(f'__FORMULAIC_CONFIG__', mode='eval').body))
 
     # Compile mutated AST
     code = compile(ast.fix_missing_locations(code), '', 'eval')
 
+    assert "__FORMULAIC_METADATA__" not in env
     assert "__FORMULAIC_STATE__" not in env
     assert "__FORMULAIC_CONFIG__" not in env
 
     # Evaluate and return
-    return eval(code, {}, LayeredMapping({'__FORMULAIC_CONFIG__': config, '__FORMULAIC_STATE__': state}, env))  # nosec
+    return eval(
+        code,
+        {},
+        LayeredMapping({
+            '__FORMULAIC_METADATA__': metadata,
+            '__FORMULAIC_CONFIG__': config,
+            '__FORMULAIC_STATE__': state
+        }, env)
+    )  # nosec

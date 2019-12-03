@@ -22,24 +22,24 @@ class PandasMaterializer(FormulaMaterializer):
         return super()._is_categorical(values)
 
     @override
-    def _encode_constant(self, value, encoder_state):
+    def _encode_constant(self, value, metadata, encoder_state):
         if self.config.sparse:
             return spsparse.csc_matrix(numpy.array([value] * self.nrows).reshape((self.nrows, 1)))
-        return value
+        return value * pandas.Series(numpy.ones(self.data.shape[0]))
 
     @override
-    def _encode_numerical(self, values, encoder_state):
+    def _encode_numerical(self, values, metadata, encoder_state):
         if self.config.sparse:
             return spsparse.csc_matrix(numpy.array(values).reshape((self.nrows, 1)))
         return values
 
     @override
-    def _encode_categorical(self, values, encoder_state, reduced_rank=False):
+    def _encode_categorical(self, values, metadata, encoder_state, reduced_rank=False):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
         from ._transforms import encode_categorical
-        return encode_categorical(values, state=encoder_state, config=self.config, reduced_rank=False)
+        return encode_categorical(values, metadata=metadata, state=encoder_state, config=self.config, reduced_rank=False)
 
     @override
     def _get_columns_for_term(self, factors, scale=1):
