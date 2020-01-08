@@ -60,6 +60,8 @@ class ScopedFactor:
 
 class ScopedTerm:
 
+    __slots__ = ('factors', 'scale')
+
     def __init__(self, factors, scale=None):
         self.factors = tuple(sorted(factors))
         self.scale = scale

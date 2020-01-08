@@ -23,7 +23,7 @@ class Factor:
         self.expr = expr
         self.eval_method = eval_method
         self.kind = kind
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     @property
     def eval_method(self):
