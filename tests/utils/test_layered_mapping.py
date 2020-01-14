@@ -20,3 +20,9 @@ def test_layered_context():
 
     assert len(layered) == 4
     assert set(layered) == {'a', 'b', 'c', 'd'}
+
+    layered2 = layered.with_layers({'e':0 , 'f': 1, 'g': 2}, {'h': 1})
+    assert set(layered2) == {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+
+    layered.with_layers({'e': 2}, inplace=True)
+    assert set(layered)  == {'a', 'b', 'c', 'd', 'e'}

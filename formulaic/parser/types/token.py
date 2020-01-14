@@ -45,7 +45,7 @@ class Token:
         if isinstance(other, str):
             return self.token == other
         if isinstance(other, Token):
-            return self.token == other.token
+            return self.token == other.token and self.kind == other.kind
         return NotImplemented
 
     def __hash__(self):
