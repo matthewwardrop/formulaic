@@ -56,3 +56,13 @@ class ModelSpec:
         else:
             materializer = FormulaMaterializer.for_materializer(self.materializer)
         return materializer(data, **kwargs).get_model_matrix(self)
+
+    def differentiate(self, *vars, use_sympy=False):
+        return ModelSpec(
+            formula=self.formula.differentiate(*vars, use_sympy=use_sympy),
+            ensure_full_rank=self.ensure_full_rank,
+            structure=self.structure,
+            materializer=self.materializer,
+            transforms=self.transforms,
+            encoding=self.encoding,
+        )

@@ -41,6 +41,7 @@ setup(
         'numpy',
         'pandas',
         'scipy',
+        'sympy',
         'wrapt',
     ],
     tests_require=test_deps,

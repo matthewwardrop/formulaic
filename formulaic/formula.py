@@ -4,6 +4,7 @@ from .errors import FormulaInvalidError, FormulaMaterializerInvalidError
 from .materializers.base import FormulaMaterializer
 from .parser import FormulaParser
 from .parser.types import Term
+from .utils.calculus import differentiate_term
 
 
 class Formula:
@@ -60,6 +61,12 @@ class Formula:
         if not inspect.isclass(materializer) or not issubclass(materializer, FormulaMaterializer):
             raise FormulaMaterializerInvalidError("Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`.")
         return materializer(data, context=context or {}, **kwargs).get_model_matrix(self, ensure_full_rank=ensure_full_rank)
+
+    def differentiate(self, *vars, use_sympy=False):
+        return Formula([
+            differentiate_term(term, vars, use_sympy=use_sympy)
+            for term in self.terms
+        ])
 
     def __str__(self):
         if isinstance(self.terms, tuple):
