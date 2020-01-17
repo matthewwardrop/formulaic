@@ -16,7 +16,8 @@ TOKEN_TESTS = {
     'a ++ b': ['name:a', 'operator:++', 'name:b'],
     'a +   + b': ['name:a', 'operator:++', 'name:b'],
     'a(b() + c())': ['python:a(b() + c())'],
-    r"'\''": [r"value:'\''"]
+    r"'\''": [r"value:'\''"],
+    '"abc" + "def"': ['value:"abc"', 'operator:+', 'value:"def"'],
 }
 
 TOKEN_ERRORS = {

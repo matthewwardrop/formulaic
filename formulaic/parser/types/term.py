@@ -18,6 +18,8 @@ class Term:
     def __eq__(self, other):
         if isinstance(other, Term):
             return self._tuple == other._tuple
+        if isinstance(other, str):
+            return repr(self) == other
         return NotImplemented
 
     def __lt__(self, other):

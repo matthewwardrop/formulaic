@@ -1,6 +1,5 @@
 import pytest
 
-
 from formulaic.parser.types import Term, Token
 
 class TestToken:
