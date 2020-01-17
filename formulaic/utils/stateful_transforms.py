@@ -8,6 +8,7 @@ from .layered_mapping import LayeredMapping
 
 
 def stateful_transform(func):
+    func = functools.singledispatch(func)
     params = inspect.signature(func).parameters.keys()
     @functools.wraps(func)
     def wrapper(data, *args, metadata=None, state=None, config=None, **kwargs):

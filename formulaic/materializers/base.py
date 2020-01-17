@@ -13,8 +13,8 @@ from formulaic.utils.stateful_transforms import stateful_eval
 
 from formulaic.parser.types import Factor
 
-from ._transforms import TRANSFORMS
-from ._types import EvaluatedFactor, ScopedFactor, ScopedTerm
+from .transforms import TRANSFORMS
+from .types import EvaluatedFactor, ScopedFactor, ScopedTerm
 
 
 class FormulaMaterializer(metaclass=InterfaceMeta):

@@ -3,20 +3,7 @@ import pytest
 import scipy.sparse as spsparse
 
 from formulaic.errors import DataMismatchWarning
-from formulaic.materializers._transforms import center, encode_categorical
-
-
-def test_center():
-    state = {}
-    assert numpy.allclose(center(data=[1, 2, 3], state=state), [-1, 0, 1])
-    assert state == {'mean': 2}
-    assert numpy.allclose(center(data=[5, 6, 7], state=state), [3, 4, 5])
-
-
-def test_center_sparse():
-    state = {}
-    m = spsparse.csc_matrix([1, 2, 3]).transpose()
-    assert numpy.allclose(center(data=m, state=state), [-1, 0, 1])
+from formulaic.materializers.transforms import encode_categorical
 
 
 def test_encode_categorical():
@@ -112,6 +99,22 @@ def test_encode_categorical_sparse():
         }
     )
     assert state['categories'] == ['a', 'b', 'c']
+
+    with pytest.warns(DataMismatchWarning):
+        _compare_formulaic_dict(
+            encode_categorical(data=['a', 'b', 'd', 'a', 'b', 'd'], state=state, config={'sparse': True}),
+            {
+                '__kind__': 'categorical',
+                '__spans_intercept__': True,
+                '__drop_field__': 'a',
+                '__format__': '{name}[T.{field}]',
+                '__encoded__': True,
+                'a': [1, 0, 0, 1, 0, 0],
+                'b': [0, 1, 0, 0, 1, 0],
+                'c': [0, 0, 0, 0, 0, 0],
+            }
+        )
+        assert state['categories'] == ['a', 'b', 'c']
 
 
 def _compare_formulaic_dict(a, b, comp=lambda x, y: numpy.allclose(x, y)):

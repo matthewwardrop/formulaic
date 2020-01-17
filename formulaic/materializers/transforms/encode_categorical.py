@@ -1,4 +1,5 @@
 import warnings
+from collections import OrderedDict
 from functools import singledispatch
 
 import numpy
@@ -11,26 +12,12 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 
 @stateful_transform
-@singledispatch
-def center(data, state=None):
-    data = numpy.array(data)
-    if 'mean' not in state:
-        state['mean'] = numpy.mean(data)
-    return data - state['mean']
-
-
-@center.register(spsparse.spmatrix)
-def _(data, state=None):
-    assert data.shape[1] == 1
-    return center(data.toarray()[:, 0], state=state)
-
-
-@stateful_transform
-@singledispatch
-def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=True):
+def encode_categorical(data, metadata, state, config, reduced_rank=False, spans_intercept=True):
     # TODO: Add support for specifying contrast matrix / etc
+
     if config.sparse:
         data = numpy.array(data)
+        data = data.reshape((data.size, ))
         categories, encoded = categorical_encode_series_to_sparse_csc_matrix(data, reduced_rank=reduced_rank)
     else:
         data = pandas.Categorical(data)
@@ -45,8 +32,14 @@ def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=
             for category in extra_categories:
                 del encoded[category]
 
-        for missing_category in set(state['categories']).difference(categories):
-            encoded[missing_category] = spsparse.csc_matrix((data.shape[0], 1))
+        missing_categories = set(state['categories']).difference(categories)
+        if missing_categories:
+            for missing_category in missing_categories:
+                if config.sparse:
+                    encoded[missing_category] = spsparse.csc_matrix((data.shape[0], 1))
+                else:
+                    encoded[missing_category] = pandas.Series(numpy.zeros(data.shape[0]))
+            encoded = OrderedDict(sorted(encoded.items(), key=lambda x: x[0]))
     else:
         state['categories'] = categories
 
@@ -59,9 +52,3 @@ def encode_categorical(data, state, config, reduced_rank=False, spans_intercept=
     })
 
     return encoded
-
-
-TRANSFORMS = {
-    'center': center,
-    'C': encode_categorical,
-}

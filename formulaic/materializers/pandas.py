@@ -38,7 +38,7 @@ class PandasMaterializer(FormulaMaterializer):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
-        from ._transforms import encode_categorical
+        from .transforms import encode_categorical
         return encode_categorical(values, metadata=metadata, state=encoder_state, config=self.config, reduced_rank=False)
 
     @override

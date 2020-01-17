@@ -2,7 +2,7 @@ import pandas
 import pytest
 
 from formulaic.errors import FormulaMaterializerNotFoundError
-from formulaic.materializers._types import EvaluatedFactor, ScopedFactor, ScopedTerm
+from formulaic.materializers.types import EvaluatedFactor, ScopedFactor, ScopedTerm
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.parser.types import Factor
