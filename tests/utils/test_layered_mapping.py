@@ -26,3 +26,5 @@ def test_layered_context():
 
     layered.with_layers({'e': 2}, inplace=True)
     assert set(layered)  == {'a', 'b', 'c', 'd', 'e'}
+
+    assert layered.with_layers() is layered

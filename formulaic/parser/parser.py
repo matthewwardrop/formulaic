@@ -34,7 +34,7 @@ class FormulaParser:
 
         def unary_negation(arg):
             terms = arg.to_terms()
-            if len(terms) > 1 and list(terms)[0].flatten() != '0':
+            if len(terms) > 1 or list(terms)[0] != '0':
                 raise FormulaParsingError("Unary negation is only implemented for '0', where it is substituted for '1'.")
             return {Term(factors=[Factor('1', eval_method='literal')])}
 

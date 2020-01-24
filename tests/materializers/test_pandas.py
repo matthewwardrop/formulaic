@@ -3,7 +3,10 @@ import pandas
 import pytest
 import scipy.sparse as spsparse
 
+from formulaic.errors import FactorEncodingError, FactorEvaluationError
 from formulaic.materializers import PandasMaterializer
+from formulaic.materializers.types import EvaluatedFactor
+from formulaic.parser.types import Factor
 
 
 PANDAS_TESTS = {
@@ -67,3 +70,42 @@ class TestPandasMaterializer:
         assert isinstance(mm3, pandas.DataFrame)
         assert list(mm3.columns) == ['center(a)']
         assert numpy.allclose(mm3['center(a)'], [2, 3, 4])
+
+    def test_factor_evaluation_edge_cases(self, materializer):
+        # Test that categorical kinds are set if type would otherwise be numerical
+        ev_factor = materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='categorical'), {}, {})
+        assert ev_factor.kind.value == 'categorical'
+
+        # Test that other kind mismatches result in an exception
+        materializer.factor_cache = {}
+        with pytest.raises(FactorEncodingError):
+            materializer._evaluate_factor(Factor('A', eval_method='lookup', kind='numerical'), {}, {})
+
+        # Test that if an encoding has already been determined, that an exception is raised
+        # if the new encoding does not match
+        materializer.factor_cache = {}
+        with pytest.raises(FactorEncodingError):
+            materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='numerical'), {}, {'a': ('categorical', {})})
+
+        # Test that invalid (kind == UNKNOWN) factors raise errors
+        materializer.factor_cache = {}
+        with pytest.raises(FactorEvaluationError):
+            assert materializer._evaluate_factor(Factor('a'), {}, {})
+
+    def test_categorical_dict_detection(self, materializer):
+        assert materializer._is_categorical({'__kind__': 'categorical'})
+
+    def test_encoding_edge_cases(self, materializer):
+        # Verify that constant encoding works well
+        assert (
+            list(
+                materializer._encode_evaled_factor(
+                    factor=EvaluatedFactor(
+                        Factor("10", eval_method='literal', kind='constant'),
+                        values=10,
+                        kind='constant',
+                    ),
+                    encoder_state={},
+                )['10']
+            ) == [10, 10, 10]
+        )

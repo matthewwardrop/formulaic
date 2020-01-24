@@ -5,7 +5,6 @@ with open('formulaic/_version.py') as version_file:
     exec(version_file.read(), version_info)
 
 test_deps = [
-    'bandit',
     'flake8',
     'pytest',
     'pytest-cov',

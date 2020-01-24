@@ -69,7 +69,7 @@ def tokenize(formula):
                 quote_context.append(char)
             else:
                 raise FormulaParsingError(f"Unexpected character {repr(char)} following token '{token}'.")
-            continue
+            continue  # pragma: no cover; workaround bug in coverage
 
         if WORD_CHAR.match(char):
             assert token.kind in (None, Token.Kind.OPERATOR, Token.Kind.VALUE, Token.Kind.NAME), f"Unexpected token kind {token.kind}."

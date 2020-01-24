@@ -27,7 +27,7 @@ class Formula:
             ]
         elif isinstance(formula, tuple):
             terms = tuple(
-                Formula(group, parser=parser).terms
+                Formula.from_spec(group, parser=parser).terms
                 for group in formula
             )
         else:
@@ -72,6 +72,11 @@ class Formula:
         if isinstance(self.terms, tuple):
             return ' ~ '.join(" + ".join(str(term) for term in terms) for terms in self._terms)
         return " + ".join(str(term) for term in self.terms)
+
+    def __eq__(self, other):
+        if isinstance(other, Formula):
+            return self.terms == other.terms
+        return NotImplemented
 
     def __repr__(self):
         return str(self)

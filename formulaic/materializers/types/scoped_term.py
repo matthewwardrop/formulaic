@@ -15,8 +15,8 @@ class ScopedTerm:
         return NotImplemented
 
     def __repr__(self):
-        factor_repr =  ":".join(f.__repr__() for f in sorted(self.factors)) if self.factors else "1"
-        if self.scale is not None and self.scale is not 1:
+        factor_repr = ":".join(f.__repr__() for f in sorted(self.factors)) if self.factors else "1"
+        if self.scale is not None and self.scale != 1:
             return f"{self.scale}*{factor_repr}"
         return factor_repr
 

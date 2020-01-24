@@ -13,7 +13,7 @@ class Term:
         return tuple(factor.expr for factor in sorted(self.factors))
 
     def __hash__(self):
-        return hash(self._tuple)
+        return hash(str(self))
 
     def __eq__(self, other):
         if isinstance(other, Term):

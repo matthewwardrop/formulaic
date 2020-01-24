@@ -1,7 +1,7 @@
 import pandas
 import pytest
 
-from formulaic.errors import FormulaMaterializerNotFoundError
+from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
 from formulaic.materializers.types import EvaluatedFactor, ScopedFactor, ScopedTerm
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
@@ -51,3 +51,90 @@ class TestFormulaMaterializer:
                 ScopedTerm((A_, B_, C_)),
             ]) == [ScopedTerm((A, B, C_))]
         )
+
+    def test__flatten_encoded_evaled_factor(self):
+
+        flattened = PandasMaterializer(data=None)._flatten_encoded_evaled_factor(
+            'name',
+            {'a': {'1': 1, '2': 2, '__format__': '{name}@{field}'}, 'b': {'3': 3, '4': 4}}
+        )
+
+        assert list(flattened) == ['name[a]@1', 'name[a]@2', 'name[b][3]', 'name[b][4]']
+        assert list(flattened.values()) == [1, 2, 3, 4]
+
+    def test__enforce_structure(self):
+
+        # TODO: Make sure that imputations are intuitive
+
+        df = pandas.DataFrame({'a': [1]})
+        cols = [
+            ('A', {'A'}, {'a': 1})
+        ]
+
+        assert len(list(PandasMaterializer(data=None)._enforce_structure(
+            cols=[
+                ('A', {'A'}, {'a': 1})
+            ],
+            structure=[
+                ('A', {'A'}, ['a'])
+            ]
+        ))) == 1
+
+        # Ensure than an exception is raised if input structure > expected structure
+        with pytest.raises(FactorEncodingError):
+            list(PandasMaterializer(df)._enforce_structure(
+                cols=[
+                    ('A', {'A'}, {'a': 1, 'b': 2})
+                ],
+                structure=[
+                    ('A', {'A'}, ['a'])
+                ]
+            ))
+
+        # Ensure that missing columns are imputed
+        assert list(list(PandasMaterializer(df)._enforce_structure(
+            cols=[
+                ('A', {'A'}, {'a': 1})
+            ],
+            structure=[
+                ('A', {'A'}, ['a', 'b'])
+            ]
+        ))[0][-1]) == ['a', 'b']
+
+        assert list(list(PandasMaterializer(df)._enforce_structure(
+            cols=[
+                ('A', {'A'}, {})
+            ],
+            structure=[
+                ('A', {'A'}, ['a', 'b'])
+            ]
+        ))[0][-1]) == ['a', 'b']
+
+        # Ensure that imputation does not occur if it would be ambiguous
+        with pytest.raises(FactorEncodingError):
+            list(PandasMaterializer(df)._enforce_structure(
+                cols=[
+                    ('A', {'A'}, {'a': 1, 'b': 2})
+                ],
+                structure=[
+                    ('A', {'A'}, ['a', 'b', 'c'])
+                ]
+            ))
+
+        # Ensure that an exception is raised if columns do not match
+        with pytest.raises(FactorEncodingError):
+            list(PandasMaterializer(df)._enforce_structure(
+                cols=[
+                    ('A', {'A'}, {'a': 1, 'b': 2, 'd': 3})
+                ],
+                structure=[
+                    ('A', {'A'}, ['a', 'b', 'c'])
+                ]
+            ))
+
+    def test__get_columns_for_term(self):
+        assert FormulaMaterializer._get_columns_for_term(
+            None,
+            [{'a': 1}, {'b': 2}],
+            scale=3
+        ) == {'a:b': 6}

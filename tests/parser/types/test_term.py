@@ -23,7 +23,7 @@ class TestTerm:
             term1 * 1
 
     def test_hash(self, term1):
-        assert hash(term1) == hash(('b', 'c'))
+        assert hash(term1) == hash('b:c')
 
     def test_equality(self, term1, term2):
         assert term1 == term1

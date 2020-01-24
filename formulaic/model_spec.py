@@ -48,6 +48,7 @@ class ModelSpec:
         for row in self.structure:
             end = start + len(row[2])
             slices[row[0]] = slice(start, end)
+            start = end
         return slices
 
     def get_model_matrix(self, data, **kwargs):

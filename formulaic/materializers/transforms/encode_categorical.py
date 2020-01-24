@@ -1,6 +1,5 @@
 import warnings
 from collections import OrderedDict
-from functools import singledispatch
 
 import numpy
 import pandas

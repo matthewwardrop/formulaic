@@ -1,5 +1,6 @@
 import pytest
 
+from formulaic.errors import FormulaParsingError
 from formulaic.parser import FormulaParser
 
 
@@ -76,3 +77,7 @@ class TestFormulaParser:
         else:
             comp = sorted([str(term) for term in generated_terms])
         assert comp == terms
+
+    def test_invalid_unary_negation(self):
+        with pytest.raises(FormulaParsingError):
+            assert PARSER.get_terms('(-10)')

@@ -288,7 +288,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     def _is_categorical(self, values):
         if isinstance(values, dict):
-            return values.get('__spans_intercept__', False)
+            return values.get('__kind__') == 'categorical'
         return False
 
     def _encode_evaled_factor(self, factor, encoder_state, reduced_rank=False):
@@ -306,7 +306,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
                 elif factor.kind.value == 'constant':
                     encoded = self._encode_constant(factor.values, factor.metadata, state)
                 else:
-                    raise FactorEncodingError(factor)
+                    raise FactorEncodingError(factor)  # pragma: no cover; it is not currently possible to reach this sentinel
                 encoder_state[factor.expr] = (factor.kind, state)
 
                 if isinstance(encoded, dict) and encoded.get('__drop_field__'):
@@ -346,36 +346,40 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     @abstractmethod
     def _encode_constant(self, value, metadata, encoder_state):
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def _encode_categorical(self, values, metadata, encoder_state, reduced_rank=False):
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def _encode_numerical(self, values, metadata, encoder_state):
-        pass
+        pass  # pragma: no cover
 
     # Methods related to ModelMatrix output
 
     def _enforce_structure(self, cols, structure):
+        # TODO: Verify that imputation strategies are intuitive and make sense.
         assert len(cols) == len(structure)
         for i in range(len(cols)):
             scoped_cols = cols[i][2]
             target_cols = structure[i][2]
-            if len(scoped_cols) < len(target_cols):
+            if len(scoped_cols) > len(target_cols):
+                raise FactorEncodingError(f"Term `{cols[i][0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+            elif len(scoped_cols) < len(target_cols):
                 if len(scoped_cols) == 0:
                     col = self._encode_constant(0, None, None)
                 elif len(scoped_cols) == 1:
-                    col = next(scoped_cols.values())
+                    col = next(iter(scoped_cols.values()))
                 else:
-                    raise FactorEncodingError(f"Structure of columns for term `{cols[i][0]}` inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+                    raise FactorEncodingError(f"Term `{cols[i][0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}.")
                 scoped_cols = {
                     name: col
                     for name in target_cols
                 }
-            else:
-                assert list(scoped_cols) == target_cols
+            elif len(scoped_cols) == len(target_cols) and list(scoped_cols) != target_cols:
+                raise FactorEncodingError(f"Term `{cols[i][0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+
             yield cols[i][0], cols[i][1], scoped_cols
 
     def _get_columns_for_term(self, factors, scale=1):
@@ -398,4 +402,4 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     @abstractmethod
     def _combine_columns(self, cols):
-        pass
+        pass  # pragma: no cover
