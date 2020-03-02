@@ -28,3 +28,13 @@ def test_layered_context():
     assert set(layered)  == {'a', 'b', 'c', 'd', 'e'}
 
     assert layered.with_layers() is layered
+
+    # Test mutations
+    layered['f'] = 10
+    assert layered.mutations == {'f': 10}
+
+    del layered['f']
+    assert layered.mutations == {}
+
+    with pytest.raises(KeyError):
+        del layered['a']
