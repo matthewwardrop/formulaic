@@ -18,6 +18,9 @@ TOKEN_TESTS = {
     'a(b() + c())': ['python:a(b() + c())'],
     r"'\''": [r"value:'\''"],
     '"abc" + "def"': ['value:"abc"', 'operator:+', 'value:"def"'],
+    '`a|b * 2:a{}`': ["name:a|b * 2:a{}"],
+    '{`a|b` @ `b2:1`}': ["python:`a|b` @ `b2:1`"],
+    'a + `a+b` + {a / b}': ["name:a", 'operator:+', "name:a+b", 'operator:+', "python:a / b"],
 }
 
 TOKEN_ERRORS = {

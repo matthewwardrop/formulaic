@@ -5,12 +5,7 @@ from formulaic.errors import FormulaParsingError
 from ..types import Token
 
 
-WORD_CHAR = re.compile(r'[\.\_\w]')
-NUMERIC_CHAR = re.compile(r'[0-9\.]')
-WHITESPACE_CHAR = re.compile(r'\s')
-
-
-def tokenize(formula):
+def tokenize(formula, word_chars=re.compile(r'[\.\_\w]'), numeric_chars=re.compile(r'[0-9\.]'), whitespace_chars=re.compile(r'\s')):
     quote_context = []
     take = 0
 
@@ -25,6 +20,11 @@ def tokenize(formula):
             token.update(char, i)
             take = 1
             continue
+        if quote_context and quote_context[-1] in '}`' and char == quote_context[-1]:
+            quote_context.pop(-1)
+            yield token
+            token = Token(source=formula)
+            continue
         if quote_context and char == quote_context[-1]:
             token.update(char, i)
             quote_context.pop(-1)
@@ -32,10 +32,22 @@ def tokenize(formula):
                 yield token
                 token = Token(source=formula)
             continue
-        if quote_context and quote_context[-1] in ('"', "'"):
+        if quote_context and quote_context[-1] in ('"', "'", "`", "}"):
             token.update(char, i)
             continue
 
+        if char == '{':
+            if token:
+                yield token
+            token = Token(source=formula, kind='python')
+            quote_context.append('}')
+            continue
+        if char == '`':
+            if token:
+                yield token
+            token = Token(source=formula, kind='name')
+            quote_context.append('`')
+            continue
         if char in '([':
             if token.kind in (Token.Kind.NAME, Token.Kind.PYTHON):
                 token.update(char, i, kind=Token.Kind.PYTHON)
@@ -46,7 +58,7 @@ def tokenize(formula):
                     token = Token(source=formula)
                 yield Token(source=formula).update(char, i, kind='operator')
             continue
-        if char == ')':
+        if char in ')':
             if token:
                 yield token
                 token = Token(source=formula)
@@ -57,7 +69,7 @@ def tokenize(formula):
             token.update(char, i)
             continue
 
-        if WHITESPACE_CHAR.match(char):
+        if whitespace_chars.match(char):
             continue
 
         if char in ('"', "'"):
@@ -71,12 +83,12 @@ def tokenize(formula):
                 raise FormulaParsingError(f"Unexpected character {repr(char)} following token '{token}'.")
             continue  # pragma: no cover; workaround bug in coverage
 
-        if WORD_CHAR.match(char):
+        if word_chars.match(char):
             assert token.kind in (None, Token.Kind.OPERATOR, Token.Kind.VALUE, Token.Kind.NAME), f"Unexpected token kind {token.kind}."
             if token and token.kind is Token.Kind.OPERATOR:
                 yield token
                 token = Token(source=formula)
-            if NUMERIC_CHAR.match(char) and token.kind in (None, Token.Kind.VALUE):
+            if numeric_chars.match(char) and token.kind in (None, Token.Kind.VALUE):
                 kind = 'value'
             else:
                 kind = 'name'
