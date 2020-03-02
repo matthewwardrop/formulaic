@@ -26,6 +26,10 @@ def test_stateful_eval():
     assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': 2}, None, state, None) == 1
 
 
+def test_stateful_eval_variable_name_sanitization():
+    assert stateful_eval("`data|a` / `data|b`", {'data|a': 1, 'data|b': 2, 'data_b': 3}, None, None, None) == 0.5
+    assert stateful_eval("`2data|a` / `2data|b`", {'2data|a': 1, '2data|b': 2, '2data_b': 3}, None, None, None) == 0.5
+
 def test_stateful_eval_distribution():
     state = {}
 
