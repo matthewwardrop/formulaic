@@ -11,8 +11,10 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7]
-
+        python-version: [3.6, 3.7, 3.8]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
@@ -25,3 +27,9 @@ jobs:
         pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1.0.10
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
