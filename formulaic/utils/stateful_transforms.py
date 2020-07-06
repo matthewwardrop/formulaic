@@ -15,6 +15,7 @@ from .layered_mapping import LayeredMapping
 def stateful_transform(func):
     func = functools.singledispatch(func)
     params = inspect.signature(func).parameters.keys()
+
     @functools.wraps(func)
     def wrapper(data, *args, metadata=None, state=None, config=None, **kwargs):
         from formulaic.materializers.base import FormulaMaterializer
@@ -76,7 +77,7 @@ def stateful_eval(expr, env, metadata, state, config):
             state[name] = {}
         node.keywords.append(ast.keyword('metadata', ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode='eval').body))
         node.keywords.append(ast.keyword('state', ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode='eval').body))
-        node.keywords.append(ast.keyword('config', ast.parse(f'__FORMULAIC_CONFIG__', mode='eval').body))
+        node.keywords.append(ast.keyword('config', ast.parse('__FORMULAIC_CONFIG__', mode='eval').body))
 
     # Compile mutated AST
     code = compile(ast.fix_missing_locations(code), '', 'eval')
