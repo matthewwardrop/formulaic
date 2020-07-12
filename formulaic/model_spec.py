@@ -2,16 +2,17 @@ from collections import OrderedDict
 import inspect
 
 from .formula import Formula
-from .materializers import FormulaMaterializer
+from .materializers import FormulaMaterializer, NAAction
 
 
 class ModelSpec:
 
-    def __init__(self, formula, ensure_full_rank=True, structure=None, materializer=None, transforms=None, encoding=None):
+    def __init__(self, formula, ensure_full_rank=True, structure=None, materializer=None, na_action='drop', transforms=None, encoding=None):
         self.formula = Formula.from_spec(formula)
         self.ensure_full_rank = ensure_full_rank
         self.structure = structure
         self.materializer = materializer
+        self.na_action = NAAction(na_action)
         self.transforms = transforms or {}
         self.encoding = encoding or {}
 

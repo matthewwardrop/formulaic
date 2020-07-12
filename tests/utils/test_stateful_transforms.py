@@ -3,7 +3,6 @@ from formulaic.utils.stateful_transforms import stateful_eval, stateful_transfor
 
 @stateful_transform
 def dummy_transform(data, state, config):
-    assert config.sparse is False
     if 'data' not in state:
         state['data'] = data
     return state['data']
