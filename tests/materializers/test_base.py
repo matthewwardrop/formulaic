@@ -77,7 +77,8 @@ class TestFormulaMaterializer:
             ],
             structure=[
                 ('A', {'A'}, ['a'])
-            ]
+            ],
+            drop_rows=[],
         ))) == 1
 
         # Ensure than an exception is raised if input structure > expected structure
@@ -88,7 +89,8 @@ class TestFormulaMaterializer:
                 ],
                 structure=[
                     ('A', {'A'}, ['a'])
-                ]
+                ],
+                drop_rows=[],
             ))
 
         # Ensure that missing columns are imputed
@@ -98,7 +100,8 @@ class TestFormulaMaterializer:
             ],
             structure=[
                 ('A', {'A'}, ['a', 'b'])
-            ]
+            ],
+            drop_rows=[],
         ))[0][-1]) == ['a', 'b']
 
         assert list(list(PandasMaterializer(df)._enforce_structure(
@@ -107,7 +110,8 @@ class TestFormulaMaterializer:
             ],
             structure=[
                 ('A', {'A'}, ['a', 'b'])
-            ]
+            ],
+            drop_rows=[],
         ))[0][-1]) == ['a', 'b']
 
         # Ensure that imputation does not occur if it would be ambiguous
@@ -118,7 +122,8 @@ class TestFormulaMaterializer:
                 ],
                 structure=[
                     ('A', {'A'}, ['a', 'b', 'c'])
-                ]
+                ],
+                drop_rows=[],
             ))
 
         # Ensure that an exception is raised if columns do not match
@@ -129,7 +134,8 @@ class TestFormulaMaterializer:
                 ],
                 structure=[
                     ('A', {'A'}, ['a', 'b', 'c'])
-                ]
+                ],
+                drop_rows=[],
             ))
 
     def test__get_columns_for_term(self):
