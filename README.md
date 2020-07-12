@@ -10,7 +10,7 @@ Formulaic is a high-performance implementation of Wilkinson formulas for Python.
 
 **Note:** This project, while largely complete, is still a work in progress, and the API is subject to change between major versions (0.&lt;major&gt;.&lt;minor&gt;).
 
-- **Documentation**: Incoming.
+- **Documentation**: https://matthewwardrop.github.io/formulaic
 - **Source Code**: https://github.com/matthewwardrop/formulaic
 - **Issue tracker**: https://github.com/matthewwardrop/formulaic/issues
 
