@@ -16,6 +16,7 @@ class PandasMaterializer(FormulaMaterializer):
     REGISTRY_NAME = 'pandas'
     DEFAULT_FOR = ['pandas.core.frame.DataFrame']
 
+    @override
     def _init(self, sparse=False):
         self.config.sparse = sparse
 

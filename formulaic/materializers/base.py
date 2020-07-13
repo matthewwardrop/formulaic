@@ -295,7 +295,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             return values.get('__kind__') == 'categorical'
         return False
 
-    def _check_for_nulls(self, name, values, drop_rows):
+    def _check_for_nulls(self, name, values, na_action, drop_rows):
         pass  # pragma: no cover
 
     def _encode_evaled_factor(self, factor, encoder_state, drop_rows, reduced_rank=False):
