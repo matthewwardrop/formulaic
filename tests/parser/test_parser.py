@@ -18,7 +18,7 @@ FORMULA_TO_TOKENS = {
 
     # Test translation of '0'
     '0': ['1', '-', '1'],
-    '0 ~': ['0', '~', '1']
+    '0 ~': ['~', '1']
 }
 
 FORMULA_TO_TERMS = {
@@ -33,6 +33,13 @@ FORMULA_TO_TERMS = {
     '(a + b) - a': ['1', 'b'],
     '(a - a) + b': ['1', 'b'],
     'a + (b - a)': ['1', 'a', 'b'],
+
+    # Check that "0" -> "-1" substitution works as expected
+    '0 + 0': [],
+    '0 + 0 + 1': ['1'],
+    '0 + 0 + 1 + 0': [],
+    '0 - 0': ['1'],
+    '0 ~ 0': ([], ),
 
     # Formula separators
     '~ a + b': (['1', 'a', 'b'], ),
@@ -80,4 +87,8 @@ class TestFormulaParser:
 
     def test_invalid_unary_negation(self):
         with pytest.raises(FormulaParsingError):
-            assert PARSER.get_terms('(-10)')
+            PARSER.get_terms('(-10)')
+
+    def test_invalid_use_of_zero(self):
+        with pytest.raises(FormulaParsingError):
+            PARSER.get_terms('a * 0')
