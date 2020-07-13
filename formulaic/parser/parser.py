@@ -36,7 +36,7 @@ class FormulaParser:
             terms = arg.to_terms()
             if len(terms) > 1 or list(terms)[0] != '0':
                 raise FormulaParsingError("Unary negation is only implemented for '0', where it is substituted for '1'.")
-            return {Term(factors=[Factor('1', eval_method='literal')])}
+            return {Term(factors=[Factor('1', eval_method='literal')])}  # pragma: no cover; All zero handling is currently done in the token pre-processor.
 
         return [
             Operator("~", arity=2, precedence=-100, associativity=None, to_terms=formula_separator_expansion),
@@ -86,11 +86,21 @@ class FormulaParser:
                     tokens.insert(0, one)
                     tokens.insert(1, plus)
 
-        # Replace "0" with "-1"
+        # Replace all "0"s with "-1"
+        zero_index = -1
         try:
-            zero_index = tokens.index('0')
-            if tokens[zero_index - 1] == '+':
-                tokens[zero_index - 1] = minus
+            while True:
+                zero_index = tokens.index('0', zero_index + 1)
+                if zero_index - 1 < 0 or tokens[zero_index - 1] == '~':
+                    tokens.pop(zero_index)
+                    zero_index -= 1
+                    continue
+                elif tokens[zero_index - 1] == '+':
+                    tokens[zero_index - 1] = minus
+                elif tokens[zero_index - 1] == '-':
+                    tokens[zero_index - 1] = plus
+                else:
+                    raise FormulaParsingError(f"Unrecognised use of `0` at index: {tokens[zero_index-1].source_start}.")
                 tokens[zero_index] = one
         except ValueError:
             pass
