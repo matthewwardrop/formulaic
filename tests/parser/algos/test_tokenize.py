@@ -1,7 +1,7 @@
 import pytest
 
 from formulaic.parser.algos.tokenize import tokenize
-from formulaic.errors import FormulaParsingError
+from formulaic.errors import FormulaSyntaxError
 
 
 TOKEN_TESTS = {
@@ -20,11 +20,13 @@ TOKEN_TESTS = {
     '"abc" + "def"': ['value:"abc"', 'operator:+', 'value:"def"'],
     '`a|b * 2:a{}`': ["name:a|b * 2:a{}"],
     '{`a|b` @ `b2:1`}': ["python:`a|b` @ `b2:1`"],
+    'I(`a|b`)': ["python:I(`a|b`)"],
     'a + `a+b` + {a / b}': ["name:a", 'operator:+', "name:a+b", 'operator:+', "python:a / b"],
 }
 
 TOKEN_ERRORS = {
-    'a"hello"': [FormulaParsingError, "Unexpected character '\"' following token 'a'."],
+    'a"hello"': [FormulaSyntaxError, "Unexpected character '\"' following token `a`."],
+    '`a': [FormulaSyntaxError, "Formula ended before quote context was closed. Expected: `"],
 }
 
 

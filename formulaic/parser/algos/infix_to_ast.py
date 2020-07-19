@@ -1,22 +1,41 @@
-from collections import defaultdict
+from collections import namedtuple
 
-from ..types import Operator, ASTNode, Token
+from ..types import Operator, ASTNode
+from ..utils import exc_for_token, exc_for_missing_operator
 
 
-def infix_to_ast(tokens, operators):
+OrderedOperator = namedtuple('OrderedOperator', ('operator', 'token', 'index'))
 
-    operator_table = defaultdict(dict)
-    for operator in operators:
-        operator_table[operator.arity][operator.symbol] = operator
+
+def infix_to_ast(tokens, operator_resolver):
 
     output_queue = []
     operator_stack = []
-    last_token = None
 
-    def operate(operator, output_queue):
+    def stack_operator(operator, token):
+        operator_stack.append(OrderedOperator(operator, token, len(output_queue)))
+
+    def operate(ordered_operator, output_queue):
+        operator, token, index = ordered_operator
+
+        if operator.fixity is Operator.Fixity.INFIX:
+            assert operator.arity == 2
+            min_index = index - 1
+            max_index = index + 1
+        elif operator.fixity is Operator.Fixity.PREFIX:
+            min_index = index
+            max_index = index + operator.arity
+        else:  # Operator.Fixity.POSTFIX
+            min_index = index - operator.arity
+            max_index = index
+
+        if min_index < 0 or max_index > len(output_queue):
+            raise exc_for_token(token, f"Operator `{token.token}` has insuffient arguments and/or is misplaced.")
+
         return [
-            *output_queue[:-operator.arity],
-            ASTNode(operator, output_queue[-operator.arity:])
+            *output_queue[:min_index],
+            ASTNode(operator, output_queue[min_index:max_index]),
+            *output_queue[max_index:],
         ]
 
     for token in tokens:
@@ -24,27 +43,34 @@ def infix_to_ast(tokens, operators):
             output_queue.append(token)
         else:
             if token.token == '(':
-                operator_stack.append(token)
+                stack_operator(token, token)
             elif token.token == ')':
-                while operator_stack and operator_stack[-1] != '(':
+                while operator_stack and operator_stack[-1].token != '(':
                     output_queue = operate(operator_stack.pop(), output_queue)
-                if operator_stack and operator_stack[-1] == '(':
-                    operator_stack.pop(-1)
+                if operator_stack and operator_stack[-1].token == '(':
+                    operator_stack.pop()
+                else:
+                    raise exc_for_token(token, "Could not find matching parenthesis.")
             else:
-                target_arity = 1 if last_token is None or last_token.kind is Token.Kind.OPERATOR and last_token.token not in ')]' else 2
-                operator = operator_table[target_arity][token.token]
+                max_prefix_arity = len(output_queue) - operator_stack[-1].index if operator_stack else len(output_queue)
+                operators = operator_resolver.resolve(token, max_prefix_arity)
 
-                while target_arity == 2 and operator_stack and (operator_stack[-1] != '(') and (
-                        operator_stack[-1].precedence > operator.precedence
-                        or operator_stack[-1].precedence == operator.precedence and operator.associativity is Operator.Associativity.LEFT
-                ):
-                    output_queue = operate(operator_stack.pop(), output_queue)
+                for operator in operators:
 
-                operator_stack.append(operator)
-        last_token = token
+                    while operator_stack and (operator_stack[-1].token != '(') and (
+                            operator_stack[-1].operator.precedence > operator.precedence
+                            or operator_stack[-1].operator.precedence == operator.precedence and operator.associativity is Operator.Associativity.LEFT
+                    ):
+                        output_queue = operate(operator_stack.pop(), output_queue)
+
+                    stack_operator(operator, token)
 
     while operator_stack:
+        if operator_stack[-1].token == '(':
+            raise exc_for_token(operator_stack[-1].token, "Could not find matching parenthesis.")
         output_queue = operate(operator_stack.pop(), output_queue)
 
     if output_queue:
+        if len(output_queue) > 1:
+            raise exc_for_missing_operator(output_queue[0], output_queue[1])
         return output_queue[0]

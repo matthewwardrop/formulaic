@@ -3,32 +3,21 @@ import pytest
 import functools
 import itertools
 
+from formulaic.errors import FormulaSyntaxError
+from formulaic.parser import DefaultOperatorResolver
 from formulaic.parser.algos.infix_to_ast import infix_to_ast
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.types import Operator
 
 
-OPERATORS = [
-    Operator("~", arity=2, precedence=-100, associativity=None, to_terms=lambda lhs, rhs: (lhs.to_terms(), rhs.to_terms())),
-    Operator("~", arity=1, precedence=-100, associativity=None, fixity='prefix', to_terms=lambda lhs, rhs: (None, rhs.to_terms())),
-    Operator("+", arity=2, precedence=100, associativity='left', to_terms=lambda *args: set(itertools.chain(*[arg.to_terms() for arg in args]))),
-    Operator("-", arity=2, precedence=100, associativity='left', to_terms=lambda left, right: set(set(left.to_terms()).difference(right.to_terms()))),
-    Operator("+", arity=1, precedence=100, associativity='right', fixity='prefix'),
-    Operator("-", arity=1, precedence=100, associativity='right', fixity='prefix'),
-    Operator("*", arity=2, precedence=200, associativity='left', to_terms=lambda *args: (
-        {
-            functools.reduce(lambda x, y: x * y, term)
-            for term in itertools.product(*[arg.to_terms() for arg in args])
-        }
-        .union(itertools.chain(*[arg.to_terms() for arg in args]))
-    )),
-    Operator("/", arity=2, precedence=200, associativity='left'),
-    Operator(":", arity=2, precedence=300, associativity='left', to_terms=lambda *args: {
-        functools.reduce(lambda x, y: x * y, term)
-        for term in itertools.product(*[arg.to_terms() for arg in args])
-    }),
-    Operator("**", arity=2, precedence=500, associativity='right'),
-]
+class ExtendedOperatorResolver(DefaultOperatorResolver):
+
+    @property
+    def operators(self):
+        return super().operators + [
+            # Acts like '+' but as a postfix operator
+            Operator("@", arity=2, precedence=1000, associativity='right', fixity='postfix', to_terms=lambda *args: set(itertools.chain(*[arg.to_terms() for arg in args]))),
+        ]
 
 
 FORMULA_TO_AST_TESTS = {
@@ -43,6 +32,7 @@ FORMULA_TO_AST_TESTS = {
     # Simple addition
     '1 + 2': ['+', '1', '2'],
     'a + 1': ['+', 'a', '1'],
+    'a 1 @': ['@', 'a', '1'],
 
     # Parentheses
     '(a + 1)': ['+', 'a', '1'],
@@ -73,11 +63,25 @@ FORMULA_TO_AST_TESTS = {
     '-a:b': ['-', [':', 'a', 'b']],
 }
 
+FORMULA_ERRORS = {
+    'a b +': [FormulaSyntaxError, r"Operator `\+` has insuffient arguments and/or is misplaced."],
+    '( a + b': [FormulaSyntaxError, r"Could not find matching parenthesis."],
+    'a + b )': [FormulaSyntaxError, r"Could not find matching parenthesis."],
+    'a b': [FormulaSyntaxError, r"Missing operator between `a` and `b`."],
+    'y + y2 y3 ~ x + z': [FormulaSyntaxError, r"Missing operator between `y2` and `y3`."],
+}
+
 
 @pytest.mark.parametrize("formula,flattened", FORMULA_TO_AST_TESTS.items())
 def test_formula_to_ast(formula, flattened):
-    ast = infix_to_ast(tokenize(formula), OPERATORS)
+    ast = infix_to_ast(tokenize(formula), ExtendedOperatorResolver())
     if flattened is None:
         assert ast is flattened
     else:
         assert ast.flatten(str_args=True) == flattened
+
+
+@pytest.mark.parametrize("formula,exception_info", FORMULA_ERRORS.items())
+def test_tokenize_exceptions(formula, exception_info):
+    with pytest.raises(exception_info[0], match=exception_info[1]):
+        list(infix_to_ast(tokenize(formula), ExtendedOperatorResolver()))

@@ -10,7 +10,7 @@ class TestToken:
 
     @pytest.fixture
     def token_b(self):
-        return Token('log(x)', kind='python')
+        return Token('log(x)', kind='python', source='y ~ log(x)', source_start=4, source_end=9)
 
     @pytest.fixture
     def token_c(self):
@@ -66,3 +66,10 @@ class TestToken:
     def test_flatten(self, token_a):
         assert token_a.flatten(str_args=False) is token_a
         assert token_a.flatten(str_args=True) is 'a'
+
+    def test_get_source_context(self, token_a, token_b, token_c):
+        assert token_a.get_source_context() is None
+        assert token_b.get_source_context() == 'y ~ ⧛log(x)⧚'
+        assert token_c.get_source_context() is None
+
+        assert token_b.get_source_context(colorize=True) == 'y ~ ⧛\x1b[1;31mlog(x)\x1b[0m⧚'

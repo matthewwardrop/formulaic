@@ -19,7 +19,7 @@ class Token:
         self.kind = kind
         self.source = source
         self.source_start = source_start
-        self.source_end = source_end
+        self.source_end = source_end or source_start
 
     @property
     def kind(self):
@@ -76,6 +76,15 @@ class Token:
 
     def flatten(self, str_args=False):
         return str(self) if str_args else self
+
+    def get_source_context(self, colorize=False):
+        if not self.source or self.source_start is None or self.source_end is None:
+            return None
+        if colorize:
+            RED_BOLD = "\x1b[1;31m"
+            RESET = "\x1b[0m"
+            return f"{self.source[:self.source_start]}⧛{RED_BOLD}{self.source[self.source_start:self.source_end+1]}{RESET}⧚{self.source[self.source_end+1:]}"
+        return f"{self.source[:self.source_start]}⧛{self.source[self.source_start:self.source_end+1]}⧚{self.source[self.source_end+1:]}"
 
     def __repr__(self):
         return self.token

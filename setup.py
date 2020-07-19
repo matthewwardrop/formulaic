@@ -47,7 +47,7 @@ setup(
     extras_require={
         'arrow': ['pyarrow'],
         'benchmarks': ['patsy', 'rpy2', 'uncertainties'],
-        'test': test_deps
+        'test': test_deps,
     },
 
 )

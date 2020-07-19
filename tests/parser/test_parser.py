@@ -1,7 +1,8 @@
 import pytest
 
-from formulaic.errors import FormulaParsingError
-from formulaic.parser import FormulaParser
+from formulaic.errors import FormulaParsingError, FormulaSyntaxError
+from formulaic.parser import FormulaParser, DefaultOperatorResolver
+from formulaic.parser.types import Token
 
 
 FORMULA_TO_TOKENS = {
@@ -92,3 +93,35 @@ class TestFormulaParser:
     def test_invalid_use_of_zero(self):
         with pytest.raises(FormulaParsingError):
             PARSER.get_terms('a * 0')
+
+    def test_invalid_power(self):
+        with pytest.raises(FormulaSyntaxError, match=r'The right-hand argument of `\*\*` must be a positive integer.'):
+            assert PARSER.get_terms('a**b')
+
+        with pytest.raises(FormulaSyntaxError, match=r'The right-hand argument of `\*\*` must be a positive integer.'):
+            assert PARSER.get_terms('a**(b+c)')
+
+
+class TestDefaultOperatorResolver:
+
+    @pytest.fixture
+    def resolver(self):
+        return DefaultOperatorResolver()
+
+    def test_resolve(self, resolver):
+        assert len(resolver.resolve(Token('+++++'), 1)) == 1
+        assert resolver.resolve(Token('+++++'), 1)[0].symbol == '+'
+        assert resolver.resolve(Token('+++++'), 1)[0].arity == 2
+
+        assert len(resolver.resolve(Token('+++-+'), 1)) == 1
+        assert resolver.resolve(Token('+++-+'), 1)[0].symbol == '-'
+        assert resolver.resolve(Token('+++-+'), 1)[0].arity == 2
+
+        assert len(resolver.resolve(Token('*+++-+'), 1)) == 2
+        assert resolver.resolve(Token('*+++-+'), 1)[0].symbol == '*'
+        assert resolver.resolve(Token('*+++-+'), 1)[0].arity == 2
+        assert resolver.resolve(Token('*+++-+'), 1)[1].symbol == '-'
+        assert resolver.resolve(Token('*+++-+'), 1)[1].arity == 1
+
+        with pytest.raises(FormulaSyntaxError, match="Operator `/` is incorrectly used."):
+            resolver.resolve(Token('*/'), 2)
