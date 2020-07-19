@@ -49,7 +49,6 @@ def test_basis_spline_keeps_state_and_reuses_it():
     )
 
 
-
 def test_automatic_knots():
     state = {}
     input_data = [1, 5, 10, 15, 20]
@@ -67,17 +66,5 @@ def test_automatic_knots():
 
 
 def test_error_is_thrown_if_too_many_knots():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="integer between 1 and 7"):
         basis_splines([0, 0, 0], n_knots=np.inf)
-
-
-def test_error_is_thrown_if_knots_does_not_equal_n_knots():
-    with pytest.raises(ValueError):
-        basis_splines([0, 0, 0], n_knots=3, knots=[0])
-
-
-
-
-
-
-

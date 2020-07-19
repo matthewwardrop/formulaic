@@ -19,7 +19,8 @@ def basis_splines(data, n_knots=3, knots=None, term=1, restricted=False, state=N
     data:
     n_knots : integer, optional
         Number of knots requested. Options for knots include any positive integer if the location of knots are
-        specified. If knot locations are not specified, n_knots must be an integer between 1 to 7. Default is 3 knots
+        specified. If knot locations are not specified, n_knots must be an integer between 1 to 7. Default is 3 knots.
+        Ignored if `knots` is specified.
     knots : list, optional
         Location of specified knots in a list. To specify the location of knots, put desired numbers for knots into a
         list. Be sure that the length of the list is the same as the specified number of knots. Default is None, so
@@ -54,9 +55,8 @@ def basis_splines(data, n_knots=3, knots=None, term=1, restricted=False, state=N
                 " an integer between 1 and 7")
         pts = np.percentile(data, q=knots).tolist()
     else:
-        if n_knots != len(knots):
-            raise ValueError("The number of knots and the number of specified knots must match")
         pts = sorted(knots)
+        n_knots = len(pts)
 
     def bs_transform(x):
         columns = np.arange(n_knots)

@@ -84,3 +84,6 @@ class TestFormula:
         y, X = Formula("y ~ bs(b, n_knots=5)").get_model_matrix(df)
         assert len(X.columns) == 6
 
+        y, X = Formula("y ~ bs(b, knots=[.15, .25], term=2)").get_model_matrix(df)
+        assert len(X.columns) == 3
+
