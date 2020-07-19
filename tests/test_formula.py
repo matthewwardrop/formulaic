@@ -73,3 +73,14 @@ class TestFormula:
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):
             formula_expr.get_model_matrix(data, materializer=object())
+
+
+    def test_bs(self):
+        df = pandas.DataFrame({
+            'y': [0, 1, 2],
+            'a': ['A', 'B', 'C'],
+            'b': [0.3, 0.1, 0.2],
+        })
+        y, X = Formula("y ~ bs(b, n_knots=5)").get_model_matrix(df)
+        assert len(X.columns) == 6
+
