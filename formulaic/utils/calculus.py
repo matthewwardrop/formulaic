@@ -1,5 +1,3 @@
-import sympy
-
 from formulaic.parser.types import Factor, Term
 
 
@@ -21,15 +19,22 @@ def differentiate_term(term, vars, use_sympy=False):
 
 def _factor_symbols(factor, use_sympy=False):
     if use_sympy:
-        return {str(s) for s in sympy.S(factor.expr).free_symbols}
-    assert use_sympy is False, "SymPy integration is not yet implemented."
+        try:
+            import sympy
+            return {str(s) for s in sympy.S(factor.expr).free_symbols}
+        except ImportError:  # pragma: no cover
+            raise ImportError("`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`.")
     return {factor.expr}
 
 
 def _differentiate_factors(factors, var, use_sympy=False):
     if use_sympy:
-        expr = sympy.S('(' + ') * ('.join(factor.expr for factor in factors) + ')').diff(var)
-        eval_method = 'python'
+        try:
+            import sympy
+            expr = sympy.S('(' + ') * ('.join(factor.expr for factor in factors) + ')').diff(var)
+            eval_method = 'python'
+        except ImportError:  # pragma: no cover
+            raise ImportError("`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`.")
     else:
         assert len(factors) == 1
         expr = 1
