@@ -1,5 +1,6 @@
-from .parser import FormulaParser
+from .parser import FormulaParser, DefaultOperatorResolver
 
 __all__ = [
-    'FormulaParser'
+    'FormulaParser',
+    'DefaultOperatorResolver',
 ]
