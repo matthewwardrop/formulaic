@@ -40,13 +40,13 @@ setup(
         'numpy',
         'pandas',
         'scipy',
-        'sympy',
         'wrapt',
     ],
     tests_require=test_deps,
     extras_require={
         'arrow': ['pyarrow'],
         'benchmarks': ['patsy', 'rpy2', 'uncertainties'],
+        'calculus': ['sympy'],
         'test': test_deps,
     },
 
