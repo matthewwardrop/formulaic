@@ -36,7 +36,7 @@ setup(
     setup_requires=['setupmeta'],
     install_requires=[
         'astor',
-        'interface_meta',
+        'interface_meta>=1.2',
         'numpy',
         'pandas',
         'scipy',

@@ -4,7 +4,7 @@ import operator
 from abc import abstractmethod
 from collections import OrderedDict
 
-from interface_meta import InterfaceMeta, quirk_docs
+from interface_meta import InterfaceMeta, inherit_docs
 
 from formulaic.errors import FactorEncodingError, FactorEvaluationError, FormulaMaterializerNotFoundError
 from formulaic.model_matrix import ModelMatrix
@@ -56,7 +56,7 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
 
     # Public API
 
-    @quirk_docs(method='_init')
+    @inherit_docs(method='_init')
     def __init__(self, data, context=None, na_action='drop', **kwargs):
         self.data = data
         self.context = context or {}
