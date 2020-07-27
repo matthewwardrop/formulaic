@@ -130,3 +130,32 @@ class TestPandasMaterializer:
                 )['10']
             ) == [10, 10, 10]
         )
+
+        # Verify that encoding of nested dictionaries works well
+        assert (
+            list(
+                materializer._encode_evaled_factor(
+                    factor=EvaluatedFactor(
+                        Factor("A", eval_method='python', kind='numerical'),
+                        values={'a': [1, 2, 3], 'b': [4, 5, 6], '__metadata__': None},
+                        kind='numerical',
+                    ),
+                    encoder_state={},
+                    drop_rows=[],
+                )['A[a]']
+            ) == [1, 2, 3]
+        )
+
+        assert (
+            list(
+                materializer._encode_evaled_factor(
+                    factor=EvaluatedFactor(
+                        Factor("B", eval_method='python', kind='categorical'),
+                        values={'a': ['a', 'b', 'c']},
+                        kind='categorical',
+                    ),
+                    encoder_state={},
+                    drop_rows=[],
+                )
+            ) == ['B[a][T.a]', 'B[a][T.b]', 'B[a][T.c]']
+        )

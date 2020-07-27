@@ -305,13 +305,37 @@ class FormulaMaterializer(metaclass=InterfaceMeta):
             elif (factor.expr, reduced_rank) in self.encoded_cache:
                 encoded = self.encoded_cache[(factor.expr, reduced_rank)]
             else:
+
+                def map_dict(f):
+                    """
+                    This decorator allows an encoding function to operator on
+                    dictionaries (which should be mapped over). This allows
+                    transforms to output multiple non-encoded columns and still
+                    have everything work as expected.
+                    """
+                    @functools.wraps(f)
+                    def wrapped(values, metadata, state, *args, **kwargs):
+                        if isinstance(values, dict):
+                            encoded = {}
+                            for k, v in values.items():
+                                if isinstance(k, str) and k.startswith("__"):
+                                    encoded[k] = v
+                                else:
+                                    nested_state = state.get(k, {})
+                                    encoded[k] = wrapped(v, metadata, nested_state, *args, **kwargs)
+                                    if nested_state:
+                                        state[k] = nested_state
+                            return encoded
+                        return f(values, metadata, state, *args, **kwargs)
+                    return wrapped
+
                 state = encoder_state.get(factor.expr, [None, {}])[1]
                 if factor.kind.value == 'categorical':
-                    encoded = self._encode_categorical(factor.values, factor.metadata, state, drop_rows, reduced_rank=reduced_rank)
+                    encoded = map_dict(self._encode_categorical)(factor.values, factor.metadata, state, drop_rows, reduced_rank=reduced_rank)
                 elif factor.kind.value == 'numerical':
-                    encoded = self._encode_numerical(factor.values, factor.metadata, state, drop_rows)
+                    encoded = map_dict(self._encode_numerical)(factor.values, factor.metadata, state, drop_rows)
                 elif factor.kind.value == 'constant':
-                    encoded = self._encode_constant(factor.values, factor.metadata, state, drop_rows)
+                    encoded = map_dict(self._encode_constant)(factor.values, factor.metadata, state, drop_rows)
                 else:
                     raise FactorEncodingError(factor)  # pragma: no cover; it is not currently possible to reach this sentinel
                 encoder_state[factor.expr] = (factor.kind, state)
