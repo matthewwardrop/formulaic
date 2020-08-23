@@ -22,6 +22,10 @@ $ python setup.py install
     you are interested in installing `formulaic`. This is done automatically if
     you are using a virtual environment.
 
+You are ready to use Formulaic. If you would like some guidance, please refer
+to the [Basic Usage](basic/intro.md) and [Advanced Usage](advanced/intro.md)
+guides.
+
 
 ## Installing for development
 

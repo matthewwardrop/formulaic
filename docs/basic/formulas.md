@@ -1,103 +1,101 @@
-This section of the documentation describes the formula grammar used by
-Formulaic. It is almost identical that used by patsy and R, and so most formulas
-should work without modification. However, there are some differences, which are
-called out below.
+This section introduces the basic notions and origins of formulas. If you are
+already familiar with formulas from another context, you might want to skip
+forward to the [Quickstart](quickstart.md).
+
+## Origins
+
+Formulas were originally proposed by Wilkinson et al.[^1] to aid in the
+description of ANOVA problems, but were popularised by the S language (and then
+[R](http://search.r-project.org/R/library/stats/html/formula.html), as an
+implementation of S) in the context of linear regression. Since then they have
+been [extended in
+R](https://cran.r-project.org/web/packages/Formula/Formula.pdf), and implemented
+in Python (by [patsy](https://github.com/pydata/patsy)), in
+[MATLAB](https://www.mathworks.com/help/stats/wilkinson-notation.html), in
+[Julia](https://juliadata.github.io/DataFrames.jl/v0.9/man/formulas/), and quite
+conceivably elsewhere. Each implementation has its own nuances and grammatical
+extensions, including Formulaic's which are described more completely in the
+[Formula Grammar](grammar.md) section of this manual.
 
 
-## Operators
+## Why are they useful?
 
-In this section, we introduce a complete list of the _grammatical_ operators
-that you can use in your formulas. They are listed such that each section
-(demarcated by "-----") has higher precedence then the block that follows. When
-you write a formula involving several operators of different precedence, those
-with higher precedence will be resolved first. "Arity" is the number of
-arguments the operator takes. Within operators of the same precedence, all
-binary operators are evaluated from left to right (they are left-associative).
-To highlight differences in grammar betweeh formulaic, patsy and R, we highlight
-any differences below. If there is a checkmark the Formulaic, Patsy and R
-columns, then the grammar is consistent across all three.
+Formulas are useful because they provide a concise and explicit specification
+for how data should be prepared for a model. Typically, the raw input data for a
+model is stored in a dataframe, but the actual implementations of various
+statistical methodologies (e.g. linear regression solvers) act on
+two-dimensional numerical matrices that go by [several
+names](https://en.wikipedia.org/wiki/Design_matrix) depending on the prevailing
+nomenclature of your field, including "model matrices", "design matrices" and
+"regressor matrices" (within Formulaic, we refer to them as "model matrices"). A
+formula provides the necessary information required to automate much of the
+translation of a dataframe into a model matrix suitable for ingestion into a
+statistical model.
 
-| Operator | Arity | Description | Formulaic | Patsy | R |
-|---------:|:-----:|:------------|:---------:|:-----:|:-:|
-| `"..."`[^1] | 1 | String literal. | ✓ | ✓ | 🗙 |
-| `[0-9]+\.[0-9]+`[^1] | 1 | Numerical literal. | ✓ | 🗙 | 🗙 |
-| `` `...` ``[^1] | 1 | Quotes fieldnames within the incoming dataframe, allowing the use of special characters, e.g. `` `my|special$column!` `` | ✓ | 🗙 | ✓ |
-| `{...}`[^1] | 1 | Quotes python operations, as a more convenient way to do Python operations than `I(...)`, e.g. `` {`my|col`**2} `` | ✓ | 🗙 | 🗙 |
-| `<function>(...)`[^1] | 1 | Python transform on column, e.g. `my_func(x)` which is equivalent to `{my_func(x)}` | ✓[^2] | ✓ | 🗙 |
-|-----|
-| `(...)` | 1 | Groups operations, overriding normal precedence rules. All operations with the parentheses are performed before the result of these operations is permitted to be operated upon by its peers. | ✓ | ✓ | ✓ |
-|-----|
-| ** | 2 | Expands into the product of the left operand with itself n times, where n is the (integral) value of the right operand. | ✓ | ✓ | ✓ |
-| ^ | 2 | Alias for `**`. | 🗙 | 🗙[^3] | ✓ |
-|-----|
-| `:` | 2 | Adds a new term that corresponds to the product of the elementwise product of its operands. | ✓ | ✓ | ✓ |
-| `%in%` | 2 | Alias for `:`. | 🗙 | 🗙 | ✓ |
-|-----|
-| `*` | 2 | Expands to the addition of a new term for each operand as well as their interactinon, i.e. `a * b` is equivalent to `a + b + a:b`. | ✓ | ✓ | ✓ |
-| `/` | 2 | Expands to the addition of a new term for the left operand and the interaction of all left operand terms with the right operand, i.e `a / b` is equivalent to `a + a:b`, `(a + b) / c` is equivalent to `a + b + a:b:c`, and `a/(b+c)` is equivalent to `a + a:b + a:c`.[^4] | ✓ | ✓ | ✓ |
-|-----|
-| `+` | 2 | Adds a new term to the set of features. | ✓ | ✓ | ✓ |
-| `-` | 2 | Removes a term from the set of features (if present). | ✓ | ✓ | ✓ |
-| `+` | 1 | Returns the current term unmodified (not very useful). | ✓ | ✓ | ✓ |
-| `-` | 1 | Negates a term (only implemented for 0, in which case it is replaced with `1`). | ✓ | ✓ | ✓ |
-|-----|
-| `~` | 1,2 | Separates the target features from the input features. If absent, it is assumed that we are considering only the the input features. Unless otherwise indicated, it is assumed that the input features implicitly include an intercept. | ✓[^5] | ✓ | ✓ |
+Suppose, for example, that you have a dataframe with \\(N\\) rows and three
+numerical columns labelled: `y`, `a` and `b`. You would like to construct a
+linear regression model for `y` based on `a`, `b` and their interaction: \\[ y =
+\alpha + \beta_a a + \beta_b b + \beta_{ab} ab + \varepsilon \\] with
+\\(\varepsilon \sim \mathcal{N}(0, \sigma^2)\\). Rather than manually
+constructing the required matrices to pass to the regression solver, you could
+specify a formula of form:
+```
+y ~ a + b + a:b
+```
+When furnished with this formula and the dataframe, Formulaic (or indeed any
+other formula implementation) would generate two model matrix objects: an \\( N
+\times 1 \\) matrix \\(Y\\) for the response variable `y`, and an \\( N \times 4
+\\) matrix \\(X\\) for the input columns `intercept`, `a`, `b`, and `a * b`. You
+can then directly pass these matrices to your regression solver, which
+internally will solve for \\(\beta\\) in: \\[ Y = X\beta + \varepsilon. \\]
 
+The true value of formulas becomes more apparent as model complexity increases,
+where they can be a huge time-saver. For example:
+```
+~ (f1 + f2 + f3) * (x1 + x2 + scale(x3))
+```
+tells the formula interpreter to consider 16 fields of input data, corresponding
+to an intercept (1), each of the `f*` fields (3), each of the `x*` fields (3),
+and the combination of each `f` with each `x` (9). It also instructs the
+materializer to ensure that the `x3` column is rescaled during the model matrix
+materialization phase such that it has mean zero and standard error of 1. If any
+of these columns is categorical in nature, they would by default also be
+one-hot/dummy encoded. Depending on the formula interpreter (including
+Formulaic), extra steps would also be taken to ensure that the resulting model
+matrix is structurally full-rank.
 
-## Transforms
+As an added bonus, some formula implementations (including Formulaic) can
+remember any choices made during the materialization process, and apply them to
+consistently to new data, making it possible to easily generate new data that
+conforms to the same structure as the training data. For example, the
+`scale(...)` transform in the example above makes use of the mean and variance
+of the column to be scaled. Any future data should, however, should not undergo
+scaling based on its own mean and variance, but rather on the mean and variance
+that was measured for the training data set (otherwise the new dataset will not
+be consistent with the expectations of the trained model which will be
+interpreting it).
 
-Formulaic has not yet garnered implementations for many transforms, but the
-framework fully supports them, including preservation of state so that new data
-can undergo the same transformation as that used during modelling.
+## Limitations
 
-| Transform | Description | Formulaic | Patsy | R |
-|----------:|:------------|:---------:|:-----:|:-:|
-| `I(...)` | Identity transform, allowing arbitrary Python/R operations, e.g. `I(x+y)`. | ✓ | ✓ | ✓ |
-| `C(...)` | Categorically encode a column, e.g. `C(x)` | partial[^6] | ✓ | ✓ |
-| `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | ✓ |
-| `scale(...)` | Shift column so mean is zero and variance is 1. | 🗙 | ✓ | ✓ |
-| `standardize(...)` | Alias of `scale`. | 🗙 | ✓ | 🗙 |
-| `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | 🗙 | ✓ | ✓ |
-| `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | 🗙 | ✓ | ✓ |
-| `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | 🗙 | ✓ | ✓ |
-| `te(...)` | Generates a tensor product smooth. | 🗙 | ✓ | ✓ |
+Formulas are a very flexible tool, and can be augmented with arbitrary
+user-defined transforms. However, some transformations required by certain
+models may be more elegantly defined via a pre-formula dataframe operation or
+post-formula model matrix operation. Another consideration is that the default
+encoding and materialization choices for data are aligned with linear
+regression. If you are using a tree model, for example, you may be interested in
+the ordinal encoding of "categorical" features with respect to some outcome,
+rather than one-hot/dummy encoding, and this type of transform would have to be
+explicitly noted in the formula. Nevertheless, even in these cases, formulas are
+an excellent tool, and can often be used to greatly simplify data preparation
+workflows.
 
+## Where to from here?
 
-## Behaviours and Conventions
+To get a feel for how you can use `formulaic` to transform your dataframes into
+model matrices, please review the [Quickstart](quickstart.md). To learn about
+the full set of features supported by the formula language as implemented by
+Formulaic, please review the [Formula Grammar](grammar.md). For more advanced
+use-cases, such as overriding or customising the implementations of formula
+parsing, please refer to the [Advanced Usage](../advanced/intro.md) section.
 
-Beyond the formula operator grammar itself there are some differing behaviours
-and conventions of which you should be aware.
-
-  - Formulaic follows Patsy in that both sides of the `~` operator are treated
-    identically. In R, the left hand side is treated as R code rather than
-    following the above grammar. In Formulaic and Patsy, the only difference
-    between the sides is that an intercept is automatically added to the
-    right side. You can recover R's behaviour nesting the operations in a Python
-    operator block (as described in the operator table): `{y1 + y2} ~ a + b`.
-    Note that the enhanced `Formula` R package also uses this convention.
-  - Formula terms in Formulaic are always sorted first by the order of the
-    interaction, and then alphabetically. In R and patsy, this second ordering
-    is done in the order that columns were introduced to the formula (patsy
-    additionally sorts by which fields are involved in the interactions). As a
-    result formulas with the same set of fields will always generate the same
-    model matrix.
-  - Formulaic follows patsy's more rigourous handling of whether or not to
-    include an intercept term. In R, `b-1` and `(b-1)` both do not have an
-    intercept, whereas in Formulaic and Patsy the parentheses are resolved first
-    and so the first does not have an intercept and the second does (because
-    and implicit '1 +' is added prepended to the right hand side of the
-    formula).
-  - Formulaic carefully chooses where to reduce the rank of the model matrix
-    in order to ensure that the matrix is structurally full rank. It uses the
-    same algorithm as patsy. This avoids producing over-specified model
-    matrices in contexts that R would (since it only considers local full-rank
-    structure, rather than global structure). You can read more about this in
-    [Patsy's documentation](https://patsy.readthedocs.io/en/latest/formulas.html).
-
-
-[^1]: This "operator" is actually part of the tokenisation process.
-[^2]: Formulaic additionally supports quoted fields with special characters, e.g. `` my_func(`my|special+column`) ``.
-[^3]: The caret operator is not supported, but will not cause an error. It is ignored by the patsy formula parser, and treated as XOR Python operation on column.
-[^4]: This somewhat confusing operator is useful when you want to include hierachical features in your data, and where certain interaction terms do not make sense (particularly in ANOVA contexts). For example, if `a` represents countries, and `b` represents cities, then the full product of terms from `a * b === a + b + a:b` does not make sense, because any value of `b` is guaranteed to coincide with a value in `a`, and does not independently add value. Thus, the operation `a / b === a + a:b` results in more sensible dataset. As a result, the `/` operator is right-distributive, since if `b` and `c` were both nested in `a`, you would want `a/(b+c) === a + a:b + a:c`. Likewise, the operator is not left-distributive, since if `c` is nested under both `a` and `b` separately, then you want `(a + b)/c === a + b + a:b:c`. Lastly, if `c` is nested in `b`, and `b` is nested in `a`, then you would want `a/b/c === a + a:(b/c) === a + a:b + a:b:c`.
-[^5]: Formulaic additionally supports more than one `~` which splits the features into as many groups as you like.
-[^6]: Formulaic only supports one-hot encoding, and does not yet support arbitrary contrast matrices or specification which field to leave out in reduced rank, etc.
+[^1]: Wilkinson, G. N., and C. E. Rogers. Symbolic description of factorial models for analysis of variance. J. Royal Statistics Society 22, pp. 392–399, 1973.

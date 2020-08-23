@@ -7,16 +7,15 @@ Formulaic is a high-performance implementation of Wilkinson formulas for Python,
 which are very useful for transforming dataframes into a form suitable for
 ingestion into various modelling frameworks (especially linear regression).
 
-- **Documentation**: Incoming.
 - **Source Code**: https://github.com/matthewwardrop/formulaic
 - **Issue tracker**: https://github.com/matthewwardrop/formulaic/issues
 
 !!! warning
-    This project, while largely complete, is still a work in progress, and the
-    API is subject to change between major versions
-    (`0.<major>.<minor>`). If you are going to depend on it in another
-    project, it is advisable to pin formulaic to within a major version, for
-    example: `formulaic>=0.1.0,<0.2`.
+    While this project is now fully functional, the API is still subject to
+    change between major versions (`0.<major>.<minor>`) as we continue to
+    improve things. If you are going to depend on it in another project, it is
+    advisable to pin formulaic to within a major version, for example:
+    `formulaic>=0.1.0,<0.2`.
 
 It provides:
 
@@ -34,3 +33,7 @@ It provides:
 - support for symbolic differentiation of formulas (and hence model matrices).
 
 with more to come!
+
+For some examples of what Formulaic provides, and how to use it, please refer to
+the [Basic Usage](basic/intro.md) and [Advanced Usage](advanced/intro.md)
+guides.

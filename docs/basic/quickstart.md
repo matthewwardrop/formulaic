@@ -2,40 +2,13 @@ This document provides high-level documentation on how to get started using
 Formulaic. For deeper documentation about the internals, please refer to the
 [Advanced Usage](../advanced/intro.md) documentation.
 
-## What is a "formula"?
-
-The purpose of a "formula" is to represent the model you would like to build in
-a way that can be programmatically parsed. You can then use the parsed
-representation to build the dataset (called "model matrices") you need for your
-model.
-
-For example, suppose you would like to create a linear regression model for `y`
-based on `a`, `b` and their interaction:
-\\[ y = \alpha + \beta_a a + \beta_b b + \beta_{ab} ab + \varepsilon \\]
-with \\(\varepsilon\\) being mean zero normally distributed random variable.
-Rather than manually constructing the required matrices to pass to the
-regression solver, you could just specify a formula of form:
-```
-y ~ a + b + a:b
-```
-If you provide this formula to formulaic (or any other formula implementation)
-along with a dataframe of length \\( N \\) with fields for `y`, `a` and `b`, you
-will receive two matrix objects: a \\( N \times 1 \\) matrix \\(Y\\) for `y`,
-and a \\( N \times 4 \\) matrix \\(X\\)  for the `intercept`, `a`, `b`, and `a *
-b` columns. You can then directly pass these matrices to your regression solver,
-which internally will solve for \\(\beta\\) in:
-\\[ Y = X\beta + \varepsilon. \\]
-
-For more on how to specify formulas, please refer to the
-[Formula Grammar](formulas.md).
-
 
 ## Building Model Matrices
 
 In formulaic, the simplest way to build your model matrices is to use the
 high-level `model_matrix` function:
 
-```
+```py
 import pandas
 from formulaic import model_matrix
 
@@ -119,7 +92,7 @@ y, X = model_matrix("y ~ a + b + a:b", df)
   </tbody>
 </table>
 
-You will notice that the categorical values for `a` have been one-hot encoded,
+You will notice that the categorical values for `a` have been one-hot (aka dummy) encoded,
 and to ensure structural full-rankness of `X`[^1], one level has been dropped
 from `a`. For more details about how this guarantees that the matrix is full-rank,
 please refer to the excellent [patsy documentation](https://patsy.readthedocs.io/en/latest/formulas.html).

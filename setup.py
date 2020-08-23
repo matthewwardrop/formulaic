@@ -47,6 +47,7 @@ setup(
         'arrow': ['pyarrow'],
         'benchmarks': ['patsy', 'rpy2', 'uncertainties'],
         'calculus': ['sympy'],
+        'docs': ['mkdocs-material', 'pymdown-extensions', 'pygments'],
         'test': test_deps,
     },
 
