@@ -5,36 +5,36 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 
 @stateful_transform
-def scale(data, center=True, scale=True, ddof=1, state=None):
+def scale(data, center=True, scale=True, ddof=1, _state=None):
 
     data = numpy.array(data)
 
-    if 'ddof' not in state:
-        state['ddof'] = ddof
+    if 'ddof' not in _state:
+        _state['ddof'] = ddof
     else:
-        ddof = state['ddof']
+        ddof = _state['ddof']
 
     # Handle centering
-    if 'center' not in state:
+    if 'center' not in _state:
         if isinstance(center, bool) and center:
-            state['center'] = numpy.mean(data, axis=0)
+            _state['center'] = numpy.mean(data, axis=0)
         elif not isinstance(center, bool):
-            state['center'] = numpy.array(center)
+            _state['center'] = numpy.array(center)
         else:
-            state['center'] = None
-    if state['center'] is not None:
-        data = data - state['center']
+            _state['center'] = None
+    if _state['center'] is not None:
+        data = data - _state['center']
 
     # Handle scaling
-    if 'scale' not in state:
+    if 'scale' not in _state:
         if isinstance(scale, bool) and scale:
-            state['scale'] = numpy.sqrt(numpy.sum(data ** 2, axis=0) / (data.shape[0] - ddof))
+            _state['scale'] = numpy.sqrt(numpy.sum(data ** 2, axis=0) / (data.shape[0] - ddof))
         elif not isinstance(scale, bool):
-            state['scale'] = numpy.array(scale)
+            _state['scale'] = numpy.array(scale)
         else:
-            state['scale'] = None
-    if state['scale'] is not None:
-        data = data / state['scale']
+            _state['scale'] = None
+    if _state['scale'] is not None:
+        data = data / _state['scale']
 
     return data
 
@@ -46,5 +46,5 @@ def _(data, *args, **kwargs):
 
 
 @stateful_transform
-def center(data, state=None):
-    return scale(data, scale=False, state=state)
+def center(data, _state=None):
+    return scale(data, scale=False, _state=_state)

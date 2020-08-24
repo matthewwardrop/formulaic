@@ -13,12 +13,9 @@ from .types import NAAction
 
 class PandasMaterializer(FormulaMaterializer):
 
-    REGISTRY_NAME = 'pandas'
-    DEFAULT_FOR = ['pandas.core.frame.DataFrame']
-
-    @override
-    def _init(self, sparse=False):
-        self.config.sparse = sparse
+    REGISTER_NAME = 'pandas'
+    REGISTER_INPUTS = ('pandas.core.frame.DataFrame', )
+    REGISTER_OUTPUTS = ('pandas', 'numpy', 'sparse')
 
     @override
     def _is_categorical(self, values):
@@ -48,31 +45,32 @@ class PandasMaterializer(FormulaMaterializer):
             raise ValueError(f"Do not know how to interpret `na_action` = {repr(na_action)}.")  # pragma: no cover; this is currently impossible to reach
 
     @override
-    def _encode_constant(self, value, metadata, encoder_state, drop_rows):
-        if self.config.sparse:
+    def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
+        if spec.output == 'sparse':
             return spsparse.csc_matrix(numpy.array([value] * self.nrows).reshape((self.nrows - len(drop_rows), 1)))
-        return value * pandas.Series(numpy.ones(self.nrows - len(drop_rows)))
+        series = value * pandas.Series(numpy.ones(self.nrows - len(drop_rows)))
+        return series
 
     @override
-    def _encode_numerical(self, values, metadata, encoder_state, drop_rows):
+    def _encode_numerical(self, values, metadata, encoder_state, spec, drop_rows):
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
-        if self.config.sparse:
+        if spec.output == 'sparse':
             return spsparse.csc_matrix(numpy.array(values).reshape((self.nrows, 1)))
         return values
 
     @override
-    def _encode_categorical(self, values, metadata, encoder_state, drop_rows, reduced_rank=False):
+    def _encode_categorical(self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
         from .transforms import encode_categorical
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
-        return encode_categorical(values, metadata=metadata, state=encoder_state, config=self.config, reduced_rank=False)
+        return encode_categorical(values, reduced_rank=False, _metadata=metadata, _state=encoder_state, _spec=spec)
 
     @override
-    def _get_columns_for_term(self, factors, scale=1):
+    def _get_columns_for_term(self, factors, spec, scale=1):
         out = OrderedDict()
 
         # Pre-multiply factors with only one set of values (improves performance)
@@ -85,7 +83,7 @@ class PandasMaterializer(FormulaMaterializer):
         if solo_factors:
             for index in reversed(indices):
                 factors.pop(index)
-            if self.config.sparse:
+            if spec.output == 'sparse':
                 factors.append({
                     ':'.join(solo_factors): functools.reduce(spsparse.csc_matrix.multiply, solo_factors.values())
                 })
@@ -95,19 +93,19 @@ class PandasMaterializer(FormulaMaterializer):
                 })
 
         for product in itertools.product(*(factor.items() for factor in factors)):
-            if self.config.sparse:
+            if spec.output == 'sparse':
                 out[':'.join(p[0] for p in product)] = scale * functools.reduce(spsparse.csc_matrix.multiply, (p[1] for p in product))
             else:
                 out[':'.join(p[0] for p in product)] = scale * functools.reduce(lambda a, b: numpy.multiply(a, b), (p[1].values for p in product))
         return out
 
     @override
-    def _combine_columns(self, cols):
-        if self.config.sparse:
+    def _combine_columns(self, cols, spec):
+        if spec.output == 'sparse':
             return spsparse.hstack([
                 col[1] for col in cols
             ])
-        return pandas.concat(
+        df = pandas.concat(
             [
                 pandas.Series(col[1], name=col[0])
                 for col in cols
@@ -115,3 +113,6 @@ class PandasMaterializer(FormulaMaterializer):
             axis=1,
             copy=False,
         )
+        if spec.output == 'numpy':
+            return df.values
+        return df

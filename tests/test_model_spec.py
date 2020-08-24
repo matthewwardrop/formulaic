@@ -58,8 +58,8 @@ class TestModelSpec:
 
         model_spec.materializer = None
         m2 = model_spec.get_model_matrix(data2)
-        assert isinstance(m, pandas.DataFrame)
-        assert list(m.columns) == model_spec.feature_names
+        assert isinstance(m2, pandas.DataFrame)
+        assert list(m2.columns) == model_spec.feature_names
 
     def test_differentiate(self, model_spec, formula):
         assert model_spec.differentiate('a').formula == formula.differentiate('a')

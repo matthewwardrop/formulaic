@@ -17,35 +17,33 @@ def stateful_transform(func):
     params = inspect.signature(func).parameters.keys()
 
     @functools.wraps(func)
-    def wrapper(data, *args, metadata=None, state=None, config=None, **kwargs):
-        from formulaic.materializers.base import FormulaMaterializer
-        state = {} if state is None else state
+    def wrapper(data, *args, _metadata=None, _state=None, _output=None, _spec=None, **kwargs):
+        from formulaic.model_spec import ModelSpec
+
+        _state = {} if _state is None else _state
         extra_params = {}
-        if 'metadata' in params:
-            extra_params['metadata'] = metadata
-        if 'config' in params:
-            if isinstance(config, dict):
-                config = FormulaMaterializer.Config(**config)
-            else:
-                config = config or FormulaMaterializer.Config()
-            extra_params['config'] = config
+        if '_metadata' in params:
+            extra_params['_metadata'] = _metadata
+        if '_spec' in params:
+            extra_params['_spec'] = _spec or ModelSpec([])
+
         if isinstance(data, dict):
             results = {}
             for key, datum in data.items():
                 if isinstance(key, str) and key.startswith('__'):
                     results[key] = datum
                 else:
-                    statum = state.get(key, {})
-                    results[key] = wrapper(datum, *args, state=statum, **extra_params, **kwargs)
+                    statum = _state.get(key, {})
+                    results[key] = wrapper(datum, *args, _state=statum, **extra_params, **kwargs)
                     if statum:
-                        state[key] = statum
+                        _state[key] = statum
             return results
-        return func(data, *args, state=state, **extra_params, **kwargs)
+        return func(data, *args, _state=_state, **extra_params, **kwargs)
     wrapper.__is_stateful_transform__ = True
     return wrapper
 
 
-def stateful_eval(expr, env, metadata, state, config):
+def stateful_eval(expr, env, metadata, state, spec):
     """
     Evaluate an expression with a given state.
 
@@ -75,16 +73,16 @@ def stateful_eval(expr, env, metadata, state, config):
         name = name.replace('"', r'\\\\"')
         if name not in state:
             state[name] = {}
-        node.keywords.append(ast.keyword('metadata', ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode='eval').body))
-        node.keywords.append(ast.keyword('state', ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode='eval').body))
-        node.keywords.append(ast.keyword('config', ast.parse('__FORMULAIC_CONFIG__', mode='eval').body))
+        node.keywords.append(ast.keyword('_metadata', ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode='eval').body))
+        node.keywords.append(ast.keyword('_state', ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode='eval').body))
+        node.keywords.append(ast.keyword('_spec', ast.parse('__FORMULAIC_SPEC__', mode='eval').body))
 
     # Compile mutated AST
     code = compile(ast.fix_missing_locations(code), '', 'eval')
 
     assert "__FORMULAIC_METADATA__" not in env
     assert "__FORMULAIC_STATE__" not in env
-    assert "__FORMULAIC_CONFIG__" not in env
+    assert "__FORMULAIC_SPEC__" not in env
 
     # Evaluate and return
     return eval(
@@ -92,7 +90,7 @@ def stateful_eval(expr, env, metadata, state, config):
         {},
         LayeredMapping({
             '__FORMULAIC_METADATA__': metadata,
-            '__FORMULAIC_CONFIG__': config,
+            '__FORMULAIC_SPEC__': spec,
             '__FORMULAIC_STATE__': state
         }, env)
     )  # nosec

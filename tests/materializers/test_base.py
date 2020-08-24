@@ -5,21 +5,29 @@ from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundErr
 from formulaic.materializers.types import EvaluatedFactor, ScopedFactor, ScopedTerm
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
+from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 
 
 class TestFormulaMaterializer:
 
     def test_registrations(self):
-        assert sorted(FormulaMaterializer.REGISTRY) == ['arrow', 'pandas']
-        assert sorted(FormulaMaterializer.DEFAULTS) == ['pandas.core.frame.DataFrame', 'pyarrow.lib.Table']
+        assert sorted(FormulaMaterializer.REGISTERED_NAMES) == ['arrow', 'pandas']
+        assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == ['pandas.core.frame.DataFrame', 'pyarrow.lib.Table']
 
     def test_retrieval(self):
         assert FormulaMaterializer.for_materializer('pandas') is PandasMaterializer
         assert FormulaMaterializer.for_materializer(PandasMaterializer) is PandasMaterializer
+        assert FormulaMaterializer.for_data(pandas.DataFrame(), output='numpy') is PandasMaterializer
 
         with pytest.raises(FormulaMaterializerNotFoundError):
             FormulaMaterializer.for_materializer('invalid_materializer')
+
+        with pytest.raises(FormulaMaterializerNotFoundError, match=r"No materializer has been registered for input type"):
+            FormulaMaterializer.for_data('str')
+
+        with pytest.raises(FormulaMaterializerNotFoundError, match=r"No materializer has been registered for input type .* that supports output type"):
+            FormulaMaterializer.for_data(pandas.DataFrame(), output='invalid_output')
 
     def test_defaults(self):
         assert FormulaMaterializer.for_data(pandas.DataFrame({'a': [1, 2, 3]})) is PandasMaterializer
@@ -75,9 +83,9 @@ class TestFormulaMaterializer:
             cols=[
                 ('A', {'A'}, {'a': 1})
             ],
-            structure=[
+            spec=ModelSpec([], structure=[
                 ('A', {'A'}, ['a'])
-            ],
+            ]),
             drop_rows=[],
         ))) == 1
 
@@ -87,9 +95,9 @@ class TestFormulaMaterializer:
                 cols=[
                     ('A', {'A'}, {'a': 1, 'b': 2})
                 ],
-                structure=[
+                spec=ModelSpec([], structure=[
                     ('A', {'A'}, ['a'])
-                ],
+                ]),
                 drop_rows=[],
             ))
 
@@ -98,9 +106,9 @@ class TestFormulaMaterializer:
             cols=[
                 ('A', {'A'}, {'a': 1})
             ],
-            structure=[
+            spec=ModelSpec([], structure=[
                 ('A', {'A'}, ['a', 'b'])
-            ],
+            ]),
             drop_rows=[],
         ))[0][-1]) == ['a', 'b']
 
@@ -108,9 +116,9 @@ class TestFormulaMaterializer:
             cols=[
                 ('A', {'A'}, {})
             ],
-            structure=[
+            spec=ModelSpec([], structure=[
                 ('A', {'A'}, ['a', 'b'])
-            ],
+            ]),
             drop_rows=[],
         ))[0][-1]) == ['a', 'b']
 
@@ -120,9 +128,9 @@ class TestFormulaMaterializer:
                 cols=[
                     ('A', {'A'}, {'a': 1, 'b': 2})
                 ],
-                structure=[
+                spec=ModelSpec([], structure=[
                     ('A', {'A'}, ['a', 'b', 'c'])
-                ],
+                ]),
                 drop_rows=[],
             ))
 
@@ -132,9 +140,9 @@ class TestFormulaMaterializer:
                 cols=[
                     ('A', {'A'}, {'a': 1, 'b': 2, 'd': 3})
                 ],
-                structure=[
+                spec=ModelSpec([], structure=[
                     ('A', {'A'}, ['a', 'b', 'c'])
-                ],
+                ]),
                 drop_rows=[],
             ))
 
@@ -142,5 +150,6 @@ class TestFormulaMaterializer:
         assert FormulaMaterializer._get_columns_for_term(
             None,
             [{'a': 1}, {'b': 2}],
+            ModelSpec([]),
             scale=3
         ) == {'a:b': 6}

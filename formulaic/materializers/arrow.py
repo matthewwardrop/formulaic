@@ -5,12 +5,11 @@ from .pandas import PandasMaterializer
 
 class ArrowMaterializer(PandasMaterializer):
 
-    REGISTRY_NAME = 'arrow'
-    DEFAULT_FOR = ['pyarrow.lib.Table']
+    REGISTER_NAME = 'arrow'
+    REGISTER_INPUTS = ('pyarrow.lib.Table', )
 
     @override
-    def _init(self, sparse=False):
-        super()._init(sparse=sparse)
+    def _init(self):
         self.__data_context = LazyArrowTableProxy(self.data)
 
     @override

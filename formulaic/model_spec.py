@@ -7,14 +7,15 @@ from .materializers import FormulaMaterializer, NAAction
 
 class ModelSpec:
 
-    def __init__(self, formula, ensure_full_rank=True, structure=None, materializer=None, na_action='drop', transforms=None, encoding=None):
+    def __init__(self, formula, ensure_full_rank=True, structure=None, materializer=None, na_action='drop', output=None, transform_state=None, encoder_state=None):
         self.formula = Formula.from_spec(formula)
         self.ensure_full_rank = ensure_full_rank
         self.structure = structure
         self.materializer = materializer
         self.na_action = NAAction(na_action)
-        self.transforms = transforms or {}
-        self.encoding = encoding or {}
+        self.output = output
+        self.transform_state = transform_state or {}
+        self.encoder_state = encoder_state or {}
 
     @property
     def materializer(self):
@@ -23,7 +24,7 @@ class ModelSpec:
     @materializer.setter
     def materializer(self, materializer):
         if isinstance(materializer, FormulaMaterializer) or inspect.isclass(materializer) and issubclass(materializer, FormulaMaterializer):
-            materializer = materializer.REGISTRY_NAME
+            materializer = materializer.REGISTER_NAME
         assert materializer is None or isinstance(materializer, str), materializer
         self._materializer = materializer
 
@@ -65,6 +66,6 @@ class ModelSpec:
             ensure_full_rank=self.ensure_full_rank,
             structure=self.structure,
             materializer=self.materializer,
-            transforms=self.transforms,
-            encoding=self.encoding,
+            transform_state=self.transform_state,
+            encoder_state=self.encoder_state,
         )

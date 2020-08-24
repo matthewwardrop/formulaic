@@ -34,10 +34,6 @@ class TestArrowMaterializer:
     def materializer(self, data):
         return ArrowMaterializer(data)
 
-    @pytest.fixture
-    def materializer_sparse(self, data):
-        return ArrowMaterializer(data, sparse=True)
-
     @pytest.mark.parametrize("formula,tests", ARROW_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(formula, ensure_full_rank=True)
@@ -51,13 +47,13 @@ class TestArrowMaterializer:
         assert list(mm.columns) == tests[1]
 
     @pytest.mark.parametrize("formula,tests", ARROW_TESTS.items())
-    def test_get_model_matrix_sparse(self, materializer_sparse, formula, tests):
-        mm = materializer_sparse.get_model_matrix(formula, ensure_full_rank=True)
+    def test_get_model_matrix_sparse(self, materializer, formula, tests):
+        mm = materializer.get_model_matrix(formula, ensure_full_rank=True, output='sparse')
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[0]))
         assert list(mm.model_spec.feature_names) == tests[0]
 
-        mm = materializer_sparse.get_model_matrix(formula, ensure_full_rank=False)
+        mm = materializer.get_model_matrix(formula, ensure_full_rank=False, output='sparse')
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[1]))
         assert list(mm.model_spec.feature_names) == tests[1]

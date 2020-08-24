@@ -2,18 +2,22 @@ from formulaic.utils.stateful_transforms import stateful_eval, stateful_transfor
 
 
 @stateful_transform
-def dummy_transform(data, state, config):
-    if 'data' not in state:
-        state['data'] = data
-    return state['data']
+def dummy_transform(data, _state=None, _spec=None, _metadata=None):
+    if _metadata is not None:
+        _metadata['added'] = True
+    if 'data' not in _state:
+        _state['data'] = data
+    return _state['data']
 
 
 def test_stateful_transform():
 
     state = {}
-    assert dummy_transform(1, state=state) == 1
+    metadata = {}
+    assert dummy_transform(1, _state=state, _metadata=metadata) == 1
     assert state['data'] == 1
-    assert dummy_transform(2, state=state) == 1
+    assert metadata.get('added') is True
+    assert dummy_transform(2, _state=state) == 1
     assert dummy_transform(2) == 2
 
 
