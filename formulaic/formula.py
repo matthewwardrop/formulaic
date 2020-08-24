@@ -60,7 +60,7 @@ class Formula:
             materializer = FormulaMaterializer.for_materializer(materializer)
         if not inspect.isclass(materializer) or not issubclass(materializer, FormulaMaterializer):
             raise FormulaMaterializerInvalidError("Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`.")
-        return materializer(data, context=context or {}, **kwargs).get_model_matrix(self, ensure_full_rank=ensure_full_rank)
+        return materializer(data, context=context or {}).get_model_matrix(self, ensure_full_rank=ensure_full_rank, **kwargs)
 
     def differentiate(self, *vars, use_sympy=False):
         return Formula([

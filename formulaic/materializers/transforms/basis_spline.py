@@ -30,7 +30,7 @@ def basis_spline(
         lower_bound: Optional[float] = None,
         upper_bound: Optional[float] = None,
         extrapolation: Union[str, SplineExtrapolation] = 'raise',
-        state: dict = None,
+        _state: dict = None,
 ):
     """
     Evaluates the B-Spline basis vectors for given inputs `x`.
@@ -94,11 +94,11 @@ def basis_spline(
     # Prepare and check arguments
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
-    lower_bound = numpy.min(x) if state.get('lower_bound', lower_bound) is None else lower_bound
-    upper_bound = numpy.max(x) if state.get('upper_bound', upper_bound) is None else upper_bound
+    lower_bound = numpy.min(x) if _state.get('lower_bound', lower_bound) is None else lower_bound
+    upper_bound = numpy.max(x) if _state.get('upper_bound', upper_bound) is None else upper_bound
     extrapolation = SplineExtrapolation(extrapolation)
-    state['lower_bound'] = lower_bound
-    state['upper_bound'] = upper_bound
+    _state['lower_bound'] = lower_bound
+    _state['upper_bound'] = upper_bound
 
     # Prepare data
     if extrapolation is SplineExtrapolation.RAISE and numpy.any((x < lower_bound) | (x > upper_bound)):
@@ -112,7 +112,7 @@ def basis_spline(
         x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
 
     # Prepare knots
-    if 'knots' not in state:
+    if 'knots' not in _state:
         knots = knots or []
         if df:
             nknots = df - degree - (1 if include_intercept else 0)
@@ -122,9 +122,8 @@ def basis_spline(
         knots.insert(0, lower_bound)
         knots.append(upper_bound)
         knots = list(numpy.pad(knots, degree, mode='edge'))
-        state['knots'] = knots
-    knots = state['knots']
-    print(knots)
+        _state['knots'] = knots
+    knots = _state['knots']
 
     # Compute basis splines
     # The following code is equivalent to [B(i, j=degree) for in range(len(knots)-d-1)], with B(i, j) as defined below.

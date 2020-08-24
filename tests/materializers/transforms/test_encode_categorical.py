@@ -4,13 +4,14 @@ import scipy.sparse as spsparse
 
 from formulaic.errors import DataMismatchWarning
 from formulaic.materializers.transforms import encode_categorical
+from formulaic.model_spec import ModelSpec
 
 
 def test_encode_categorical():
     state = {}
-    config = {'sparse': False}
+    spec = ModelSpec([], output='pandas')
     _compare_formulaic_dict(
-        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], state=state, config=config),
+        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], _state=state, _spec=spec),
         {
             '__kind__': 'categorical',
             '__spans_intercept__': True,
@@ -26,7 +27,7 @@ def test_encode_categorical():
 
     with pytest.warns(DataMismatchWarning):
         _compare_formulaic_dict(
-            encode_categorical(data=['a', 'b', 'd', 'a', 'b', 'd'], state=state, config=config),
+            encode_categorical(data=['a', 'b', 'd', 'a', 'b', 'd'], _state=state, _spec=spec),
             {
                 '__kind__': 'categorical',
                 '__spans_intercept__': True,
@@ -41,7 +42,7 @@ def test_encode_categorical():
         assert state['categories'] == ['a', 'b', 'c']
 
     _compare_formulaic_dict(
-        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], state=state, config=config, reduced_rank=True),
+        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], reduced_rank=True, _state=state, _spec=spec),
         {
             '__kind__': 'categorical',
             '__spans_intercept__': False,
@@ -55,7 +56,7 @@ def test_encode_categorical():
     assert state['categories'] == ['a', 'b', 'c']
 
     _compare_formulaic_dict(
-        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], state=state, config=config, reduced_rank=False, spans_intercept=False),
+        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], reduced_rank=False, spans_intercept=False, _state=state, _spec=spec),
         {
             '__kind__': 'categorical',
             '__spans_intercept__': False,
@@ -72,9 +73,9 @@ def test_encode_categorical():
 
 def test_encode_categorical_sparse():
     state = {}
-    config = {'sparse': True}
+    spec = ModelSpec([], output='sparse')
     _compare_formulaic_dict(
-        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], state=state, config=config),
+        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], _state=state, _spec=spec),
         {
             '__kind__': 'categorical',
             '__spans_intercept__': True,
@@ -89,7 +90,7 @@ def test_encode_categorical_sparse():
     assert state['categories'] == ['a', 'b', 'c']
 
     _compare_formulaic_dict(
-        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], state=state, config=config, reduced_rank=True),
+        encode_categorical(data=['a', 'b', 'c', 'a', 'b', 'c'], reduced_rank=True, _state=state, _spec=spec),
         {
             '__kind__': 'categorical',
             '__spans_intercept__': False,
@@ -104,7 +105,7 @@ def test_encode_categorical_sparse():
 
     with pytest.warns(DataMismatchWarning):
         _compare_formulaic_dict(
-            encode_categorical(data=['a', 'b', 'd', 'a', 'b', 'd'], state=state, config=config),
+            encode_categorical(data=['a', 'b', 'd', 'a', 'b', 'd'], _state=state, _spec=spec),
             {
                 '__kind__': 'categorical',
                 '__spans_intercept__': True,
