@@ -1,4 +1,4 @@
-In this portion of Formulaic's documentation, we introduce the high-evel
+In this portion of Formulaic's documentation, we introduce the high-level
 concepts behind formulas, where they are useful, and how to use the
 implementation of formulas provided by `formulaic`.
 

@@ -82,12 +82,11 @@ user-defined transforms. However, some transformations required by certain
 models may be more elegantly defined via a pre-formula dataframe operation or
 post-formula model matrix operation. Another consideration is that the default
 encoding and materialization choices for data are aligned with linear
-regression. If you are using a tree model, for example, you may be interested in
-the ordinal encoding of "categorical" features with respect to some outcome,
-rather than one-hot/dummy encoding, and this type of transform would have to be
-explicitly noted in the formula. Nevertheless, even in these cases, formulas are
-an excellent tool, and can often be used to greatly simplify data preparation
-workflows.
+regression. If you are using a tree model, for example, you may not be
+interested in dummy encoding of "categorical" features, and this type of
+transform would have to be explicitly noted in the formula. Nevertheless, even
+in these cases, formulas are an excellent tool, and can often be used to greatly
+simplify data preparation workflows.
 
 ## Where to from here?
 

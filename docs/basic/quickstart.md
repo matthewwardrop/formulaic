@@ -5,7 +5,7 @@ Formulaic. For deeper documentation about the internals, please refer to the
 
 ## Building Model Matrices
 
-In formulaic, the simplest way to build your model matrices is to use the
+In `formulaic`, the simplest way to build your model matrices is to use the
 high-level `model_matrix` function:
 
 ```py
@@ -166,7 +166,7 @@ in large datasets with many categorical features, dense model matrices become
 hugely memory inefficient (since most entries of the data will be zero).
 Formulaic allows you to directly generate sparse model matrices using:
 ```
-X = model_matrix("a + b + a:b", df, sparse=True)
+X = model_matrix("a + b + a:b", df, output='sparse')
 ```
 In this example, `X` is a \\( 6 \times 3 \\) `scipy.sparse.csc_matrix` instance.
 
