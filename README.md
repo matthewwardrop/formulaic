@@ -1,4 +1,4 @@
-# <img src="docs/_static/logo_with_text.png" alt="Formulaic" height=100/>
+# <img src="docs/assets/images/logo_with_text.png" alt="Formulaic" height=100/>
 
 [![PyPI - Version](https://img.shields.io/pypi/v/formulaic.svg)](https://pypi.org/project/formulaic/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/formulaic.svg)

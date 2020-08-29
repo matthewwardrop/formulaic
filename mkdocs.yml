@@ -1,0 +1,31 @@
+site_name: Formulaic
+nav:
+  - Overview:
+    - Introduction: index.md
+    - Installation: installation.md
+    - Changelog: changelog.md
+  - Basic Usage:
+    - Introduction: basic/intro.md
+    - What are formulas?: basic/formulas.md
+    - Quickstart: basic/quickstart.md
+    - Formula Grammar: basic/grammar.md
+  - Advanced Usage:
+    - Introduction: advanced/intro.md
+  - Reference:
+    - API: reference/api.md
+theme:
+  name: material
+  features:
+    - tabs
+  logo: assets/images/logo.svg
+  palette:
+    primary: light blue
+markdown_extensions:
+  - admonition
+  - footnotes
+  - pymdownx.highlight:
+      use_pygments: true
+  - pymdownx.superfences
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
