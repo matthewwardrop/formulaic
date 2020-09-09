@@ -116,6 +116,6 @@ For more details, see [here](benchmarks/README.md).
 ## Related projects and prior art
 
 - [Patsy](https://github.com/pydata/patsy): a prior implementation of Wilkinson formulas for Python, which is widely used (e.g. in statsmodels). It has fantastic documentation (which helped bootstrap this project), and a rich array of features.
-- [Julia Formulas](https://juliadata.github.io/DataFrames.jl/v0.9/man/formulas/): The implementation of Wilkinson formulas for Julia.
+- [StatsModels.jl `@formula`](https://juliastats.org/StatsModels.jl/stable/formula/): The implementation of Wilkinson formulas for Julia.
 - [R Formulas](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/formula): The implementation of Wilkinson formulas for R, which is thoroughly introduced [here](https://cran.r-project.org/web/packages/Formula/vignettes/Formula.pdf). [R itself is an implementation of [S](https://en.wikipedia.org/wiki/S_%28programming_language%29), in which formulas were first made popular].
 - The work that started it all: Wilkinson, G. N., and C. E. Rogers. Symbolic description of factorial models for analysis of variance. J. Royal Statistics Society 22, pp. 392–399, 1973.
