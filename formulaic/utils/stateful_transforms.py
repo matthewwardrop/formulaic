@@ -65,7 +65,7 @@ def stateful_eval(expr, env, metadata, state, spec):
     # Extract the nodes of the graph that correspond to stateful transforms
     stateful_nodes = {}
     for node in ast.walk(code):
-        if isinstance(node, ast.Call) and getattr(env.get(node.func.id), '__is_stateful_transform__', False):
+        if isinstance(node, ast.Call) and getattr(getattr(env.get(node.func), "id", None), '__is_stateful_transform__', False):
             stateful_nodes[astor.to_source(node).strip()] = node
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
