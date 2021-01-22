@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 import ast
 import functools
 import inspect
 import keyword
 import re
-import typing
 
 import astor
 import numpy
@@ -14,8 +11,8 @@ from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.types import Token
 from .layered_mapping import LayeredMapping
 
-if typing.TYPE_CHECKING:
-    from collections.abc import Mapping  # pragma: no cover
+# Type checking imports (will nest under typing.TYPE_CHECKING once we no longer support Python 3.6)
+from collections.abc import Mapping
 
 
 def stateful_transform(func):
