@@ -1,5 +1,33 @@
 For the latest changes, please refer to the git log: https://github.com/matthewwardrop/formulaic/commits/master.
 
+## 0.2.1 (22 January 2021)
+
+This is a minor patch release that brings in some valuable improvements.
+
+- Keep track of the pandas dataframe index if outputting a pandas `DataFrame`.
+- Fix using functions in formulae that are nested within a module or class.
+- Avoid crashing when an attempt is made to generate an empty model matrix.
+- Enriched setup.py with long description for a better experience on PyPI.
+
+## 0.2.0 (21 January 2021)
+
+This is major release that brings in a large number of improvements, with a huge
+number of commits. Some API breakage from the experimental 0.1.x series is
+likely in various edge-cases.
+
+Highlights include:
+
+- Enriched formula parser to support quoting, and evaluation of formulas involving fields with invalid Python names.
+- Added commonly used stateful transformations (identity, center, scale, bs)
+- Improved the helpfulness of error messages reported by the formula parser.
+- Added support for basic calculus on formulas (useful when taking the gradient of linear models).
+- Made it easier to extend Formulaic with additional materializers.
+- Many internal improvements to code quality and reliability, including 100% test coverage.
+- Added benchmarks for Formulaic against R and patsy.
+- Added documentation.
+- Miscellaneous other bugfixes and cleanups.
+
+
 ## 0.1.2 (6 November 2019)
 
 Performance improvements around the encoding of categorical features.

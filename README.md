@@ -109,7 +109,7 @@ y, X = Formula('y ~ x + z').get_model_matrix(df)
 
 Formulaic typically outperforms R for both dense and sparse model matrices, and vastly outperforms `patsy` (the existing implementation for Python) for dense matrices (`patsy` does not support sparse model matrix output).
 
-![Benchmarks](benchmarks/benchmarks.png)
+![Benchmarks](https://github.com/matthewwardrop/formulaic/raw/master/benchmarks/benchmarks.png)
 
 For more details, see [here](benchmarks/README.md).
 
