@@ -1,3 +1,4 @@
+from os import path
 from setuptools import find_packages, setup
 
 version_info = {}
@@ -10,6 +11,10 @@ test_deps = [
     'pytest-cov',
 ]
 
+PWD = path.abspath(path.dirname(__file__))
+with open(path.join(PWD, 'README.md'), encoding='utf-8') as readme:
+    long_description = readme.read()
+
 setup(
     name='formulaic',
     version=version_info['__version__'],
@@ -18,6 +23,8 @@ setup(
     author_email=version_info['__author_email__'],
     url="https://github.com/matthewwardrop/formulaic",
     description='An implementation of Wilkinson formulas.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
