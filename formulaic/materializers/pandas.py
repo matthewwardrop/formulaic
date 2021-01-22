@@ -101,6 +101,16 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _combine_columns(self, cols, spec):
+        # Special case no columns to empty csc_matrix, array, or DataFrame
+        if not cols:
+            values = numpy.empty((self.data.shape[0],0))
+            if spec.output == 'sparse':
+                return spsparse.csc_matrix(values)
+            elif spec.output == 'numpy':
+                return values
+            else:
+                return pandas.DataFrame(index=self.data.index)
+
         if spec.output == 'sparse':
             return spsparse.hstack([
                 col[1] for col in cols

@@ -170,3 +170,9 @@ class TestPandasMaterializer:
                 )
             ) == ['B[a][T.a]', 'B[a][T.b]', 'B[a][T.c]']
         )
+
+    def test_empty(self, materializer):
+        mm = materializer.get_model_matrix("0", ensure_full_rank=True)
+        assert mm.shape[1] == 0
+        mm = materializer.get_model_matrix("0", ensure_full_rank=False)
+        assert mm.shape[1] == 0
