@@ -176,3 +176,9 @@ class TestPandasMaterializer:
         assert mm.shape[1] == 0
         mm = materializer.get_model_matrix("0", ensure_full_rank=False)
         assert mm.shape[1] == 0
+
+        mm = materializer.get_model_matrix("0", output='numpy')
+        assert mm.shape[1] == 0
+
+        mm = materializer.get_model_matrix("0", output='sparse')
+        assert mm.shape[1] == 0
