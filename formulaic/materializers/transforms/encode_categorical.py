@@ -20,8 +20,8 @@ def encode_categorical(data, reduced_rank=False, spans_intercept=True, output=No
         data = data.reshape((data.size, ))
         categories, encoded = categorical_encode_series_to_sparse_csc_matrix(data, reduced_rank=reduced_rank)
     else:
-        data = pandas.Categorical(data)
-        categories = list(data.categories)
+        data = pandas.Series(data).astype('category')
+        categories = list(data.cat.categories)
         encoded = dict(pandas.get_dummies(data, drop_first=reduced_rank))
 
     # Update state

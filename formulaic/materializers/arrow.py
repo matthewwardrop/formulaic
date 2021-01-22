@@ -1,5 +1,7 @@
 from interface_meta import override
 
+import pandas
+
 from .pandas import PandasMaterializer
 
 
@@ -24,6 +26,7 @@ class LazyArrowTableProxy:
         self.table = table
         self.column_names = set(self.table.column_names)
         self._cache = {}
+        self.index = pandas.RangeIndex(len(table))
 
     def __contains__(self, value):
         return value in self.column_names

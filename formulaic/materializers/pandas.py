@@ -100,7 +100,15 @@ class PandasMaterializer(FormulaMaterializer):
         return out
 
     @override
-    def _combine_columns(self, cols, spec):
+    def _combine_columns(self, cols, spec, drop_rows):
+
+        # If we are outputing a pandas DataFrame, explicitly override index
+        # in case transforms/etc have lost track of it.
+        if spec.output == 'pandas':
+            pandas_index = self.data_context.index
+            if drop_rows:
+                pandas_index = pandas_index.drop(self.data_context.index[drop_rows])
+
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:
             values = numpy.empty((self.data.shape[0], 0))
@@ -109,20 +117,20 @@ class PandasMaterializer(FormulaMaterializer):
             elif spec.output == 'numpy':
                 return values
             else:
-                return pandas.DataFrame(index=self.data.index)
+                return pandas.DataFrame(index=pandas_index)
 
+        # Otherwise, concatenate columns into model matrix
         if spec.output == 'sparse':
             return spsparse.hstack([
                 col[1] for col in cols
             ])
-        df = pandas.concat(
+        if spec.output == 'numpy':
+            return numpy.stack([col[1] for col in cols], axis=1)
+        return pandas.concat(
             [
-                pandas.Series(col[1], name=col[0])
+                pandas.Series(col[1], name=col[0], index=pandas_index, copy=False)
                 for col in cols
             ],
             axis=1,
             copy=False,
         )
-        if spec.output == 'numpy':
-            return df.values
-        return df

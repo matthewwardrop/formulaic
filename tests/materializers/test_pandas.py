@@ -182,3 +182,12 @@ class TestPandasMaterializer:
 
         mm = materializer.get_model_matrix("0", output='sparse')
         assert mm.shape[1] == 0
+
+    def test_index_maintained(self):
+        data = pandas.DataFrame({'a': [1, 2, 3], 'A': ['a', 'b', 'c']}, index=['a', 'b', 'c'])
+        mm = PandasMaterializer(data).get_model_matrix("a + A")
+        assert all(mm.index == data.index)
+
+        data = pandas.DataFrame({'a': [None, 2, 3], 'A': ['a', None, 'c']}, index=['a', 'b', 'c'])
+        mm = PandasMaterializer(data).get_model_matrix("a + A")
+        assert list(mm.index) == ['c']

@@ -158,7 +158,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 (name, values)
                 for term, scoped_terms, scoped_cols in cols
                 for name, values in scoped_cols.items()
-            ], spec=spec),
+            ], spec=spec, drop_rows=drop_rows),
             spec=spec
         )
 
@@ -454,5 +454,5 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return out
 
     @abstractmethod
-    def _combine_columns(self, cols, spec):
+    def _combine_columns(self, cols, spec, drop_rows):
         pass  # pragma: no cover
