@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import ast
 import functools
 import inspect
 import keyword
 import re
+import typing
 
 import astor
 import numpy
@@ -10,6 +13,9 @@ import numpy
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.types import Token
 from .layered_mapping import LayeredMapping
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Mapping  # pragma: no cover
 
 
 def stateful_transform(func):
@@ -65,7 +71,7 @@ def stateful_eval(expr, env, metadata, state, spec):
     # Extract the nodes of the graph that correspond to stateful transforms
     stateful_nodes = {}
     for node in ast.walk(code):
-        if isinstance(node, ast.Call) and getattr(env.get(node.func.id), '__is_stateful_transform__', False):
+        if _is_stateful_transform(node, env):
             stateful_nodes[astor.to_source(node).strip()] = node
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
@@ -117,3 +123,18 @@ def sanitize_variable_names(expr, env):
                 token = Token(new_name, kind='name')
         tokens.append(token)
     return " ".join([str(t) for t in tokens])
+
+
+def _is_stateful_transform(node: ast.AST, env: Mapping):
+    """
+    Check whether a given ast.Call node enacts a stateful transform given
+    the available symbols in `env`.
+    """
+    if not isinstance(node, ast.Call):
+        return False
+
+    try:
+        func = eval(compile(astor.to_source(node.func).strip(), '', 'eval'), {}, env)  # nosec; Get function handle (assuming it exists in env)
+        return getattr(func, '__is_stateful_transform__', False)
+    except NameError:
+        return False

@@ -265,14 +265,19 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _evaluate_factor(self, factor, spec, drop_rows):
         if factor.expr not in self.factor_cache:
-            if factor.eval_method.value == 'lookup':
-                value = self._lookup(factor.expr)
-            elif factor.eval_method.value == 'python':
-                value = self._evaluate(factor.expr, factor.metadata, spec)
-            elif factor.eval_method.value == 'literal':
-                value = EvaluatedFactor(factor, self._evaluate(factor.expr, factor.metadata, spec), kind='constant')
-            else:
-                raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
+            try:
+                if factor.eval_method.value == 'lookup':
+                    value = self._lookup(factor.expr)
+                elif factor.eval_method.value == 'python':
+                    value = self._evaluate(factor.expr, factor.metadata, spec)
+                elif factor.eval_method.value == 'literal':
+                    value = EvaluatedFactor(factor, self._evaluate(factor.expr, factor.metadata, spec), kind='constant')
+                else:
+                    raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
+            except FactorEvaluationError:
+                raise
+            except Exception as e:
+                raise FactorEvaluationError(f"Unable to evaluate factor `{factor}`. [{type(e).__name__}: {e}]")
 
             if not isinstance(value, EvaluatedFactor):
                 if isinstance(value, dict) and '__kind__' in value:

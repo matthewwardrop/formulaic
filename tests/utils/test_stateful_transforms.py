@@ -1,3 +1,7 @@
+import pytest
+
+import numpy
+
 from formulaic.utils.stateful_transforms import stateful_eval, stateful_transform
 
 
@@ -39,3 +43,9 @@ def test_stateful_eval_distribution():
     assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value', 'a': 1, 'b': 2}}, None, state, None) == {'__property__': 'value', 'a': 1, 'b': 2}
     assert state == {"dummy_transform(data)": {'a': {'data': 1}, 'b': {'data': 2}}}
     assert stateful_eval("dummy_transform(data)", {'dummy_transform': dummy_transform, 'data': {'__property__': 'value2', 'a': 3, 'b': 4}}, None, state, None) == {'__property__': 'value2', 'a': 1, 'b': 2}
+
+def test_stateful_eval_func_attr():
+    assert stateful_eval("numpy.exp(0)", {'numpy': numpy}, None, {}, None) == 1.0
+
+    with pytest.raises(NameError):
+        assert stateful_eval("non_existent.me_too(0)", {}, None, {}, None)

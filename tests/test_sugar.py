@@ -3,6 +3,7 @@ import pytest
 import pandas
 
 from formulaic import model_matrix
+from formulaic.errors import FactorEvaluationError
 
 
 def global_test(x):
@@ -24,5 +25,5 @@ class TestSugar:
         assert list(r['global_test(a)']) == [1, 4, 9]
         assert list(r['local_test(b)']) == [16, 25, 36]
 
-        with pytest.raises(NameError):
+        with pytest.raises(FactorEvaluationError):
             model_matrix('0 + global_test(a) + local_test(b)', data, context=None)
