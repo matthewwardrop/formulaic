@@ -191,3 +191,8 @@ class TestPandasMaterializer:
         data = pandas.DataFrame({'a': [None, 2, 3], 'A': ['a', None, 'c']}, index=['a', 'b', 'c'])
         mm = PandasMaterializer(data).get_model_matrix("a + A")
         assert list(mm.index) == ['c']
+
+        data = pandas.DataFrame({'a': [0, 1, 2, None, 4, 5], 'A': list('ABCDEF')}, index=[0, 2, 4, 6, 8, 10])
+        mm = PandasMaterializer(data).get_model_matrix('1 + a + A')
+        assert list(mm.index) == [0, 2, 4, 8, 10]
+        assert not numpy.any(pandas.isnull(mm))

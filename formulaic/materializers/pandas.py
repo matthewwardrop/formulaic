@@ -48,7 +48,7 @@ class PandasMaterializer(FormulaMaterializer):
     def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
         if spec.output == 'sparse':
             return spsparse.csc_matrix(numpy.array([value] * self.nrows).reshape((self.nrows - len(drop_rows), 1)))
-        series = value * pandas.Series(numpy.ones(self.nrows - len(drop_rows)))
+        series = value * numpy.ones(self.nrows - len(drop_rows))
         return series
 
     @override
@@ -89,14 +89,14 @@ class PandasMaterializer(FormulaMaterializer):
                 })
             else:
                 factors.append({
-                    ':'.join(solo_factors): pandas.Series(functools.reduce(lambda a, b: numpy.multiply(a, b), (p for p in solo_factors.values())))
+                    ':'.join(solo_factors): functools.reduce(lambda a, b: numpy.multiply(a, b), (p for p in solo_factors.values()))
                 })
 
         for product in itertools.product(*(factor.items() for factor in factors)):
             if spec.output == 'sparse':
                 out[':'.join(p[0] for p in product)] = scale * functools.reduce(spsparse.csc_matrix.multiply, (p[1] for p in product))
             else:
-                out[':'.join(p[0] for p in product)] = scale * functools.reduce(lambda a, b: numpy.multiply(a, b), (p[1].values for p in product))
+                out[':'.join(p[0] for p in product)] = scale * functools.reduce(lambda a, b: numpy.multiply(a, b), (numpy.array(p[1]) for p in product))
         return out
 
     @override
@@ -126,11 +126,11 @@ class PandasMaterializer(FormulaMaterializer):
             ])
         if spec.output == 'numpy':
             return numpy.stack([col[1] for col in cols], axis=1)
-        return pandas.concat(
-            [
-                pandas.Series(col[1], name=col[0], index=pandas_index, copy=False)
+        return pandas.DataFrame(
+            {
+                col[0]: col[1]
                 for col in cols
-            ],
-            axis=1,
+            },
+            index=pandas_index,
             copy=False,
         )
