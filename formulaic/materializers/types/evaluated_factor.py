@@ -39,3 +39,11 @@ class EvaluatedFactor:
         if isinstance(other, EvaluatedFactor):
             return self.factor < other.factor
         return NotImplemented
+
+    def copy(self, *, without_values: bool = False):
+        return EvaluatedFactor(
+            factor=self.factor,
+            values=None if without_values else self.values,
+            kind=self.kind,
+            spans_intercept=self.spans_intercept
+        )

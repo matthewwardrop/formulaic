@@ -1,3 +1,6 @@
+from .scoped_factor import ScopedFactor
+
+
 class ScopedTerm:
 
     __slots__ = ('factors', 'scale')
@@ -20,5 +23,11 @@ class ScopedTerm:
             return f"{self.scale}*{factor_repr}"
         return factor_repr
 
-    def copy(self):
-        return ScopedTerm(tuple(self.factors), scale=self.scale)
+    def copy(self, *, without_values=False):
+        factors = self.factors
+        if without_values:
+            factors = [
+                ScopedFactor(factor=factor.factor.copy(without_values=True), reduced=factor.reduced)
+                for factor in factors
+            ]
+        return ScopedTerm(factors, scale=self.scale)

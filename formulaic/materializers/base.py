@@ -148,7 +148,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             cols = self._enforce_structure(cols, spec, drop_rows)
         else:
             spec.structure = [
-                (term, scoped_terms, list(scoped_cols))
+                (term, list(st.copy(without_values=True) for st in scoped_terms), list(scoped_cols))
                 for term, scoped_terms, scoped_cols in cols
             ]
 
