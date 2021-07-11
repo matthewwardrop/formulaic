@@ -104,24 +104,24 @@ class TestPandasMaterializer:
 
     def test_factor_evaluation_edge_cases(self, materializer):
         # Test that categorical kinds are set if type would otherwise be numerical
-        ev_factor = materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='categorical'), ModelSpec([]), drop_rows=set())
+        ev_factor = materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='categorical'), ModelSpec([]), drop_rows=set(), metadata=None)
         assert ev_factor.kind.value == 'categorical'
 
         # Test that other kind mismatches result in an exception
         materializer.factor_cache = {}
         with pytest.raises(FactorEncodingError):
-            materializer._evaluate_factor(Factor('A', eval_method='lookup', kind='numerical'), ModelSpec([]), drop_rows=[])
+            materializer._evaluate_factor(Factor('A', eval_method='lookup', kind='numerical'), ModelSpec([]), drop_rows=[], metadata=None)
 
         # Test that if an encoding has already been determined, that an exception is raised
         # if the new encoding does not match
         materializer.factor_cache = {}
         with pytest.raises(FactorEncodingError):
-            materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='numerical'), ModelSpec([], encoder_state={'a': ('categorical', {})}), drop_rows=[])
+            materializer._evaluate_factor(Factor('a', eval_method='lookup', kind='numerical'), ModelSpec([], encoder_state={'a': ('categorical', {})}), drop_rows=[], metadata=None)
 
         # Test that invalid (kind == UNKNOWN) factors raise errors
         materializer.factor_cache = {}
         with pytest.raises(FactorEvaluationError):
-            assert materializer._evaluate_factor(Factor('a'), ModelSpec([]), drop_rows=set())
+            assert materializer._evaluate_factor(Factor('a'), ModelSpec([]), drop_rows=set(), metadata=None)
 
     def test_categorical_dict_detection(self, materializer):
         assert materializer._is_categorical({'__kind__': 'categorical'})

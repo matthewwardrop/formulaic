@@ -23,10 +23,6 @@ class EvaluatedFactor:
     def expr(self):
         return self.factor.expr
 
-    @property
-    def metadata(self):
-        return self.factor.metadata
-
     def __repr__(self):
         return repr(self.factor)
 

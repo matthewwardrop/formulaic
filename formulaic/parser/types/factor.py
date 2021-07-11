@@ -17,13 +17,12 @@ class Factor:
         NUMERICAL = 'numerical'
         CATEGORICAL = 'categorical'
 
-    __slots__ = ('expr', '_eval_method', '_kind', 'metadata')
+    __slots__ = ('expr', '_eval_method', '_kind')
 
-    def __init__(self, expr='', *, eval_method=None, kind=None, metadata=None):
+    def __init__(self, expr='', *, eval_method=None, kind=None):
         self.expr = expr
         self.eval_method = eval_method
         self.kind = kind
-        self.metadata = metadata or {}
 
     @property
     def eval_method(self):

@@ -46,7 +46,7 @@ def stateful_transform(func):
     return wrapper
 
 
-def stateful_eval(expr, env, metadata, state, spec):
+def stateful_eval(expr, env, state, spec, metadata):
     """
     Evaluate an expression with a given state.
 
@@ -54,8 +54,8 @@ def stateful_eval(expr, env, metadata, state, spec):
     create a copy before passing it to this function.
     """
 
-    metadata = {} if metadata is None else metadata
     state = {} if state is None else state
+    metadata = {} if metadata is None else metadata
     env = LayeredMapping(env)  # We sometimes mutate env, so we make sure we do so in a local mutable layer.
 
     # Ensure that variable names in code are valid for Python's interpreter
@@ -76,25 +76,25 @@ def stateful_eval(expr, env, metadata, state, spec):
         name = name.replace('"', r'\\\\"')
         if name not in state:
             state[name] = {}
-        node.keywords.append(ast.keyword('_metadata', ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode='eval').body))
         node.keywords.append(ast.keyword('_state', ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode='eval').body))
         node.keywords.append(ast.keyword('_spec', ast.parse('__FORMULAIC_SPEC__', mode='eval').body))
+        node.keywords.append(ast.keyword('_metadata', ast.parse('__FORMULAIC_METADATA__', mode='eval').body))
 
     # Compile mutated AST
     code = compile(ast.fix_missing_locations(code), '', 'eval')
 
-    assert "__FORMULAIC_METADATA__" not in env
     assert "__FORMULAIC_STATE__" not in env
     assert "__FORMULAIC_SPEC__" not in env
+    assert "__FORMULAIC_METADATA__" not in env
 
     # Evaluate and return
     return eval(
         code,
         {},
         LayeredMapping({
-            '__FORMULAIC_METADATA__': metadata,
             '__FORMULAIC_SPEC__': spec,
-            '__FORMULAIC_STATE__': state
+            '__FORMULAIC_STATE__': state,
+            '__FORMULAIC_METADATA__': metadata,
         }, env)
     )  # nosec
 

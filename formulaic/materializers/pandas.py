@@ -45,14 +45,14 @@ class PandasMaterializer(FormulaMaterializer):
             raise ValueError(f"Do not know how to interpret `na_action` = {repr(na_action)}.")  # pragma: no cover; this is currently impossible to reach
 
     @override
-    def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
+    def _encode_constant(self, value, encoder_state, spec, drop_rows):
         if spec.output == 'sparse':
             return spsparse.csc_matrix(numpy.array([value] * self.nrows).reshape((self.nrows - len(drop_rows), 1)))
         series = value * numpy.ones(self.nrows - len(drop_rows))
         return series
 
     @override
-    def _encode_numerical(self, values, metadata, encoder_state, spec, drop_rows):
+    def _encode_numerical(self, values, encoder_state, spec, drop_rows):
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
         if spec.output == 'sparse':
@@ -60,14 +60,14 @@ class PandasMaterializer(FormulaMaterializer):
         return values
 
     @override
-    def _encode_categorical(self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False):
+    def _encode_categorical(self, values, encoder_state, spec, drop_rows, reduced_rank=False):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
         from .transforms import encode_categorical
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
-        return encode_categorical(values, reduced_rank=False, _metadata=metadata, _state=encoder_state, _spec=spec)
+        return encode_categorical(values, reduced_rank=False, _state=encoder_state, _spec=spec)
 
     @override
     def _get_columns_for_term(self, factors, spec, scale=1):

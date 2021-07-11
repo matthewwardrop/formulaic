@@ -1,3 +1,4 @@
+import copy
 import functools
 import itertools
 import operator
@@ -89,7 +90,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def nrows(self):
         return len(self.data)
 
-    def get_model_matrix(self, spec, ensure_full_rank=True, na_action='drop', output=None):
+    def get_model_matrix(self, spec, ensure_full_rank=True, na_action='drop', output=None, metadata=None):
         from formulaic.formula import Formula
         from formulaic.model_spec import ModelSpec
 
@@ -108,16 +109,19 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Step 0: Check whether formula separators are in play, and if so, recurse.
         if isinstance(spec.formula.terms, tuple):
             return tuple(
-                self.get_model_matrix(Formula(terms), ensure_full_rank=ensure_full_rank, na_action=na_action, output=output)
+                self.get_model_matrix(Formula(terms), ensure_full_rank=ensure_full_rank, na_action=na_action, output=output, metadata=copy.copy(metadata))
                 for terms in spec.formula.terms
             )
+
+        if metadata is None:
+            metadata = {}
 
         drop_rows = set()  # Keep track of which rows to drop if `self.config.na_action == 'drop'`.
 
         # Step 1: Evaluate all factors
         for term in spec.formula.terms:
             for factor in term.factors:
-                self._evaluate_factor(factor, spec, drop_rows)
+                self._evaluate_factor(factor, spec, drop_rows, metadata)
 
         drop_rows = sorted(drop_rows)
 
@@ -130,7 +134,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             scoped_cols = OrderedDict()
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
-                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, None, {}, spec, drop_rows)
+                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, None, spec, drop_rows)
                 else:
                     scoped_cols.update(
                         self._get_columns_for_term([
@@ -159,7 +163,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 for term, scoped_terms, scoped_cols in cols
                 for name, values in scoped_cols.items()
             ], spec=spec, drop_rows=drop_rows),
-            spec=spec
+            spec=spec,
+            metadata=metadata,
         )
 
     # Methods related to ensuring out matrices are structurally full-rank
@@ -263,15 +268,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Methods related to looking-up, evaluating and encoding terms and factors
 
-    def _evaluate_factor(self, factor, spec, drop_rows):
+    def _evaluate_factor(self, factor, spec, drop_rows, metadata):
         if factor.expr not in self.factor_cache:
             try:
                 if factor.eval_method.value == 'lookup':
                     value = self._lookup(factor.expr)
                 elif factor.eval_method.value == 'python':
-                    value = self._evaluate(factor.expr, factor.metadata, spec)
+                    value = self._evaluate(factor.expr, spec, metadata)
                 elif factor.eval_method.value == 'literal':
-                    value = EvaluatedFactor(factor, self._evaluate(factor.expr, factor.metadata, spec), kind='constant')
+                    value = EvaluatedFactor(factor, self._evaluate(factor.expr, spec, metadata), kind='constant')
                 else:
                     raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
             except FactorEvaluationError:
@@ -309,8 +314,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _lookup(self, name):
         return self.layered_context[name]
 
-    def _evaluate(self, expr, metadata, spec):
-        return stateful_eval(expr, self.layered_context, {expr: metadata}, spec.transform_state, spec)
+    def _evaluate(self, expr, spec, metadata):
+        return stateful_eval(expr, self.layered_context, spec.transform_state, spec, metadata)
 
     def _is_categorical(self, values):
         if isinstance(values, dict):
@@ -336,7 +341,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     have everything work as expected.
                     """
                     @functools.wraps(f)
-                    def wrapped(values, metadata, state, *args, **kwargs):
+                    def wrapped(values, state, *args, **kwargs):
                         if isinstance(values, dict):
                             encoded = {}
                             for k, v in values.items():
@@ -344,20 +349,20 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     encoded[k] = v
                                 else:
                                     nested_state = state.get(k, {})
-                                    encoded[k] = wrapped(v, metadata, nested_state, *args, **kwargs)
+                                    encoded[k] = wrapped(v, nested_state, *args, **kwargs)
                                     if nested_state:
                                         state[k] = nested_state
                             return encoded
-                        return f(values, metadata, state, *args, **kwargs)
+                        return f(values, state, *args, **kwargs)
                     return wrapped
 
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
                 if factor.kind.value == 'categorical':
-                    encoded = map_dict(self._encode_categorical)(factor.values, factor.metadata, encoder_state, spec, drop_rows, reduced_rank=reduced_rank)
+                    encoded = map_dict(self._encode_categorical)(factor.values, encoder_state, spec, drop_rows, reduced_rank=reduced_rank)
                 elif factor.kind.value == 'numerical':
-                    encoded = map_dict(self._encode_numerical)(factor.values, factor.metadata, encoder_state, spec, drop_rows)
+                    encoded = map_dict(self._encode_numerical)(factor.values, encoder_state, spec, drop_rows)
                 elif factor.kind.value == 'constant':
-                    encoded = map_dict(self._encode_constant)(factor.values, factor.metadata, encoder_state, spec, drop_rows)
+                    encoded = map_dict(self._encode_constant)(factor.values, encoder_state, spec, drop_rows)
                 else:
                     raise FactorEncodingError(factor)  # pragma: no cover; it is not currently possible to reach this sentinel
                 spec.encoder_state[factor.expr] = (factor.kind, encoder_state)
@@ -398,15 +403,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return flattened
 
     @abstractmethod
-    def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
+    def _encode_constant(self, value, encoder_state, spec, drop_rows):
         pass  # pragma: no cover
 
     @abstractmethod
-    def _encode_categorical(self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False):
+    def _encode_categorical(self, values, encoder_state, spec, drop_rows, reduced_rank=False):
         pass  # pragma: no cover
 
     @abstractmethod
-    def _encode_numerical(self, values, metadata, encoder_state, spec, drop_rows):
+    def _encode_numerical(self, values, encoder_state, spec, drop_rows):
         pass  # pragma: no cover
 
     # Methods related to ModelMatrix output
@@ -421,7 +426,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 raise FactorEncodingError(f"Term `{cols[i][0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}.")
             elif len(scoped_cols) < len(target_cols):
                 if len(scoped_cols) == 0:
-                    col = self._encode_constant(0, None, None, spec, drop_rows)
+                    col = self._encode_constant(0, None, spec, drop_rows)
                 elif len(scoped_cols) == 1:
                     col = next(iter(scoped_cols.values()))
                 else:
