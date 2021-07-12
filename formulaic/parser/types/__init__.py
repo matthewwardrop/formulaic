@@ -6,11 +6,4 @@ from .term import Term
 from .token import Token
 
 
-__all__ = [
-    'ASTNode',
-    'Factor',
-    'Operator',
-    'OperatorResolver',
-    'Term',
-    'Token'
-]
+__all__ = ["ASTNode", "Factor", "Operator", "OperatorResolver", "Term", "Token"]

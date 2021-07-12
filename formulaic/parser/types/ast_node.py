@@ -1,5 +1,4 @@
 class ASTNode:
-
     def __init__(self, operator, args):
         self.operator = operator
         self.args = args
@@ -14,7 +13,9 @@ class ASTNode:
         return [
             str(self.operator) if str_args else self.operator,
             *[
-                arg.flatten(str_args=str_args) if isinstance(arg, ASTNode) else (str(arg) if str_args else arg)
+                arg.flatten(str_args=str_args)
+                if isinstance(arg, ASTNode)
+                else (str(arg) if str_args else arg)
                 for arg in self.args
-            ]
+            ],
         ]

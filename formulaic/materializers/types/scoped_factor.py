@@ -1,11 +1,10 @@
 class ScopedFactor:
-
     def __init__(self, factor, reduced=False):
         self.factor = factor
         self.reduced = reduced
 
     def __repr__(self):
-        return repr(self.factor) + ('-' if self.reduced else '')
+        return repr(self.factor) + ("-" if self.reduced else "")
 
     def __hash__(self):
         return hash(repr(self))

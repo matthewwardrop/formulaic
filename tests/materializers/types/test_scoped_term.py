@@ -5,21 +5,20 @@ from formulaic.parser.types import Factor
 
 
 class TestScopedTerm:
-
     @pytest.fixture
     def scoped_term(self):
-        return ScopedTerm([ScopedFactor(Factor('a')), ScopedFactor(Factor('b'))])
+        return ScopedTerm([ScopedFactor(Factor("a")), ScopedFactor(Factor("b"))])
 
     @pytest.fixture
     def scoped_term_empty(self):
         return ScopedTerm([], scale=10)
 
     def test_repr(self, scoped_term, scoped_term_empty):
-        assert repr(scoped_term) == 'a:b'
-        assert repr(scoped_term_empty) == '10*1'
+        assert repr(scoped_term) == "a:b"
+        assert repr(scoped_term_empty) == "10*1"
 
     def test_hash(self, scoped_term, scoped_term_empty):
-        assert hash(scoped_term) == hash(('a', 'b'))
+        assert hash(scoped_term) == hash(("a", "b"))
         assert hash(scoped_term_empty) == hash(())
 
     def test_equality(self, scoped_term, scoped_term_empty):

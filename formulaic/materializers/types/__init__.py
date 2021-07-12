@@ -4,8 +4,8 @@ from .scoped_factor import ScopedFactor
 from .scoped_term import ScopedTerm
 
 __all__ = [
-    'EvaluatedFactor',
-    'NAAction',
-    'ScopedFactor',
-    'ScopedTerm',
+    "EvaluatedFactor",
+    "NAAction",
+    "ScopedFactor",
+    "ScopedTerm",
 ]

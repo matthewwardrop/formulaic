@@ -6,8 +6,17 @@ from .materializers import FormulaMaterializer, NAAction
 
 
 class ModelSpec:
-
-    def __init__(self, formula, ensure_full_rank=True, structure=None, materializer=None, na_action='drop', output=None, transform_state=None, encoder_state=None):
+    def __init__(
+        self,
+        formula,
+        ensure_full_rank=True,
+        structure=None,
+        materializer=None,
+        na_action="drop",
+        output=None,
+        transform_state=None,
+        encoder_state=None,
+    ):
         self.formula = Formula.from_spec(formula)
         self.ensure_full_rank = ensure_full_rank
         self.structure = structure
@@ -23,25 +32,22 @@ class ModelSpec:
 
     @materializer.setter
     def materializer(self, materializer):
-        if isinstance(materializer, FormulaMaterializer) or inspect.isclass(materializer) and issubclass(materializer, FormulaMaterializer):
+        if (
+            isinstance(materializer, FormulaMaterializer)
+            or inspect.isclass(materializer)
+            and issubclass(materializer, FormulaMaterializer)
+        ):
             materializer = materializer.REGISTER_NAME
         assert materializer is None or isinstance(materializer, str), materializer
         self._materializer = materializer
 
     @property
     def feature_names(self):
-        return [
-            name
-            for row in self.structure
-            for name in row[2]
-        ]
+        return [name for row in self.structure for name in row[2]]
 
     @property
     def feature_indices(self):
-        return OrderedDict([
-            (name, i)
-            for i, name in enumerate(self.feature_names)
-        ])
+        return OrderedDict([(name, i) for i, name in enumerate(self.feature_names)])
 
     @property
     def term_slices(self):

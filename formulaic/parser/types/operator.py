@@ -2,18 +2,26 @@ from enum import Enum
 
 
 class Operator:
-
     class Associativity(Enum):
-        LEFT = 'left'
-        RIGHT = 'right'
-        NONE = 'none'
+        LEFT = "left"
+        RIGHT = "right"
+        NONE = "none"
 
     class Fixity(Enum):
-        PREFIX = 'prefix'
-        INFIX = 'infix'
-        POSTFIX = 'postfix'
+        PREFIX = "prefix"
+        INFIX = "infix"
+        POSTFIX = "postfix"
 
-    def __init__(self, symbol, *, arity=None, precedence=None, associativity=None, fixity='infix', to_terms=None):
+    def __init__(
+        self,
+        symbol,
+        *,
+        arity=None,
+        precedence=None,
+        associativity=None,
+        fixity="infix",
+        to_terms=None,
+    ):
         self.symbol = symbol
         self.arity = arity
         self.precedence = precedence
@@ -27,7 +35,7 @@ class Operator:
 
     @associativity.setter
     def associativity(self, associativity):
-        self._associativity = Operator.Associativity(associativity or 'none')
+        self._associativity = Operator.Associativity(associativity or "none")
 
     @property
     def fixity(self):

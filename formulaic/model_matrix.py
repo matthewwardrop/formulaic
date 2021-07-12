@@ -2,7 +2,6 @@ import wrapt
 
 
 class ModelMatrix(wrapt.ObjectProxy):
-
     def __init__(self, data, spec=None):
         wrapt.ObjectProxy.__init__(self, data)
         self._self_model_spec = spec

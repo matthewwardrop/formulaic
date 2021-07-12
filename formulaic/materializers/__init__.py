@@ -4,8 +4,8 @@ from .pandas import PandasMaterializer
 from .types import NAAction
 
 __all__ = [
-    'ArrowMaterializer',
-    'FormulaMaterializer',
-    'NAAction',
-    'PandasMaterializer',
+    "ArrowMaterializer",
+    "FormulaMaterializer",
+    "NAAction",
+    "PandasMaterializer",
 ]

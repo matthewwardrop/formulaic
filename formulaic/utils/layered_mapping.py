@@ -3,18 +3,13 @@ import itertools
 
 
 class LayeredMapping(MutableMapping):
-
     def __init__(self, *layers):
         self.mutations = {}
         self.layers = self.__filter_layers(layers)
 
     @staticmethod
     def __filter_layers(layers):
-        return [
-            layer
-            for layer in layers
-            if layer is not None
-        ]
+        return [layer for layer in layers if layer is not None]
 
     def __getitem__(self, key):
         for layer in [self.mutations, *self.layers]:
@@ -40,7 +35,13 @@ class LayeredMapping(MutableMapping):
                     yield key
 
     def __len__(self):
-        return len(set(itertools.chain(list(self.mutations), *[list(layer) for layer in self.layers])))
+        return len(
+            set(
+                itertools.chain(
+                    list(self.mutations), *[list(layer) for layer in self.layers]
+                )
+            )
+        )
 
     def with_layers(self, *layers, prepend=True, inplace=False):
         layers = self.__filter_layers(layers)
@@ -48,7 +49,9 @@ class LayeredMapping(MutableMapping):
             return self
 
         if inplace:
-            self.layers = [*layers, *self.layers] if prepend else [*self.layers, *layers]
+            self.layers = (
+                [*layers, *self.layers] if prepend else [*self.layers, *layers]
+            )
             return self
 
         new_layers = [*layers, self] if prepend else [self, *layers]

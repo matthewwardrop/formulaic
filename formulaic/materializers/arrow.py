@@ -7,8 +7,8 @@ from .pandas import PandasMaterializer
 
 class ArrowMaterializer(PandasMaterializer):
 
-    REGISTER_NAME = 'arrow'
-    REGISTER_INPUTS = ('pyarrow.lib.Table', )
+    REGISTER_NAME = "arrow"
+    REGISTER_INPUTS = ("pyarrow.lib.Table",)
 
     @override
     def _init(self):
@@ -21,7 +21,6 @@ class ArrowMaterializer(PandasMaterializer):
 
 
 class LazyArrowTableProxy:
-
     def __init__(self, table):
         self.table = table
         self.column_names = set(self.table.column_names)

@@ -13,7 +13,11 @@ def exc_for_token(token, message, errcls=FormulaSyntaxError):
 
 def exc_for_missing_operator(lhs, rhs, errcls=FormulaSyntaxError):
     lhs_token, rhs_token, error_token = __get_tokens_for_gap(lhs, rhs)
-    raise exc_for_token(error_token, f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.", errcls=errcls)
+    raise exc_for_token(
+        error_token,
+        f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.",
+        errcls=errcls,
+    )
 
 
 def __get_token_for_ast(ast):
@@ -26,8 +30,12 @@ def __get_token_for_ast(ast):
     while isinstance(rhs_token, ASTNode):
         rhs_token = rhs_token.args[-1]
     return Token(
-        token=lhs_token.source[lhs_token.source_start:rhs_token.source_end + 1] if lhs_token.source else '',
-        source=lhs_token.source, source_start=lhs_token.source_start, source_end=rhs_token.source_end
+        token=lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
+        if lhs_token.source
+        else "",
+        source=lhs_token.source,
+        source_start=lhs_token.source_start,
+        source_end=rhs_token.source_end,
     )
 
 
@@ -38,7 +46,15 @@ def __get_tokens_for_gap(lhs, rhs):
     rhs_token = rhs or lhs
     while isinstance(rhs_token, ASTNode):
         rhs_token = rhs_token.args[0]
-    return lhs_token, rhs_token, Token(
-        lhs_token.source[lhs_token.source_start:rhs_token.source_end + 1] if lhs_token.source else '',
-        source=lhs_token.source, source_start=lhs_token.source_start, source_end=rhs_token.source_end
+    return (
+        lhs_token,
+        rhs_token,
+        Token(
+            lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
+            if lhs_token.source
+            else "",
+            source=lhs_token.source,
+            source_start=lhs_token.source_start,
+            source_end=rhs_token.source_end,
+        ),
     )

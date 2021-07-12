@@ -5,16 +5,17 @@ from .term import Term
 
 
 class Token:
-
     class Kind(Enum):
-        OPERATOR = 'operator'
-        VALUE = 'value'
-        NAME = 'name'
-        PYTHON = 'python'
+        OPERATOR = "operator"
+        VALUE = "value"
+        NAME = "name"
+        PYTHON = "python"
 
-    __slots__ = ('token', '_kind', 'source', 'source_start', 'source_end')
+    __slots__ = ("token", "_kind", "source", "source_start", "source_end")
 
-    def __init__(self, token='', *, kind=None, source_start=None, source_end=None, source=None):
+    def __init__(
+        self, token="", *, kind=None, source_start=None, source_end=None, source=None
+    ):
         self.token = token
         self.kind = kind
         self.source = source
@@ -62,9 +63,9 @@ class Token:
 
     def to_factor(self):
         kind_to_eval_method = {
-            Token.Kind.NAME: 'lookup',
-            Token.Kind.PYTHON: 'python',
-            Token.Kind.VALUE: 'literal',
+            Token.Kind.NAME: "lookup",
+            Token.Kind.PYTHON: "python",
+            Token.Kind.VALUE: "literal",
         }
         return Factor(
             expr=self.token,

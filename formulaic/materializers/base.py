@@ -6,7 +6,12 @@ from collections import defaultdict, OrderedDict
 
 from interface_meta import InterfaceMeta, inherit_docs
 
-from formulaic.errors import FactorEncodingError, FactorEvaluationError, FormulaMaterializationError, FormulaMaterializerNotFoundError
+from formulaic.errors import (
+    FactorEncodingError,
+    FactorEvaluationError,
+    FormulaMaterializationError,
+    FormulaMaterializerNotFoundError,
+)
 from formulaic.model_matrix import ModelMatrix
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
@@ -23,12 +28,16 @@ class FormulaMaterializerMeta(InterfaceMeta):
     REGISTERED_INPUTS = defaultdict(list)
 
     def __register_implementation__(cls):
-        if 'REGISTER_NAME' in cls.__dict__ and cls.REGISTER_NAME:
+        if "REGISTER_NAME" in cls.__dict__ and cls.REGISTER_NAME:
             cls.REGISTERED_NAMES[cls.REGISTER_NAME] = cls
 
-            if 'REGISTER_INPUTS' in cls.__dict__:
+            if "REGISTER_INPUTS" in cls.__dict__:
                 for input_type in cls.REGISTER_INPUTS:
-                    cls.REGISTERED_INPUTS[input_type] = sorted(cls.REGISTERED_INPUTS[input_type] + [cls], key=lambda x: x.REGISTER_PRECEDENCE, reverse=True)
+                    cls.REGISTERED_INPUTS[input_type] = sorted(
+                        cls.REGISTERED_INPUTS[input_type] + [cls],
+                        key=lambda x: x.REGISTER_PRECEDENCE,
+                        reverse=True,
+                    )
 
     def for_materializer(cls, materializer):
         if isinstance(materializer, str):
@@ -42,7 +51,9 @@ class FormulaMaterializerMeta(InterfaceMeta):
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
         if input_type not in cls.REGISTERED_INPUTS:
-            raise FormulaMaterializerNotFoundError(f"No materializer has been registered for input type {repr(input_type)}. Available input types are: {set(cls.REGISTER_INPUTS)}.")
+            raise FormulaMaterializerNotFoundError(
+                f"No materializer has been registered for input type {repr(input_type)}. Available input types are: {set(cls.REGISTER_INPUTS)}."
+            )
 
         if output is None:
             return cls.REGISTERED_INPUTS[input_type][0]
@@ -51,11 +62,15 @@ class FormulaMaterializerMeta(InterfaceMeta):
             if output in materializer.REGISTER_OUTPUTS:
                 return materializer
 
-        output_types = set(*itertools.chain(
-            materializer.REGISTER_OUTPUTS
-            for materializer in cls.REGISTERED_INPUTS[input_type]
-        ))
-        raise FormulaMaterializerNotFoundError(f"No materializer has been registered for input type {repr(input_type)} that supports output type {repr(output)}. Available output types for {repr(input_type)} are: {output_types}.")
+        output_types = set(
+            *itertools.chain(
+                materializer.REGISTER_OUTPUTS
+                for materializer in cls.REGISTERED_INPUTS[input_type]
+            )
+        )
+        raise FormulaMaterializerNotFoundError(
+            f"No materializer has been registered for input type {repr(input_type)} that supports output type {repr(output)}. Available output types for {repr(input_type)} are: {output_types}."
+        )
 
 
 class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
@@ -67,13 +82,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Public API
 
-    @inherit_docs(method='_init')
+    @inherit_docs(method="_init")
     def __init__(self, data, context=None, **kwargs):
         self.data = data
         self.context = context or {}
         self._init(**kwargs)
 
-        self.layered_context = LayeredMapping(self.data_context, self.context, TRANSFORMS)
+        self.layered_context = LayeredMapping(
+            self.data_context, self.context, TRANSFORMS
+        )
 
         self.factor_cache = {}
         self.encoded_cache = {}
@@ -89,7 +106,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def nrows(self):
         return len(self.data)
 
-    def get_model_matrix(self, spec, ensure_full_rank=True, na_action='drop', output=None):
+    def get_model_matrix(
+        self, spec, ensure_full_rank=True, na_action="drop", output=None
+    ):
         from formulaic.formula import Formula
         from formulaic.model_spec import ModelSpec
 
@@ -98,21 +117,42 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             output = self.REGISTER_OUTPUTS[0]
 
         if isinstance(spec, Formula):
-            spec = ModelSpec(formula=spec, materializer=self, ensure_full_rank=ensure_full_rank, na_action=na_action, output=output)
+            spec = ModelSpec(
+                formula=spec,
+                materializer=self,
+                ensure_full_rank=ensure_full_rank,
+                na_action=na_action,
+                output=output,
+            )
         if not isinstance(spec, ModelSpec):
-            spec = ModelSpec(formula=Formula(spec), materializer=self, ensure_full_rank=ensure_full_rank, na_action=na_action, output=output)
+            spec = ModelSpec(
+                formula=Formula(spec),
+                materializer=self,
+                ensure_full_rank=ensure_full_rank,
+                na_action=na_action,
+                output=output,
+            )
 
         if output not in self.REGISTER_OUTPUTS:
-            raise FormulaMaterializationError(f"Nominated output {repr(output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}.")
+            raise FormulaMaterializationError(
+                f"Nominated output {repr(output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}."
+            )
 
         # Step 0: Check whether formula separators are in play, and if so, recurse.
         if isinstance(spec.formula.terms, tuple):
             return tuple(
-                self.get_model_matrix(Formula(terms), ensure_full_rank=ensure_full_rank, na_action=na_action, output=output)
+                self.get_model_matrix(
+                    Formula(terms),
+                    ensure_full_rank=ensure_full_rank,
+                    na_action=na_action,
+                    output=output,
+                )
                 for terms in spec.formula.terms
             )
 
-        drop_rows = set()  # Keep track of which rows to drop if `self.config.na_action == 'drop'`.
+        drop_rows = (
+            set()
+        )  # Keep track of which rows to drop if `self.config.na_action == 'drop'`.
 
         # Step 1: Evaluate all factors
         for term in spec.formula.terms:
@@ -122,7 +162,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         drop_rows = sorted(drop_rows)
 
         # Step 2: Determine strategy to maintain structural full-rankness of output matrix
-        scoped_terms_for_terms = self._get_scoped_terms(spec.formula.terms, ensure_full_rank=spec.ensure_full_rank)
+        scoped_terms_for_terms = self._get_scoped_terms(
+            spec.formula.terms, ensure_full_rank=spec.ensure_full_rank
+        )
 
         # Step 3: Generate the columns which will be collated into the full matrix
         cols = []
@@ -130,17 +172,28 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             scoped_cols = OrderedDict()
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
-                    scoped_cols['Intercept'] = scoped_term.scale * self._encode_constant(1, None, {}, spec, drop_rows)
+                    scoped_cols[
+                        "Intercept"
+                    ] = scoped_term.scale * self._encode_constant(
+                        1, None, {}, spec, drop_rows
+                    )
                 else:
                     scoped_cols.update(
-                        self._get_columns_for_term([
-                            self._encode_evaled_factor(scoped_factor.factor, spec, drop_rows, reduced_rank=scoped_factor.reduced)
-                            for scoped_factor in sorted(scoped_term.factors)
-                        ], spec=spec, scale=scoped_term.scale)
+                        self._get_columns_for_term(
+                            [
+                                self._encode_evaled_factor(
+                                    scoped_factor.factor,
+                                    spec,
+                                    drop_rows,
+                                    reduced_rank=scoped_factor.reduced,
+                                )
+                                for scoped_factor in sorted(scoped_term.factors)
+                            ],
+                            spec=spec,
+                            scale=scoped_term.scale,
+                        )
                     )
-            cols.append(
-                (term, scoped_terms, scoped_cols)
-            )
+            cols.append((term, scoped_terms, scoped_cols))
 
         # Step 4: Populate remaining model spec fields
         spec.materializer = self
@@ -148,18 +201,26 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             cols = self._enforce_structure(cols, spec, drop_rows)
         else:
             spec.structure = [
-                (term, list(st.copy(without_values=True) for st in scoped_terms), list(scoped_cols))
+                (
+                    term,
+                    list(st.copy(without_values=True) for st in scoped_terms),
+                    list(scoped_cols),
+                )
                 for term, scoped_terms, scoped_cols in cols
             ]
 
         # Step 5: Collate factors into one ModelMatrix
         return ModelMatrix(
-            self._combine_columns([
-                (name, values)
-                for term, scoped_terms, scoped_cols in cols
-                for name, values in scoped_cols.items()
-            ], spec=spec, drop_rows=drop_rows),
-            spec=spec
+            self._combine_columns(
+                [
+                    (name, values)
+                    for term, scoped_terms, scoped_cols in cols
+                    for name, values in scoped_cols.items()
+                ],
+                spec=spec,
+                drop_rows=drop_rows,
+            ),
+            spec=spec,
         )
 
     # Methods related to ensuring out matrices are structurally full-rank
@@ -188,13 +249,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         spanned = set()
 
         for term in terms:
-            evaled_factors = [
-                self.factor_cache[factor.expr]
-                for factor in term.factors
-            ]
+            evaled_factors = [self.factor_cache[factor.expr] for factor in term.factors]
 
             if ensure_full_rank:
-                term_span = self._get_scoped_terms_spanned_by_evaled_factors(evaled_factors).difference(spanned)
+                term_span = self._get_scoped_terms_spanned_by_evaled_factors(
+                    evaled_factors
+                ).difference(spanned)
                 scoped_terms = self._simplify_scoped_terms(term_span)
                 spanned.update(term_span)
             else:
@@ -203,13 +263,17 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         factors=(
                             ScopedFactor(evaled_factor, reduced=False)
                             for evaled_factor in evaled_factors
-                            if evaled_factor.kind.value != 'constant'
+                            if evaled_factor.kind.value != "constant"
                         ),
-                        scale=functools.reduce(operator.mul, [
-                            evaled_factor.values
-                            for evaled_factor in evaled_factors
-                            if evaled_factor.kind.value == 'constant'
-                        ], 1)
+                        scale=functools.reduce(
+                            operator.mul,
+                            [
+                                evaled_factor.values
+                                for evaled_factor in evaled_factors
+                                if evaled_factor.kind.value == "constant"
+                            ],
+                            1,
+                        ),
                     )
                 ]
             yield term, scoped_terms
@@ -226,7 +290,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         scale = 1
         factors = []
         for factor in evaled_factors:
-            if factor.kind.value == 'constant':
+            if factor.kind.value == "constant":
                 scale *= factor.values
             elif factor.spans_intercept:
                 factors.append((1, ScopedFactor(factor, reduced=True)))
@@ -253,7 +317,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     continue
                 factor_new = next(iter(factors_diff))
                 if factor_new.reduced:
-                    co_scoped_term.factors += (ScopedFactor(factor_new.factor, reduced=False), )
+                    co_scoped_term.factors += (
+                        ScopedFactor(factor_new.factor, reduced=False),
+                    )
                     terms = cls._simplify_scoped_terms(terms)
                     combined = True
                     break
@@ -266,36 +332,51 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _evaluate_factor(self, factor, spec, drop_rows):
         if factor.expr not in self.factor_cache:
             try:
-                if factor.eval_method.value == 'lookup':
+                if factor.eval_method.value == "lookup":
                     value = self._lookup(factor.expr)
-                elif factor.eval_method.value == 'python':
+                elif factor.eval_method.value == "python":
                     value = self._evaluate(factor.expr, factor.metadata, spec)
-                elif factor.eval_method.value == 'literal':
-                    value = EvaluatedFactor(factor, self._evaluate(factor.expr, factor.metadata, spec), kind='constant')
+                elif factor.eval_method.value == "literal":
+                    value = EvaluatedFactor(
+                        factor,
+                        self._evaluate(factor.expr, factor.metadata, spec),
+                        kind="constant",
+                    )
                 else:
-                    raise FactorEvaluationError(f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}.")
+                    raise FactorEvaluationError(
+                        f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}."
+                    )
             except FactorEvaluationError:
                 raise
             except Exception as e:
-                raise FactorEvaluationError(f"Unable to evaluate factor `{factor}`. [{type(e).__name__}: {e}]")
+                raise FactorEvaluationError(
+                    f"Unable to evaluate factor `{factor}`. [{type(e).__name__}: {e}]"
+                )
 
             if not isinstance(value, EvaluatedFactor):
-                if isinstance(value, dict) and '__kind__' in value:
-                    kind = value['__kind__']
-                    spans_intercept = value.get('__spans_intercept__', False)
+                if isinstance(value, dict) and "__kind__" in value:
+                    kind = value["__kind__"]
+                    spans_intercept = value.get("__spans_intercept__", False)
                 elif self._is_categorical(value):
-                    kind = 'categorical'
+                    kind = "categorical"
                     spans_intercept = True
                 else:
-                    kind = 'numerical'
+                    kind = "numerical"
                     spans_intercept = False
                 if factor.kind is not Factor.Kind.UNKNOWN and factor.kind.value != kind:
-                    if factor.kind.value == 'categorical':
+                    if factor.kind.value == "categorical":
                         kind = factor.kind.value
                     else:
-                        raise FactorEncodingError(f"Factor is expecting to be of kind '{factor.kind.value}' but is actually of kind '{kind}'.")
-                if factor.expr in spec.encoder_state and Factor.Kind(kind) is not spec.encoder_state[factor.expr][0]:
-                    raise FactorEncodingError(f"Factor kind `{kind}` does not match model specification of `{spec.encoder_state[factor.expr][0]}`.")
+                        raise FactorEncodingError(
+                            f"Factor is expecting to be of kind '{factor.kind.value}' but is actually of kind '{kind}'."
+                        )
+                if (
+                    factor.expr in spec.encoder_state
+                    and Factor.Kind(kind) is not spec.encoder_state[factor.expr][0]
+                ):
+                    raise FactorEncodingError(
+                        f"Factor kind `{kind}` does not match model specification of `{spec.encoder_state[factor.expr][0]}`."
+                    )
                 value = EvaluatedFactor(
                     factor=factor,
                     values=value,
@@ -310,18 +391,22 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return self.layered_context[name]
 
     def _evaluate(self, expr, metadata, spec):
-        return stateful_eval(expr, self.layered_context, {expr: metadata}, spec.transform_state, spec)
+        return stateful_eval(
+            expr, self.layered_context, {expr: metadata}, spec.transform_state, spec
+        )
 
     def _is_categorical(self, values):
         if isinstance(values, dict):
-            return values.get('__kind__') == 'categorical'
+            return values.get("__kind__") == "categorical"
         return False
 
     def _check_for_nulls(self, name, values, na_action, drop_rows):
         pass  # pragma: no cover
 
     def _encode_evaled_factor(self, factor, spec, drop_rows, reduced_rank=False):
-        if not isinstance(factor.values, dict) or not factor.values.get('__encoded__', False):
+        if not isinstance(factor.values, dict) or not factor.values.get(
+            "__encoded__", False
+        ):
             if factor.expr in self.encoded_cache:
                 encoded = self.encoded_cache[factor.expr]
             elif (factor.expr, reduced_rank) in self.encoded_cache:
@@ -335,6 +420,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     transforms to output multiple non-encoded columns and still
                     have everything work as expected.
                     """
+
                     @functools.wraps(f)
                     def wrapped(values, metadata, state, *args, **kwargs):
                         if isinstance(values, dict):
@@ -344,25 +430,41 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     encoded[k] = v
                                 else:
                                     nested_state = state.get(k, {})
-                                    encoded[k] = wrapped(v, metadata, nested_state, *args, **kwargs)
+                                    encoded[k] = wrapped(
+                                        v, metadata, nested_state, *args, **kwargs
+                                    )
                                     if nested_state:
                                         state[k] = nested_state
                             return encoded
                         return f(values, metadata, state, *args, **kwargs)
+
                     return wrapped
 
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
-                if factor.kind.value == 'categorical':
-                    encoded = map_dict(self._encode_categorical)(factor.values, factor.metadata, encoder_state, spec, drop_rows, reduced_rank=reduced_rank)
-                elif factor.kind.value == 'numerical':
-                    encoded = map_dict(self._encode_numerical)(factor.values, factor.metadata, encoder_state, spec, drop_rows)
-                elif factor.kind.value == 'constant':
-                    encoded = map_dict(self._encode_constant)(factor.values, factor.metadata, encoder_state, spec, drop_rows)
+                if factor.kind.value == "categorical":
+                    encoded = map_dict(self._encode_categorical)(
+                        factor.values,
+                        factor.metadata,
+                        encoder_state,
+                        spec,
+                        drop_rows,
+                        reduced_rank=reduced_rank,
+                    )
+                elif factor.kind.value == "numerical":
+                    encoded = map_dict(self._encode_numerical)(
+                        factor.values, factor.metadata, encoder_state, spec, drop_rows
+                    )
+                elif factor.kind.value == "constant":
+                    encoded = map_dict(self._encode_constant)(
+                        factor.values, factor.metadata, encoder_state, spec, drop_rows
+                    )
                 else:
-                    raise FactorEncodingError(factor)  # pragma: no cover; it is not currently possible to reach this sentinel
+                    raise FactorEncodingError(
+                        factor
+                    )  # pragma: no cover; it is not currently possible to reach this sentinel
                 spec.encoder_state[factor.expr] = (factor.kind, encoder_state)
 
-                if isinstance(encoded, dict) and encoded.get('__drop_field__'):
+                if isinstance(encoded, dict) and encoded.get("__drop_field__"):
                     cache_key = factor.expr
                 else:
                     cache_key = (factor.expr, reduced_rank)
@@ -372,10 +474,14 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             encoded = factor.values
 
         # Encoded factors will now all be dicts
-        if isinstance(encoded, dict) and encoded.get('__spans_intercept__') and reduced_rank:
-            assert '__drop_field__' in encoded
+        if (
+            isinstance(encoded, dict)
+            and encoded.get("__spans_intercept__")
+            and reduced_rank
+        ):
+            assert "__drop_field__" in encoded
             encoded = encoded.copy()
-            del encoded[encoded['__drop_field__']]
+            del encoded[encoded["__drop_field__"]]
 
         return self._flatten_encoded_evaled_factor(factor.expr, encoded)
 
@@ -383,11 +489,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         if not isinstance(values, dict):
             return {name: values}
 
-        name_format = values.get('__format__', '{name}[{field}]')
+        name_format = values.get("__format__", "{name}[{field}]")
 
         flattened = {}
         for subfield, value in values.items():
-            if isinstance(subfield, str) and subfield.startswith('__'):
+            if isinstance(subfield, str) and subfield.startswith("__"):
                 continue
             subname = name_format.format(name=name, field=subfield)
             if isinstance(value, dict):
@@ -402,7 +508,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         pass  # pragma: no cover
 
     @abstractmethod
-    def _encode_categorical(self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False):
+    def _encode_categorical(
+        self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False
+    ):
         pass  # pragma: no cover
 
     @abstractmethod
@@ -418,20 +526,26 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             scoped_cols = cols[i][2]
             target_cols = spec.structure[i][2]
             if len(scoped_cols) > len(target_cols):
-                raise FactorEncodingError(f"Term `{cols[i][0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+                raise FactorEncodingError(
+                    f"Term `{cols[i][0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                )
             elif len(scoped_cols) < len(target_cols):
                 if len(scoped_cols) == 0:
                     col = self._encode_constant(0, None, None, spec, drop_rows)
                 elif len(scoped_cols) == 1:
                     col = next(iter(scoped_cols.values()))
                 else:
-                    raise FactorEncodingError(f"Term `{cols[i][0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}.")
-                scoped_cols = {
-                    name: col
-                    for name in target_cols
-                }
-            elif len(scoped_cols) == len(target_cols) and list(scoped_cols) != target_cols:
-                raise FactorEncodingError(f"Term `{cols[i][0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}.")
+                    raise FactorEncodingError(
+                        f"Term `{cols[i][0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                    )
+                scoped_cols = {name: col for name in target_cols}
+            elif (
+                len(scoped_cols) == len(target_cols)
+                and list(scoped_cols) != target_cols
+            ):
+                raise FactorEncodingError(
+                    f"Term `{cols[i][0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                )
 
             yield cols[i][0], cols[i][1], scoped_cols
 
@@ -450,7 +564,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         """
         out = OrderedDict()
         for product in itertools.product(*(factor.items() for factor in factors)):
-            out[':'.join(p[0] for p in product)] = scale * functools.reduce(operator.mul, (p[1] for p in product))
+            out[":".join(p[0] for p in product)] = scale * functools.reduce(
+                operator.mul, (p[1] for p in product)
+            )
         return out
 
     @abstractmethod

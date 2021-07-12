@@ -1,5 +1,4 @@
 class Term:
-
     def __init__(self, factors):
         self.factors = set(factors)
 
@@ -32,4 +31,4 @@ class Term:
         return NotImplemented
 
     def __repr__(self):
-        return ':'.join(self._tuple)
+        return ":".join(self._tuple)

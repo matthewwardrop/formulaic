@@ -11,64 +11,70 @@ from formulaic.parser.types import Operator
 
 
 class ExtendedOperatorResolver(DefaultOperatorResolver):
-
     @property
     def operators(self):
         return super().operators + [
             # Acts like '+' but as a postfix operator
-            Operator("@", arity=2, precedence=1000, associativity='right', fixity='postfix', to_terms=lambda *args: set(itertools.chain(*[arg.to_terms() for arg in args]))),
+            Operator(
+                "@",
+                arity=2,
+                precedence=1000,
+                associativity="right",
+                fixity="postfix",
+                to_terms=lambda *args: set(
+                    itertools.chain(*[arg.to_terms() for arg in args])
+                ),
+            ),
         ]
 
 
 FORMULA_TO_AST_TESTS = {
-    '': None,
-    ' ': None,
-    ' \n': None,
-
+    "": None,
+    " ": None,
+    " \n": None,
     # Token passthrough
-    '1': '1',
-    'a': 'a',
-
+    "1": "1",
+    "a": "a",
     # Simple addition
-    '1 + 2': ['+', '1', '2'],
-    'a + 1': ['+', 'a', '1'],
-    'a 1 @': ['@', 'a', '1'],
-
+    "1 + 2": ["+", "1", "2"],
+    "a + 1": ["+", "a", "1"],
+    "a 1 @": ["@", "a", "1"],
     # Parentheses
-    '(a + 1)': ['+', 'a', '1'],
-    '(((a)))': 'a',
-
+    "(a + 1)": ["+", "a", "1"],
+    "(((a)))": "a",
     # Order of operations
-    'a + b + 1': ['+', ['+', 'a', 'b'], '1'],
-    '(a + (b + 1))': ['+', 'a', ['+', 'b', '1']],
-
+    "a + b + 1": ["+", ["+", "a", "b"], "1"],
+    "(a + (b + 1))": ["+", "a", ["+", "b", "1"]],
     # Python token parsing
-    'np.log(a) + np.cos(b)': ['+', 'np.log(a)', 'np.cos(b)'],
-
+    "np.log(a) + np.cos(b)": ["+", "np.log(a)", "np.cos(b)"],
     # LHS / RHS separator
-    '~ a': ['~', 'a'],
-    'a ~ b + c': ['~', 'a', ['+', 'b', 'c']],
-
+    "~ a": ["~", "a"],
+    "a ~ b + c": ["~", "a", ["+", "b", "c"]],
     # Unary operators
     "-1": ["-", "1"],
-
     # Check operator precedences
-    'a + b ~ c * d': ['~', ['+', 'a', 'b'], ['*', 'c', 'd']],
-    'a + b * c': ['+', 'a', ['*', 'b', 'c']],
-    'a + b:c': ['+', 'a', [':', 'b', 'c']],
-    '(a + b):c': [':', ['+', 'a', 'b'], 'c'],
-    'a * b:c': ['*', 'a', [':', 'b', 'c']],
+    "a + b ~ c * d": ["~", ["+", "a", "b"], ["*", "c", "d"]],
+    "a + b * c": ["+", "a", ["*", "b", "c"]],
+    "a + b:c": ["+", "a", [":", "b", "c"]],
+    "(a + b):c": [":", ["+", "a", "b"], "c"],
+    "a * b:c": ["*", "a", [":", "b", "c"]],
     "a + b / c": ["+", "a", ["/", "b", "c"]],
-    '-a**2': ['-', ['**', 'a', '2']],
-    '-a:b': ['-', [':', 'a', 'b']],
+    "-a**2": ["-", ["**", "a", "2"]],
+    "-a:b": ["-", [":", "a", "b"]],
 }
 
 FORMULA_ERRORS = {
-    'a b +': [FormulaSyntaxError, r"Operator `\+` has insuffient arguments and/or is misplaced."],
-    '( a + b': [FormulaSyntaxError, r"Could not find matching parenthesis."],
-    'a + b )': [FormulaSyntaxError, r"Could not find matching parenthesis."],
-    'a b': [FormulaSyntaxError, r"Missing operator between `a` and `b`."],
-    'y + y2 y3 ~ x + z': [FormulaSyntaxError, r"Missing operator between `y2` and `y3`."],
+    "a b +": [
+        FormulaSyntaxError,
+        r"Operator `\+` has insuffient arguments and/or is misplaced.",
+    ],
+    "( a + b": [FormulaSyntaxError, r"Could not find matching parenthesis."],
+    "a + b )": [FormulaSyntaxError, r"Could not find matching parenthesis."],
+    "a b": [FormulaSyntaxError, r"Missing operator between `a` and `b`."],
+    "y + y2 y3 ~ x + z": [
+        FormulaSyntaxError,
+        r"Missing operator between `y2` and `y3`.",
+    ],
 }
 
 

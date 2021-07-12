@@ -2,7 +2,6 @@ from formulaic.parser.types import Factor
 
 
 class EvaluatedFactor:
-
     def __init__(self, factor, values, kind=None, spans_intercept=False):
         self.factor = factor
         self.values = values
@@ -15,7 +14,7 @@ class EvaluatedFactor:
 
     @kind.setter
     def kind(self, kind):
-        if not kind or kind == 'unknown':
+        if not kind or kind == "unknown":
             raise ValueError("`EvaluatedFactor` instances must have a known kind.")
         self._kind = Factor.Kind(kind)
 
@@ -45,5 +44,5 @@ class EvaluatedFactor:
             factor=self.factor,
             values=None if without_values else self.values,
             kind=self.kind,
-            spans_intercept=self.spans_intercept
+            spans_intercept=self.spans_intercept,
         )

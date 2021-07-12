@@ -5,9 +5,9 @@ from .scale import center, scale
 
 
 TRANSFORMS = {
-    'bs': basis_spline,
-    'center': center,
-    'scale': scale,
-    'C': encode_categorical,
-    'I': identity,
+    "bs": basis_spline,
+    "center": center,
+    "scale": scale,
+    "C": encode_categorical,
+    "I": identity,
 }

@@ -5,6 +5,7 @@
 ![PyPI - Status](https://img.shields.io/pypi/status/formulaic.svg)
 [![build](https://img.shields.io/github/workflow/status/matthewwardrop/formulaic/Run%20Tox%20Tests)](https://github.com/matthewwardrop/formulaic/actions?query=workflow%3A%22Run+Tox+Tests%22)
 [![codecov](https://codecov.io/gh/matthewwardrop/formulaic/branch/master/graph/badge.svg)](https://codecov.io/gh/matthewwardrop/formulaic)
+[![Code Style](https://img.shields.io/badge/code%20style-black-black)](https://github.com/psf/black)
 
 Formulaic is a high-performance implementation of Wilkinson formulas for Python.
 

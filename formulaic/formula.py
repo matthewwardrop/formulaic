@@ -8,7 +8,6 @@ from .utils.calculus import differentiate_term
 
 
 class Formula:
-
     @classmethod
     def from_spec(cls, spec, parser=None):
         if isinstance(spec, Formula):
@@ -23,15 +22,20 @@ class Formula:
             terms = [
                 term
                 for value in formula
-                for term in (parser.get_terms(value, include_intercept=False) if isinstance(value, str) else [value])
+                for term in (
+                    parser.get_terms(value, include_intercept=False)
+                    if isinstance(value, str)
+                    else [value]
+                )
             ]
         elif isinstance(formula, tuple):
             terms = tuple(
-                Formula.from_spec(group, parser=parser).terms
-                for group in formula
+                Formula.from_spec(group, parser=parser).terms for group in formula
             )
         else:
-            raise FormulaInvalidError(f"Unrecognized formula specification: {repr(formula)}.")
+            raise FormulaInvalidError(
+                f"Unrecognized formula specification: {repr(formula)}."
+            )
         self.terms = terms
 
     @property
@@ -51,26 +55,37 @@ class Formula:
         else:
             for term in terms:
                 if not isinstance(term, Term):
-                    raise FormulaInvalidError(f"All terms in formula should be instances of `formulaic.parser.types.Term`; received term {repr(term)} of type `{type(term)}`.")
+                    raise FormulaInvalidError(
+                        f"All terms in formula should be instances of `formulaic.parser.types.Term`; received term {repr(term)} of type `{type(term)}`."
+                    )
 
-    def get_model_matrix(self, data, context=None, materializer=None, ensure_full_rank=True, **kwargs):
+    def get_model_matrix(
+        self, data, context=None, materializer=None, ensure_full_rank=True, **kwargs
+    ):
         if materializer is None:
             materializer = FormulaMaterializer.for_data(data)
         else:
             materializer = FormulaMaterializer.for_materializer(materializer)
-        if not inspect.isclass(materializer) or not issubclass(materializer, FormulaMaterializer):
-            raise FormulaMaterializerInvalidError("Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`.")
-        return materializer(data, context=context or {}).get_model_matrix(self, ensure_full_rank=ensure_full_rank, **kwargs)
+        if not inspect.isclass(materializer) or not issubclass(
+            materializer, FormulaMaterializer
+        ):
+            raise FormulaMaterializerInvalidError(
+                "Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`."
+            )
+        return materializer(data, context=context or {}).get_model_matrix(
+            self, ensure_full_rank=ensure_full_rank, **kwargs
+        )
 
     def differentiate(self, *vars, use_sympy=False):
-        return Formula([
-            differentiate_term(term, vars, use_sympy=use_sympy)
-            for term in self.terms
-        ])
+        return Formula(
+            [differentiate_term(term, vars, use_sympy=use_sympy) for term in self.terms]
+        )
 
     def __str__(self):
         if isinstance(self.terms, tuple):
-            return ' ~ '.join(" + ".join(str(term) for term in terms) for terms in self._terms)
+            return " ~ ".join(
+                " + ".join(str(term) for term in terms) for terms in self._terms
+            )
         return " + ".join(str(term) for term in self.terms)
 
     def __eq__(self, other):

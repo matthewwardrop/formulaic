@@ -2,22 +2,26 @@ import pytest
 
 from formulaic.parser.types import Operator
 
-class TestOperator:
 
+class TestOperator:
     def test_attributes(self):
-        op1 = Operator('~')
+        op1 = Operator("~")
         assert op1.associativity == Operator.Associativity.NONE
         assert op1.fixity == Operator.Fixity.INFIX
 
-        op2 = Operator('+', associativity='left', fixity='infix')
+        op2 = Operator("+", associativity="left", fixity="infix")
         assert op2.associativity == Operator.Associativity.LEFT
         assert op2.fixity == Operator.Fixity.INFIX
 
     def test_to_terms(self):
-        assert Operator('+', to_terms=lambda *args: args).to_terms('a', 'b', 'c') == ('a', 'b', 'c')
+        assert Operator("+", to_terms=lambda *args: args).to_terms("a", "b", "c") == (
+            "a",
+            "b",
+            "c",
+        )
 
         with pytest.raises(RuntimeError):
-            Operator('+').to_terms()
+            Operator("+").to_terms()
 
     def test_repr(self):
-        assert repr(Operator('op')) == 'op'
+        assert repr(Operator("op")) == "op"

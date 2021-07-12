@@ -4,10 +4,10 @@ from .model_matrix import ModelMatrix
 from .sugar import model_matrix
 
 __all__ = [
-    '__author__',
-    '__author_email__',
-    '__version__',
-    'Formula',
-    'ModelMatrix',
-    'model_matrix',
+    "__author__",
+    "__author_email__",
+    "__version__",
+    "Formula",
+    "ModelMatrix",
+    "model_matrix",
 ]

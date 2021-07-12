@@ -13,24 +13,25 @@ class SplineExtrapolation(Enum):
     Specification for how extrapolation should be performed during spline
     computations.
     """
-    RAISE = 'raise'
-    CLIP = 'clip'
-    NA = 'na'
-    ZERO = 'zero'
-    EXTEND = 'extend'
+
+    RAISE = "raise"
+    CLIP = "clip"
+    NA = "na"
+    ZERO = "zero"
+    EXTEND = "extend"
 
 
 @stateful_transform
 def basis_spline(
-        x: Union[pandas.Series, numpy.ndarray],
-        df: Optional[int] = None,
-        knots: Optional[Iterable[float]] = None,
-        degree: int = 3,
-        include_intercept: bool = False,
-        lower_bound: Optional[float] = None,
-        upper_bound: Optional[float] = None,
-        extrapolation: Union[str, SplineExtrapolation] = 'raise',
-        _state: dict = None,
+    x: Union[pandas.Series, numpy.ndarray],
+    df: Optional[int] = None,
+    knots: Optional[Iterable[float]] = None,
+    degree: int = 3,
+    include_intercept: bool = False,
+    lower_bound: Optional[float] = None,
+    upper_bound: Optional[float] = None,
+    extrapolation: Union[str, SplineExtrapolation] = "raise",
+    _state: dict = None,
 ):
     """
     Evaluates the B-Spline basis vectors for given inputs `x`.
@@ -94,14 +95,20 @@ def basis_spline(
     # Prepare and check arguments
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
-    lower_bound = numpy.min(x) if _state.get('lower_bound', lower_bound) is None else lower_bound
-    upper_bound = numpy.max(x) if _state.get('upper_bound', upper_bound) is None else upper_bound
+    lower_bound = (
+        numpy.min(x) if _state.get("lower_bound", lower_bound) is None else lower_bound
+    )
+    upper_bound = (
+        numpy.max(x) if _state.get("upper_bound", upper_bound) is None else upper_bound
+    )
     extrapolation = SplineExtrapolation(extrapolation)
-    _state['lower_bound'] = lower_bound
-    _state['upper_bound'] = upper_bound
+    _state["lower_bound"] = lower_bound
+    _state["upper_bound"] = upper_bound
 
     # Prepare data
-    if extrapolation is SplineExtrapolation.RAISE and numpy.any((x < lower_bound) | (x > upper_bound)):
+    if extrapolation is SplineExtrapolation.RAISE and numpy.any(
+        (x < lower_bound) | (x > upper_bound)
+    ):
         raise ValueError(
             "Some field values extend bound upper and/or lower bounds, which can result in ill-conditioned bases. "
             "Pass a value for `extrapolation` to control how extrapolation should be performed."
@@ -112,40 +119,58 @@ def basis_spline(
         x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
 
     # Prepare knots
-    if 'knots' not in _state:
+    if "knots" not in _state:
         knots = knots or []
         if df:
             nknots = df - degree - (1 if include_intercept else 0)
             if nknots < 0:
-                raise ValueError(f"Invalid value for `df`. `df` must be greater than {degree + (1 if include_intercept else 0)} [`degree` (+ 1 if `include_intercept` is `True`)].")
-            knots = list(numpy.quantile(x, numpy.linspace(0, 1, nknots + 2))[1:-1].ravel())
+                raise ValueError(
+                    f"Invalid value for `df`. `df` must be greater than {degree + (1 if include_intercept else 0)} [`degree` (+ 1 if `include_intercept` is `True`)]."
+                )
+            knots = list(
+                numpy.quantile(x, numpy.linspace(0, 1, nknots + 2))[1:-1].ravel()
+            )
         knots.insert(0, lower_bound)
         knots.append(upper_bound)
-        knots = list(numpy.pad(knots, degree, mode='edge'))
-        _state['knots'] = knots
-    knots = _state['knots']
+        knots = list(numpy.pad(knots, degree, mode="edge"))
+        _state["knots"] = knots
+    knots = _state["knots"]
 
     # Compute basis splines
     # The following code is equivalent to [B(i, j=degree) for in range(len(knots)-d-1)], with B(i, j) as defined below.
     # B = lambda i, j: ((x >= knots[i]) & (x < knots[i+1])).astype(float) if j == 0 else alpha(i, j, x) * B(i, j-1, x) + (1 - alpha(i+1, j, x)) * B(i+1, j-1, x)
     # We don't directly use this recurrence relation so that we can memoise the B(i, j).
     cache = defaultdict(dict)
-    alpha = lambda i, j: (x - knots[i]) / (knots[i + j] - knots[i]) if knots[i + j] != knots[i] else 0
+    alpha = (
+        lambda i, j: (x - knots[i]) / (knots[i + j] - knots[i])
+        if knots[i + j] != knots[i]
+        else 0
+    )
     for i in range(len(knots) - 1):
         if extrapolation is SplineExtrapolation.EXTEND:
             cache[0][i] = (
-                (x > (knots[i] if i != degree else -numpy.inf)) &
-                (x < (knots[i + 1] if i + 1 != len(knots) - degree - 1 else numpy.inf))
+                (x > (knots[i] if i != degree else -numpy.inf))
+                & (
+                    x
+                    < (knots[i + 1] if i + 1 != len(knots) - degree - 1 else numpy.inf)
+                )
             ).astype(float)
         else:
             cache[0][i] = (
-                ((x > knots[i]) if i != degree else (x >= knots[i])) &
-                ((x < knots[i + 1]) if i + 1 != len(knots) - degree - 1 else (x <= knots[i + 1]))
+                ((x > knots[i]) if i != degree else (x >= knots[i]))
+                & (
+                    (x < knots[i + 1])
+                    if i + 1 != len(knots) - degree - 1
+                    else (x <= knots[i + 1])
+                )
             ).astype(float)
     for d in range(1, degree + 1):
         cache[d % 2].clear()
         for i in range(len(knots) - d - 1):
-            cache[d % 2][i] = alpha(i, d) * cache[(d - 1) % 2][i] + (1 - alpha(i + 1, d)) * cache[(d - 1) % 2][i + 1]
+            cache[d % 2][i] = (
+                alpha(i, d) * cache[(d - 1) % 2][i]
+                + (1 - alpha(i + 1, d)) * cache[(d - 1) % 2][i + 1]
+            )
 
     # Prepare output
     out = {
@@ -153,11 +178,13 @@ def basis_spline(
         for i in sorted(cache[degree % 2])
         if i > 0 or include_intercept
     }
-    out.update({
-        '__kind__': 'numerical',
-        '__spans_intercept__': include_intercept,
-        '__drop_field__': 0,
-        '__format__': "{name}[{field}]",
-        '__encoded__': False,
-    })
+    out.update(
+        {
+            "__kind__": "numerical",
+            "__spans_intercept__": include_intercept,
+            "__drop_field__": 0,
+            "__format__": "{name}[{field}]",
+            "__encoded__": False,
+        }
+    )
     return out
