@@ -120,7 +120,7 @@ def basis_spline(
 
     # Prepare knots
     if "knots" not in _state:
-        knots = knots or []
+        knots = [] if knots is None else list(knots)
         if df:
             nknots = df - degree - (1 if include_intercept else 0)
             if nknots < 0:
@@ -149,7 +149,7 @@ def basis_spline(
     for i in range(len(knots) - 1):
         if extrapolation is SplineExtrapolation.EXTEND:
             cache[0][i] = (
-                (x > (knots[i] if i != degree else -numpy.inf))
+                (x >= (knots[i] if i != degree else -numpy.inf))
                 & (
                     x
                     < (knots[i + 1] if i + 1 != len(knots) - degree - 1 else numpy.inf)
@@ -157,11 +157,11 @@ def basis_spline(
             ).astype(float)
         else:
             cache[0][i] = (
-                ((x > knots[i]) if i != degree else (x >= knots[i]))
+                (x >= knots[i])
                 & (
                     (x < knots[i + 1])
                     if i + 1 != len(knots) - degree - 1
-                    else (x <= knots[i + 1])
+                    else (x <= knots[i + 1])  # Properly handle boundary
                 )
             ).astype(float)
     for d in range(1, degree + 1):
