@@ -76,7 +76,7 @@ def stateful_eval(expr, env, metadata, state, spec):
     stateful_nodes = {}
     for node in ast.walk(code):
         if _is_stateful_transform(node, env):
-            stateful_nodes[astor.to_source(node).strip()] = node
+            stateful_nodes[astor.to_source(node).strip().replace("\n    ", "")] = node
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
     for name, node in stateful_nodes.items():
