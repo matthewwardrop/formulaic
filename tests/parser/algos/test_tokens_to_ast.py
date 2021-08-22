@@ -5,7 +5,7 @@ import itertools
 
 from formulaic.errors import FormulaSyntaxError
 from formulaic.parser import DefaultOperatorResolver
-from formulaic.parser.algos.infix_to_ast import infix_to_ast
+from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.types import Operator
 
@@ -80,7 +80,7 @@ FORMULA_ERRORS = {
 
 @pytest.mark.parametrize("formula,flattened", FORMULA_TO_AST_TESTS.items())
 def test_formula_to_ast(formula, flattened):
-    ast = infix_to_ast(tokenize(formula), ExtendedOperatorResolver())
+    ast = tokens_to_ast(tokenize(formula), ExtendedOperatorResolver())
     if flattened is None:
         assert ast is flattened
     else:
@@ -90,4 +90,4 @@ def test_formula_to_ast(formula, flattened):
 @pytest.mark.parametrize("formula,exception_info", FORMULA_ERRORS.items())
 def test_tokenize_exceptions(formula, exception_info):
     with pytest.raises(exception_info[0], match=exception_info[1]):
-        list(infix_to_ast(tokenize(formula), ExtendedOperatorResolver()))
+        list(tokens_to_ast(tokenize(formula), ExtendedOperatorResolver()))

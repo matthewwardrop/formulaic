@@ -8,7 +8,7 @@ from ..utils import exc_for_token, exc_for_missing_operator
 OrderedOperator = namedtuple("OrderedOperator", ("operator", "token", "index"))
 
 
-def infix_to_ast(
+def tokens_to_ast(
     tokens: Iterable[Token], operator_resolver: OperatorResolver
 ) -> Optional[ASTNode]:
     """

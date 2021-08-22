@@ -6,7 +6,7 @@ from typing import Any, Iterable, Union
 
 from formulaic.errors import FormulaParsingError
 
-from .algos.infix_to_ast import infix_to_ast
+from .algos.tokens_to_ast import tokens_to_ast
 from .algos.tokenize import tokenize
 from .types import ASTNode, Factor, Operator, OperatorResolver, Term, Token
 from .utils import exc_for_token
@@ -27,7 +27,7 @@ class FormulaParser:
             this uses `tokenize()` and handles the addition/removal of the
             intercept.
         - get_ast: Which converts the iterable of `Token`s into an abstract
-            syntax tree. By default this uses `infix_to_ast()` and the nominated
+            syntax tree. By default this uses `tokens_to_ast()` and the nominated
             `OperatorResolver` instance.
         - get_terms: Which evaluates the abstract syntax tree and returns an
             iterable of `Term`s.
@@ -110,7 +110,7 @@ class FormulaParser:
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
         """
-        return infix_to_ast(
+        return tokens_to_ast(
             self.get_tokens(formula, include_intercept=include_intercept),
             operator_resolver=self.operator_resolver,
         )
