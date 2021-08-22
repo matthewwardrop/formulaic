@@ -1,15 +1,58 @@
 import re
+from typing import Iterable, Pattern
 
 from ..types import Token
 from ..utils import exc_for_token
 
 
 def tokenize(
-    formula,
-    word_chars=re.compile(r"[\.\_\w]"),
-    numeric_chars=re.compile(r"[0-9\.]"),
-    whitespace_chars=re.compile(r"\s"),
-):
+    formula: str,
+    word_chars: Pattern = re.compile(r"[\.\_\w]"),
+    numeric_chars: Pattern = re.compile(r"[0-9\.]"),
+    whitespace_chars: Pattern = re.compile(r"\s"),
+) -> Iterable[Token]:
+    """
+    Convert a formula string into a generator of tokens.
+
+    This tokenizer is intentionally very simple, and it makes no attempt to
+    validate incoming tokens beyond ensuring that they are complete. The
+    rationale for this is that changes like adding support for a new operator do
+    not require changes to this tokenizer, and can instead be done entirely
+    within the higher-level parser. This simplicity also lends itself to a direct
+    functional implementation (rather than a class with methods), and so that is
+    approach taken here.
+
+    Tokens outputted will have one of four kinds:
+      - operator: an operator to be applied to other surrounding tokens (will
+            always consist of non-word characters).
+      - name: a name of a feature/variable to be lifted from the model matrix
+            context.
+      - value: a literal value (string/number).
+      - python: a code string to be evaluated.
+
+    The basic logic of this tokenizer is to loop over each character in the
+    formula string and:
+      - ensure that portions quoted by one of : ', ", {}, and ` are correctly
+        grouped into a token of the appropriate kind.
+      - ignore unquoted whitespace
+      - correctly distinguish users of (, ), [, and ] as grouping operators vs. Python
+        function calls.
+      - output each contiguous portion of the formula string that belongs to
+        the same token type as a token. (e.g. sequential operators like '+-'
+        will be output as a single operator token).
+
+    Args:
+        formula: The formula string to tokenize.
+        word_chars: The regex pattern used to recognize "word" characters
+            (basically non-operator characters).
+        numeric_chars: The regex pattern used to recognize numeric characters.
+        whitespace_chars: The regex pattern use to recognize (ignored)
+            whitespace characters.
+
+    Returns:
+        A generator over the tokens found in the formula string.
+
+    """
     quote_context = []
     take = 0
 

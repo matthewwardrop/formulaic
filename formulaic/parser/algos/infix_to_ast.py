@@ -1,14 +1,41 @@
 from collections import namedtuple
+from typing import Iterable, Optional
 
-from ..types import Operator, ASTNode
+from ..types import ASTNode, Operator, OperatorResolver, Token
 from ..utils import exc_for_token, exc_for_missing_operator
 
 
 OrderedOperator = namedtuple("OrderedOperator", ("operator", "token", "index"))
 
 
-def infix_to_ast(tokens, operator_resolver):
+def infix_to_ast(
+    tokens: Iterable[Token], operator_resolver: OperatorResolver
+) -> Optional[ASTNode]:
+    """
+    Convert a iterable of `Token` instances into an abstract syntax tree.
 
+    This implementation is intentionally as simple and abstract as possible, and
+    makes few assumptions about the form of the operators that will be present
+    in the token sequence. Instead, it relies on the `OperatorResolver` instance
+    to evaluate based on the context which operator should be invoked to handle
+    surrounding tokens based on their arity/etc. This means that changes to the
+    formula syntax (such as the addition of new operators) should not require
+    any changes to this abstract syntax tree generator.
+
+    The algorithm employed here is a slightly enriched [Shunting Yard
+    Algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm), where we
+    have added additional support for operator arities, fixities,
+    associativities, etc.
+
+    Args:
+        tokens: The tokens for which an abstract syntax tree should be
+            generated.
+        operator_resolver: The `OperatorResolver` instance to be used to lookup
+            operators (only the `.resolve()` method is used).
+
+    Returns:
+        The generated abstract syntax tree as a nested `ASTNode` instance.
+    """
     output_queue = []
     operator_stack = []
 

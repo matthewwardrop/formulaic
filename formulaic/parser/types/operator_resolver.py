@@ -1,3 +1,4 @@
+import abc
 from collections import defaultdict
 from typing import List
 
@@ -6,7 +7,24 @@ from .operator import Operator
 from .token import Token
 
 
-class OperatorResolver:
+class OperatorResolver(metaclass=abc.ABCMeta):
+    """
+    Resolves which `Operator` instance should be used for a given operator
+    `Token`.
+
+    This class should be subclassed and have `.operators` and/or `.resolve()`
+    overridden in order to achieve the desired formula algebra.
+
+    Note: most users will probably be interested in extending/subclassing
+    `DefaultOperatorResolver`, which implements the default formula operator
+    logic. You should subclass this class directly only if you want to start
+    from scratch.
+
+    Attributes:
+        operator_table: A cache of the mapping from operator symbol to
+            `Operator` instances implementing it.
+    """
+
     def __init__(self):
         self.operator_table = defaultdict(list)
         for operator in self.operators:
@@ -16,14 +34,31 @@ class OperatorResolver:
                 self.operator_table[symbol], key=lambda op: op.precedence, reverse=True
             )
 
-    @property
+    @abc.abstractproperty
     def operators(self) -> List[Operator]:
-        return []  # pragma: no cover
+        """
+        The `Operator` instance pool which can be matched to tokens by
+        `.resolve()`.
+        """
+        ...  # pragma: no cover
 
-    def resolve(self, token: Token, max_prefix_arity) -> List[Operator]:
+    def resolve(self, token: Token, max_prefix_arity: int) -> List[Operator]:
+        """
+        Return a list of operators to apply for a given token in the AST
+        generation.
+
+        Args:
+            token: The operator `Token` instance for which `Operator`(s) should
+                be resolved.
+            max_prefix_arity: The number operator unclaimed tokens preceding the
+                operator in the formula string.
+        """
         return [self._resolve(token, token.token, max_prefix_arity)]
 
     def _resolve(self, token: Token, symbol: str, max_prefix_arity: int) -> Operator:
+        """
+        The default operator resolving logic.
+        """
         if symbol not in self.operator_table:
             raise exc_for_token(token, f"Unknown operator '{symbol}'.")
         candidates = [

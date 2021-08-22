@@ -1,5 +1,21 @@
+from typing import Iterable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .factor import Factor  # pragma: no cover
+
+
 class Term:
-    def __init__(self, factors):
+    """
+    Represents a "term" of a formula.
+
+    A "term" is a product of "factors" (represented by `Factor`) instances, and
+    a formula is made up of a sum of terms.
+
+    Attributes:
+        factors: The set of factors to be multipled to form the term.
+    """
+
+    def __init__(self, factors: Iterable["Factor"]):
         self.factors = set(factors)
 
     def __mul__(self, other):
