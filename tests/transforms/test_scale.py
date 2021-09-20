@@ -3,7 +3,7 @@ import pytest
 import scipy.sparse as spsparse
 
 from formulaic.errors import DataMismatchWarning
-from formulaic.materializers.transforms import center, scale
+from formulaic.transforms import center, scale
 
 
 def test_scale():

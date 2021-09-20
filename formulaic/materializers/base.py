@@ -17,8 +17,8 @@ from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
 from formulaic.parser.types import Factor
+from formulaic.transforms import TRANSFORMS
 
-from .transforms import TRANSFORMS
 from .types import EvaluatedFactor, ScopedFactor, ScopedTerm
 
 

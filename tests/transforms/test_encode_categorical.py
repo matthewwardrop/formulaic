@@ -3,7 +3,7 @@ import pytest
 import scipy.sparse as spsparse
 
 from formulaic.errors import DataMismatchWarning
-from formulaic.materializers.transforms import encode_categorical
+from formulaic.transforms import encode_categorical
 from formulaic.model_spec import ModelSpec
 
 

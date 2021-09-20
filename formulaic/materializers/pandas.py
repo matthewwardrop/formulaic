@@ -74,7 +74,7 @@ class PandasMaterializer(FormulaMaterializer):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
-        from .transforms import encode_categorical
+        from formulaic.transforms import encode_categorical
 
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
