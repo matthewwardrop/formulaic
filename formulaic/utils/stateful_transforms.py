@@ -3,6 +3,7 @@ import functools
 import inspect
 import keyword
 import re
+from typing import Any, Callable, Mapping, Optional, TYPE_CHECKING
 
 import astor
 import numpy
@@ -11,18 +12,36 @@ from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.types import Token
 from .layered_mapping import LayeredMapping
 
-# Type checking imports (will nest under typing.TYPE_CHECKING once we no longer support Python 3.6)
-from collections.abc import Mapping
+if TYPE_CHECKING:
+    from formulaic.model_spec import ModelSpec  # pragma: no cover
 
 
-def stateful_transform(func):
+def stateful_transform(func: Callable) -> Callable:
+    """
+    Transform a callable object into a stateful transform.
+
+    This is done by adding special arguments to the callable's signature:
+    - _state: The existing state or an empty dictionary.
+    - _metadata: Any extra metadata passed about the factor being evaluated.
+    - _spec: The `ModelSpec` instance being evaluated (or an empty `ModelSpec`).
+    If the callable has any of these in its signature, these will be passed onto
+    it; otherwise, they will be swallowed by the stateful transform wrapper.
+
+    Stateful transforms are also transformed into single dispatches, allowing
+    different implementations for incoming data types.
+
+    Args:
+        func: The function (or other callable) to be made into a stateful
+            transform.
+
+    Returns:
+        The stateful transform callable.
+    """
     func = functools.singledispatch(func)
     params = inspect.signature(func).parameters.keys()
 
     @functools.wraps(func)
-    def wrapper(
-        data, *args, _metadata=None, _state=None, _output=None, _spec=None, **kwargs
-    ):
+    def wrapper(data, *args, _metadata=None, _state=None, _spec=None, **kwargs):
         from formulaic.model_spec import ModelSpec
 
         _state = {} if _state is None else _state
@@ -51,14 +70,40 @@ def stateful_transform(func):
     return wrapper
 
 
-def stateful_eval(expr, env, metadata, state, spec):
+def stateful_eval(
+    expr: str,
+    env: Optional[Mapping],
+    metadata: Optional[Mapping],
+    state: Optional[Mapping],
+    spec: Optional["ModelSpec"],
+) -> Any:
     """
-    Evaluate an expression with a given state.
+    Evaluate an expression in a nominated environment and with a nominated state.
 
-    WARNING: State can be mutated. If you want to preserve a previous state,
-    create a copy before passing it to this function.
+    Under the hood this calls out to `eval`, and so if incoming expressions are
+    not safe, you should make sure that your `env` is properly isolated from
+    potentially unsafe methods and/or sys-calls.
+
+    Args:
+        expr: The expression to be evaluated.
+        env: The environment in which the expression is to be evaluated. This
+            environment is the only environment from which variables can be
+            looked up during the evaluation.
+        metadata: Additional metadata about the expression (passed through to
+            stateful transforms).
+        state: The current state of any stateful transforms (passed through to
+            stateful transforms).
+        spec: The current `ModelSpec` instance being evaluated (passed through
+            to stateful transforms).
+
+    Returns:
+        The result of the evaluation.
+
+    Notes:
+        - The state mapping is likely to be mutated in-place when using stateful
+            transforms. If you need to retain the original state, copy it
+            *before* calling this method.
     """
-
     metadata = {} if metadata is None else metadata
     state = {} if state is None else state
     env = LayeredMapping(
@@ -120,7 +165,25 @@ def stateful_eval(expr, env, metadata, state, spec):
     )  # nosec
 
 
-def sanitize_variable_names(expr, env):
+def sanitize_variable_names(expr: str, env: Mapping) -> str:
+    """
+    Sanitize any variables names in the expression that are not valid Python
+    identifiers.
+
+    This function transforms `expr` into a new expression where identifiers
+    that would cause `SyntaxError`s are transformed into valid Python
+    identifiers. E.g. `1a` -> `<random string>`. `env` is updated to reflect
+    this name change, allowing field names to be any string rather than just
+    valid Python names.
+
+    Args:
+        expr: The expression to sanitize.
+        env: The environment to keep updated with any name substitutions. This
+            environment mapping will be mutated in place during this evaluation.
+
+    Returns:
+        The sanitized expression.
+    """
     tokens = []
     for token in tokenize(expr):
         if token.kind.value == "name":
@@ -151,10 +214,19 @@ def sanitize_variable_names(expr, env):
     return " ".join([str(t) for t in tokens])
 
 
-def _is_stateful_transform(node: ast.AST, env: Mapping):
+def _is_stateful_transform(node: ast.AST, env: Mapping) -> bool:
     """
     Check whether a given ast.Call node enacts a stateful transform given
     the available symbols in `env`.
+
+    Args:
+        node: The AST node in question.
+        env: The current environment in which the node is evaluated. This is
+            used to look up the function handle so it can be inspected.
+
+    Return:
+        `True` if the node is a call node and the callable associated with the
+        node is a stateful transform. `False` otherwise.
     """
     if not isinstance(node, ast.Call):
         return False
