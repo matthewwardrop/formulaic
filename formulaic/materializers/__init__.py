@@ -1,11 +1,13 @@
 from .arrow import ArrowMaterializer
 from .base import FormulaMaterializer
 from .pandas import PandasMaterializer
-from .types import NAAction
+from .types import FactorValues, NAAction
 
 __all__ = [
     "ArrowMaterializer",
     "FormulaMaterializer",
-    "NAAction",
     "PandasMaterializer",
+    # Useful types
+    "NAAction",
+    "FactorValues",
 ]

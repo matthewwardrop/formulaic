@@ -6,6 +6,7 @@ import pandas
 import scipy.sparse as spsparse
 
 from formulaic.errors import DataMismatchWarning
+from formulaic.materializers.types import FactorValues
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 from formulaic.utils.stateful_transforms import stateful_transform
 
@@ -13,7 +14,7 @@ from formulaic.utils.stateful_transforms import stateful_transform
 @stateful_transform
 def encode_categorical(
     data, reduced_rank=False, spans_intercept=True, output=None, _state=None, _spec=None
-):
+) -> FactorValues[dict]:
     # TODO: Add support for specifying contrast matrix / etc
     output = output or _spec.output or "pandas"
 
@@ -52,16 +53,13 @@ def encode_categorical(
     else:
         _state["categories"] = categories
 
-    encoded.update(
-        {
-            "__kind__": "categorical",
-            "__spans_intercept__": spans_intercept and not reduced_rank,
-            "__drop_field__": _state["categories"][0]
-            if spans_intercept and not reduced_rank
-            else None,
-            "__format__": "{name}[T.{field}]",
-            "__encoded__": True,
-        }
+    return FactorValues(
+        encoded,
+        kind="categorical",
+        spans_intercept=spans_intercept and not reduced_rank,
+        drop_field=(
+            _state["categories"][0] if spans_intercept and not reduced_rank else None
+        ),
+        format="{name}[T.{field}]",
+        encoded=True,
     )
-
-    return encoded

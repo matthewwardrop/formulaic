@@ -9,7 +9,7 @@ from formulaic.errors import (
     FormulaMaterializationError,
 )
 from formulaic.materializers import PandasMaterializer
-from formulaic.materializers.types import EvaluatedFactor, NAAction
+from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 
@@ -146,7 +146,7 @@ class TestPandasMaterializer:
             ModelSpec([]),
             drop_rows=set(),
         )
-        assert ev_factor.kind.value == "categorical"
+        assert ev_factor.metadata.kind.value == "categorical"
 
         # Test that other kind mismatches result in an exception
         materializer.factor_cache = {}
@@ -175,7 +175,7 @@ class TestPandasMaterializer:
             )
 
     def test_categorical_dict_detection(self, materializer):
-        assert materializer._is_categorical({"__kind__": "categorical"})
+        assert materializer._is_categorical(FactorValues({}, kind="categorical"))
 
     def test_encoding_edge_cases(self, materializer):
         # Verify that constant encoding works well
@@ -183,9 +183,8 @@ class TestPandasMaterializer:
             list(
                 materializer._encode_evaled_factor(
                     factor=EvaluatedFactor(
-                        Factor("10", eval_method="literal", kind="constant"),
-                        values=10,
-                        kind="constant",
+                        factor=Factor("10", eval_method="literal", kind="constant"),
+                        values=FactorValues(10, kind="constant"),
                     ),
                     spec=ModelSpec([]),
                     drop_rows=[],
@@ -199,9 +198,11 @@ class TestPandasMaterializer:
             list(
                 materializer._encode_evaled_factor(
                     factor=EvaluatedFactor(
-                        Factor("A", eval_method="python", kind="numerical"),
-                        values={"a": [1, 2, 3], "b": [4, 5, 6], "__metadata__": None},
-                        kind="numerical",
+                        factor=Factor("A", eval_method="python", kind="numerical"),
+                        values=FactorValues(
+                            {"a": [1, 2, 3], "b": [4, 5, 6], "__metadata__": None},
+                            kind="numerical",
+                        ),
                     ),
                     spec=ModelSpec([]),
                     drop_rows=[],
@@ -214,9 +215,8 @@ class TestPandasMaterializer:
             list(
                 materializer._encode_evaled_factor(
                     factor=EvaluatedFactor(
-                        Factor("B", eval_method="python", kind="categorical"),
-                        values={"a": ["a", "b", "c"]},
-                        kind="categorical",
+                        factor=Factor("B", eval_method="python", kind="categorical"),
+                        values=FactorValues({"a": ["a", "b", "c"]}, kind="categorical"),
                     ),
                     spec=ModelSpec([]),
                     drop_rows=[],

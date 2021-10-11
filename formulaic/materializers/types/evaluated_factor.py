@@ -1,48 +1,59 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from typing import Any, Optional
+
 from formulaic.parser.types import Factor
 
+from .factor_values import FactorValues, FactorValuesMetadata
 
+
+@dataclass
 class EvaluatedFactor:
-    def __init__(self, factor, values, kind=None, spans_intercept=False):
-        self.factor = factor
-        self.values = values
-        self.kind = kind
-        self.spans_intercept = spans_intercept
+    """
+    A container for the evaluated state of a `Factor` object in a given context.
+
+    This class acts as the glue between an abstract `Factor` specification and
+    the realisation of that factor in a specific data context.
+
+    Attributes:
+        factor: The `Factor` instance for which values have been computed.
+        values: The evaluated values for the factor.
+    """
+
+    factor: Optional[Factor] = None
+    values: Optional[FactorValues[Any]] = None
 
     @property
-    def kind(self):
-        return self._kind
-
-    @kind.setter
-    def kind(self, kind):
-        if not kind or kind == "unknown":
-            raise ValueError("`EvaluatedFactor` instances must have a known kind.")
-        self._kind = Factor.Kind(kind)
-
-    @property
-    def expr(self):
+    def expr(self) -> str:
+        """
+        The expression of the evaluated factor.
+        """
         return self.factor.expr
 
     @property
-    def metadata(self):
-        return self.factor.metadata
+    def metadata(self) -> FactorValuesMetadata:
+        """
+        The metadata associated with the evaluated values.
+        """
+        return self.values.__formulaic_metadata__
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.factor)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, EvaluatedFactor):
             return self.factor == other.factor
         return NotImplemented
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if isinstance(other, EvaluatedFactor):
             return self.factor < other.factor
         return NotImplemented
 
-    def copy(self, *, without_values: bool = False):
-        return EvaluatedFactor(
-            factor=self.factor,
-            values=None if without_values else self.values,
-            kind=self.kind,
-            spans_intercept=self.spans_intercept,
-        )
+    def replace(self, **changes) -> EvaluatedFactor:
+        """
+        Return a copy of this `EvaluatedFactor` instance with the nominated
+        attributes mutated.
+        """
+        return replace(self, **changes)

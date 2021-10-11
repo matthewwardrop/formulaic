@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Union
 import numpy
 import pandas
 
+from formulaic.materializers.types import FactorValues
 from formulaic.utils.stateful_transforms import stateful_transform
 
 
@@ -32,7 +33,7 @@ def basis_spline(
     upper_bound: Optional[float] = None,
     extrapolation: Union[str, SplineExtrapolation] = "raise",
     _state: dict = None,
-):
+) -> FactorValues[dict]:
     """
     Evaluates the B-Spline basis vectors for given inputs `x`.
 
@@ -73,8 +74,9 @@ def basis_spline(
               in R).
 
     Returns:
-        dict: A dictionary representing the encoded vectors ready for ingestion
-          by materializers.
+        A dictionary representing the encoded vectors ready for ingestion
+        by materializers (wrapped in a `FactorValues` instance providing
+        relevant metadata).
 
     Notes:
         The implementation employed here uses a slightly generalised version of
@@ -172,19 +174,15 @@ def basis_spline(
                 + (1 - alpha(i + 1, d)) * cache[(d - 1) % 2][i + 1]
             )
 
-    # Prepare output
-    out = {
-        i: cache[degree % 2][i]
-        for i in sorted(cache[degree % 2])
-        if i > 0 or include_intercept
-    }
-    out.update(
+    return FactorValues(
         {
-            "__kind__": "numerical",
-            "__spans_intercept__": include_intercept,
-            "__drop_field__": 0,
-            "__format__": "{name}[{field}]",
-            "__encoded__": False,
-        }
+            i: cache[degree % 2][i]
+            for i in sorted(cache[degree % 2])
+            if i > 0 or include_intercept
+        },
+        kind="numerical",
+        spans_intercept=include_intercept,
+        drop_field=0,
+        format="{name}[{field}]",
+        encoded=False,
     )
-    return out

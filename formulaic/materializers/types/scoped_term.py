@@ -32,7 +32,7 @@ class ScopedTerm:
         if without_values:
             factors = [
                 ScopedFactor(
-                    factor=factor.factor.copy(without_values=True),
+                    factor=factor.factor.replace(values=None),
                     reduced=factor.reduced,
                 )
                 for factor in factors
