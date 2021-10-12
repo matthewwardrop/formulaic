@@ -311,3 +311,34 @@ class TestPandasMaterializer:
         mm = PandasMaterializer(data).get_model_matrix("1 + a + A")
         assert list(mm.index) == [0, 2, 4, 8, 10]
         assert not numpy.any(pandas.isnull(mm))
+
+    def test_category_reordering(self):
+        data = pandas.DataFrame({"A": ["a", "b", "c"]})
+        data2 = pandas.DataFrame({"A": ["c", "b", "a"]})
+        data3 = pandas.DataFrame(
+            {"A": pandas.Categorical(["c", "b", "a"], categories=["c", "b", "a"])}
+        )
+
+        m = PandasMaterializer(data).get_model_matrix("A + 0", ensure_full_rank=False)
+        assert list(m.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m.model_spec.get_model_matrix(data3).columns) == [
+            "A[T.a]",
+            "A[T.b]",
+            "A[T.c]",
+        ]
+
+        m2 = PandasMaterializer(data2).get_model_matrix("A + 0", ensure_full_rank=False)
+        assert list(m2.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m2.model_spec.get_model_matrix(data3).columns) == [
+            "A[T.a]",
+            "A[T.b]",
+            "A[T.c]",
+        ]
+
+        m3 = PandasMaterializer(data3).get_model_matrix("A + 0", ensure_full_rank=False)
+        assert list(m3.columns) == ["A[T.c]", "A[T.b]", "A[T.a]"]
+        assert list(m3.model_spec.get_model_matrix(data).columns) == [
+            "A[T.c]",
+            "A[T.b]",
+            "A[T.a]",
+        ]
