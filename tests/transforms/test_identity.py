@@ -1,4 +1,4 @@
-from formulaic.materializers.transforms import identity
+from formulaic.transforms import identity
 
 
 def test_identity():

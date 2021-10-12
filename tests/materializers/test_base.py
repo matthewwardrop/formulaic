@@ -2,7 +2,12 @@ import pandas
 import pytest
 
 from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
-from formulaic.materializers.types import EvaluatedFactor, ScopedFactor, ScopedTerm
+from formulaic.materializers.types import (
+    EvaluatedFactor,
+    FactorValues,
+    ScopedFactor,
+    ScopedTerm,
+)
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.model_spec import ModelSpec
@@ -53,16 +58,20 @@ class TestFormulaMaterializer:
     def evaled_factors(self):
         return [
             EvaluatedFactor(
-                Factor("A"),
-                pandas.Series([1, 2, 3, 4]),
-                kind="categorical",
-                spans_intercept=True,
+                factor=Factor("A"),
+                values=FactorValues(
+                    pandas.Series([1, 2, 3, 4]),
+                    kind="categorical",
+                    spans_intercept=True,
+                ),
             ),
             EvaluatedFactor(
-                Factor("b"),
-                pandas.Series([1, 2, 3, 4]),
-                kind="numerical",
-                spans_intercept=False,
+                factor=Factor("b"),
+                values=FactorValues(
+                    pandas.Series([1, 2, 3, 4]),
+                    kind="numerical",
+                    spans_intercept=False,
+                ),
             ),
         ]
 
@@ -95,10 +104,12 @@ class TestFormulaMaterializer:
 
         flattened = PandasMaterializer(data=None)._flatten_encoded_evaled_factor(
             "name",
-            {
-                "a": {"1": 1, "2": 2, "__format__": "{name}@{field}"},
-                "b": {"3": 3, "4": 4},
-            },
+            FactorValues(
+                {
+                    "a": FactorValues({"1": 1, "2": 2}, format="{name}@{field}"),
+                    "b": {"3": 3, "4": 4},
+                }
+            ),
         )
 
         assert list(flattened) == ["name[a]@1", "name[a]@2", "name[b][3]", "name[b][4]"]

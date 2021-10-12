@@ -1,7 +1,7 @@
 import numpy
 import pytest
 
-from formulaic.materializers.transforms.basis_spline import basis_spline
+from formulaic.transforms.basis_spline import basis_spline
 
 
 class TestBasisSpline:

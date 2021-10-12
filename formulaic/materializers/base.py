@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import operator
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
+from typing import Any, Dict, Iterable, Set, TYPE_CHECKING
 
 from interface_meta import InterfaceMeta, inherit_docs
 
@@ -12,14 +15,18 @@ from formulaic.errors import (
     FormulaMaterializationError,
     FormulaMaterializerNotFoundError,
 )
+from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrix
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
 from formulaic.parser.types import Factor
+from formulaic.transforms import TRANSFORMS
 
-from .transforms import TRANSFORMS
-from .types import EvaluatedFactor, ScopedFactor, ScopedTerm
+from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
+
+if TYPE_CHECKING:
+    from formulaic.model_spec import ModelSpec  # pragma: no cover
 
 
 class FormulaMaterializerMeta(InterfaceMeta):
@@ -263,14 +270,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         factors=(
                             ScopedFactor(evaled_factor, reduced=False)
                             for evaled_factor in evaled_factors
-                            if evaled_factor.kind.value != "constant"
+                            if evaled_factor.metadata.kind is not Factor.Kind.CONSTANT
                         ),
                         scale=functools.reduce(
                             operator.mul,
                             [
                                 evaled_factor.values
                                 for evaled_factor in evaled_factors
-                                if evaled_factor.kind.value == "constant"
+                                if evaled_factor.metadata.kind.value
+                                is Factor.Kind.CONSTANT
                             ],
                             1,
                         ),
@@ -279,20 +287,26 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             yield term, scoped_terms
 
     @classmethod
-    def _get_scoped_terms_spanned_by_evaled_factors(cls, evaled_factors):
+    def _get_scoped_terms_spanned_by_evaled_factors(
+        cls, evaled_factors: Iterable[EvaluatedFactor]
+    ) -> Set[ScopedTerm]:
         """
         Return the set of ScopedTerm instances which span the set of
         evaluated factors.
 
         Args:
-            evaled_factors (iterable<EvaluatedFactor>)
+            evaled_factors: The evaluated factors for which to generated scoped
+                terms.
+
+        Returns:
+            The scoped terms for the nominated `evaled_factors`.
         """
         scale = 1
         factors = []
         for factor in evaled_factors:
-            if factor.kind.value == "constant":
+            if factor.metadata.kind is Factor.Kind.CONSTANT:
                 scale *= factor.values
-            elif factor.spans_intercept:
+            elif factor.metadata.spans_intercept:
                 factors.append((1, ScopedFactor(factor, reduced=True)))
             else:
                 factors.append((ScopedFactor(factor),))
@@ -329,7 +343,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Methods related to looking-up, evaluating and encoding terms and factors
 
-    def _evaluate_factor(self, factor, spec, drop_rows):
+    def _evaluate_factor(
+        self, factor: Factor, spec: ModelSpec, drop_rows: set
+    ) -> EvaluatedFactor:
         if factor.expr not in self.factor_cache:
             try:
                 if factor.eval_method.value == "lookup":
@@ -337,14 +353,13 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 elif factor.eval_method.value == "python":
                     value = self._evaluate(factor.expr, factor.metadata, spec)
                 elif factor.eval_method.value == "literal":
-                    value = EvaluatedFactor(
-                        factor,
+                    value = FactorValues(
                         self._evaluate(factor.expr, factor.metadata, spec),
-                        kind="constant",
+                        kind=Factor.Kind.CONSTANT,
                     )
                 else:
                     raise FactorEvaluationError(
-                        f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}."
+                        f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
                     )
             except FactorEvaluationError:
                 raise
@@ -353,38 +368,44 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     f"Unable to evaluate factor `{factor}`. [{type(e).__name__}: {e}]"
                 )
 
-            if not isinstance(value, EvaluatedFactor):
-                if isinstance(value, dict) and "__kind__" in value:
-                    kind = value["__kind__"]
-                    spans_intercept = value.get("__spans_intercept__", False)
-                elif self._is_categorical(value):
-                    kind = "categorical"
+            if not isinstance(value, FactorValues):
+                value = FactorValues(value)
+
+            if value.__formulaic_metadata__.kind is Factor.Kind.UNKNOWN:
+                if self._is_categorical(value):
+                    kind = Factor.Kind.CATEGORICAL
                     spans_intercept = True
                 else:
-                    kind = "numerical"
+                    kind = Factor.Kind.NUMERICAL
                     spans_intercept = False
-                if factor.kind is not Factor.Kind.UNKNOWN and factor.kind.value != kind:
-                    if factor.kind.value == "categorical":
-                        kind = factor.kind.value
-                    else:
-                        raise FactorEncodingError(
-                            f"Factor is expecting to be of kind '{factor.kind.value}' but is actually of kind '{kind}'."
-                        )
-                if (
-                    factor.expr in spec.encoder_state
-                    and Factor.Kind(kind) is not spec.encoder_state[factor.expr][0]
-                ):
+
+                value = FactorValues(value, kind=kind, spans_intercept=spans_intercept)
+
+            if (
+                factor.kind is not Factor.Kind.UNKNOWN
+                and factor.kind is not value.__formulaic_metadata__.kind
+            ):
+                if factor.kind is Factor.Kind.CATEGORICAL:
+                    value.__formulaic_metadata__.kind = factor.kind
+                else:
                     raise FactorEncodingError(
-                        f"Factor kind `{kind}` does not match model specification of `{spec.encoder_state[factor.expr][0]}`."
+                        f"Factor `{factor}` is expecting values of kind '{factor.kind.value}', "
+                        f"but they are actually of kind '{value.__formulaic_metadata__.kind.value}'."
                     )
-                value = EvaluatedFactor(
-                    factor=factor,
-                    values=value,
-                    kind=kind,
-                    spans_intercept=spans_intercept,
+            if (
+                factor.expr in spec.encoder_state
+                and value.__formulaic_metadata__.kind
+                is not spec.encoder_state[factor.expr][0]
+            ):
+                raise FactorEncodingError(
+                    f"The model specification expects factor `{factor}` to have values of kind "
+                    f"`{spec.encoder_state[factor.expr][0]}`, but they are actually of kind "
+                    f"`{value.__formulaic_metadata__.kind.value}`."
                 )
-            self._check_for_nulls(factor.expr, value.values, spec.na_action, drop_rows)
-            self.factor_cache[factor.expr] = value
+            self._check_for_nulls(factor.expr, value, spec.na_action, drop_rows)
+            self.factor_cache[factor.expr] = EvaluatedFactor(
+                factor=factor, values=value
+            )
         return self.factor_cache[factor.expr]
 
     def _lookup(self, name):
@@ -396,17 +417,21 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         )
 
     def _is_categorical(self, values):
-        if isinstance(values, dict):
-            return values.get("__kind__") == "categorical"
+        if hasattr(values, "__formulaic_metadata__"):
+            return values.__formulaic_metadata__.kind is Factor.Kind.CATEGORICAL
         return False
 
     def _check_for_nulls(self, name, values, na_action, drop_rows):
         pass  # pragma: no cover
 
-    def _encode_evaled_factor(self, factor, spec, drop_rows, reduced_rank=False):
-        if not isinstance(factor.values, dict) or not factor.values.get(
-            "__encoded__", False
-        ):
+    def _encode_evaled_factor(
+        self,
+        factor: EvaluatedFactor,
+        spec: ModelSpec,
+        drop_rows: set,
+        reduced_rank: bool = False,
+    ) -> Dict[str, Any]:
+        if not isinstance(factor.values, dict) or not factor.metadata.encoded:
             if factor.expr in self.encoded_cache:
                 encoded = self.encoded_cache[factor.expr]
             elif (factor.expr, reduced_rank) in self.encoded_cache:
@@ -441,7 +466,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     return wrapped
 
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
-                if factor.kind.value == "categorical":
+                if factor.metadata.kind is Factor.Kind.CATEGORICAL:
                     encoded = map_dict(self._encode_categorical)(
                         factor.values,
                         factor.metadata,
@@ -450,11 +475,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         drop_rows,
                         reduced_rank=reduced_rank,
                     )
-                elif factor.kind.value == "numerical":
+                elif factor.metadata.kind is Factor.Kind.NUMERICAL:
                     encoded = map_dict(self._encode_numerical)(
                         factor.values, factor.metadata, encoder_state, spec, drop_rows
                     )
-                elif factor.kind.value == "constant":
+                elif factor.metadata.kind is Factor.Kind.CONSTANT:
                     encoded = map_dict(self._encode_constant)(
                         factor.values, factor.metadata, encoder_state, spec, drop_rows
                     )
@@ -462,9 +487,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     raise FactorEncodingError(
                         factor
                     )  # pragma: no cover; it is not currently possible to reach this sentinel
-                spec.encoder_state[factor.expr] = (factor.kind, encoder_state)
+                spec.encoder_state[factor.expr] = (factor.metadata.kind, encoder_state)
 
-                if isinstance(encoded, dict) and encoded.get("__drop_field__"):
+                # Only encode once for encodings where we can just drop a field
+                # later on below.
+                if isinstance(encoded, dict) and factor.metadata.drop_field:
                     cache_key = factor.expr
                 else:
                     cache_key = (factor.expr, reduced_rank)
@@ -473,23 +500,37 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         else:
             encoded = factor.values
 
+        encoded = FactorValues(
+            encoded,
+            metadata=getattr(encoded, "__formulaic_metadata__", factor.metadata),
+            encoded=True,
+        )
+
         # Encoded factors will now all be dicts
         if (
             isinstance(encoded, dict)
-            and encoded.get("__spans_intercept__")
+            and encoded.__formulaic_metadata__.spans_intercept
             and reduced_rank
         ):
-            assert "__drop_field__" in encoded
-            encoded = encoded.copy()
-            del encoded[encoded["__drop_field__"]]
+            encoded = FactorValues(
+                encoded.copy(), metadata=encoded.__formulaic_metadata__
+            )
+            del encoded[encoded.__formulaic_metadata__.drop_field]
 
         return self._flatten_encoded_evaled_factor(factor.expr, encoded)
 
-    def _flatten_encoded_evaled_factor(self, name, values):
+    def _flatten_encoded_evaled_factor(
+        self, name: str, values: FactorValues[dict]
+    ) -> Dict[str, Any]:
         if not isinstance(values, dict):
             return {name: values}
 
-        name_format = values.get("__format__", "{name}[{field}]")
+        # Some nested dictionaries may not be a `FactorValues[dict]` instance,
+        # in which case we impute the default formatter in `FactorValues.format`.
+        if hasattr(values, "__formulaic_metadata__"):
+            name_format = values.__formulaic_metadata__.format
+        else:
+            name_format = FactorValuesMetadata.format
 
         flattened = {}
         for subfield, value in values.items():
