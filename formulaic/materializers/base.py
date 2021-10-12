@@ -5,7 +5,7 @@ import itertools
 import operator
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, Iterable, Set, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, Iterable, Set, Tuple, TYPE_CHECKING
 
 from interface_meta import InterfaceMeta, inherit_docs
 
@@ -20,7 +20,7 @@ from formulaic.model_matrix import ModelMatrix
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
-from formulaic.parser.types import Factor
+from formulaic.parser.types import Factor, Term
 from formulaic.transforms import TRANSFORMS
 
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
@@ -560,7 +560,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Methods related to ModelMatrix output
 
-    def _enforce_structure(self, cols, spec, drop_rows):
+    def _enforce_structure(
+        self,
+        cols: List[Tuple[Term, List[ScopedTerm], Dict[str, Any]]],
+        spec,
+        drop_rows: set,
+    ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]]]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
         assert len(cols) == len(spec.structure)
         for i in range(len(cols)):
@@ -580,15 +585,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         f"Term `{cols[i][0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
                     )
                 scoped_cols = {name: col for name in target_cols}
-            elif (
-                len(scoped_cols) == len(target_cols)
-                and list(scoped_cols) != target_cols
-            ):
+            elif set(scoped_cols) != set(target_cols):
                 raise FactorEncodingError(
                     f"Term `{cols[i][0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}."
                 )
 
-            yield cols[i][0], cols[i][1], scoped_cols
+            yield cols[i][0], cols[i][1], {col: scoped_cols[col] for col in target_cols}
 
     def _get_columns_for_term(self, factors, spec, scale=1):
         """
