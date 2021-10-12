@@ -1,10 +1,10 @@
-# <img src="https://raw.githubusercontent.com/matthewwardrop/formulaic/master/docs/assets/images/logo_with_text.png" alt="Formulaic" height=100/>
+# <img src="https://raw.githubusercontent.com/matthewwardrop/formulaic/main/docs/assets/images/logo_with_text.png" alt="Formulaic" height=100/>
 
 [![PyPI - Version](https://img.shields.io/pypi/v/formulaic.svg)](https://pypi.org/project/formulaic/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/formulaic.svg)
 ![PyPI - Status](https://img.shields.io/pypi/status/formulaic.svg)
 [![build](https://img.shields.io/github/workflow/status/matthewwardrop/formulaic/Run%20Tox%20Tests)](https://github.com/matthewwardrop/formulaic/actions?query=workflow%3A%22Run+Tox+Tests%22)
-[![codecov](https://codecov.io/gh/matthewwardrop/formulaic/branch/master/graph/badge.svg)](https://codecov.io/gh/matthewwardrop/formulaic)
+[![codecov](https://codecov.io/gh/matthewwardrop/formulaic/branch/main/graph/badge.svg)](https://codecov.io/gh/matthewwardrop/formulaic)
 [![Code Style](https://img.shields.io/badge/code%20style-black-black)](https://github.com/psf/black)
 
 Formulaic is a high-performance implementation of Wilkinson formulas for Python.
@@ -110,7 +110,7 @@ y, X = Formula('y ~ x + z').get_model_matrix(df)
 
 Formulaic typically outperforms R for both dense and sparse model matrices, and vastly outperforms `patsy` (the existing implementation for Python) for dense matrices (`patsy` does not support sparse model matrix output).
 
-![Benchmarks](https://github.com/matthewwardrop/formulaic/raw/master/benchmarks/benchmarks.png)
+![Benchmarks](https://github.com/matthewwardrop/formulaic/raw/main/benchmarks/benchmarks.png)
 
 For more details, see [here](benchmarks/README.md).
 

@@ -1,4 +1,4 @@
-For the latest changes, please refer to the git log: https://github.com/matthewwardrop/formulaic/commits/master.
+For the latest changes, please refer to the git log: https://github.com/matthewwardrop/formulaic/commits/main.
 
 ## 0.2.1 (22 January 2021)
 
