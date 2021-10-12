@@ -1,3 +1,5 @@
+import re
+
 import numpy
 import pandas
 import pytest
@@ -150,31 +152,49 @@ class TestPandasMaterializer:
 
         # Test that other kind mismatches result in an exception
         materializer.factor_cache = {}
-        with pytest.raises(FactorEncodingError):
+        with pytest.raises(
+            FactorEncodingError,
+            match=re.escape(
+                "Factor `A` is expecting values of kind 'numerical', but they are actually of kind 'categorical'."
+            ),
+        ):
             materializer._evaluate_factor(
                 Factor("A", eval_method="lookup", kind="numerical"),
                 ModelSpec([]),
-                drop_rows=[],
+                drop_rows=set(),
             )
 
         # Test that if an encoding has already been determined, that an exception is raised
         # if the new encoding does not match
         materializer.factor_cache = {}
-        with pytest.raises(FactorEncodingError):
+        with pytest.raises(
+            FactorEncodingError,
+            match=re.escape(
+                "The model specification expects factor `a` to have values of kind `categorical`, but they are actually of kind `numerical`."
+            ),
+        ):
             materializer._evaluate_factor(
                 Factor("a", eval_method="lookup", kind="numerical"),
                 ModelSpec([], encoder_state={"a": ("categorical", {})}),
-                drop_rows=[],
+                drop_rows=set(),
             )
 
         # Test that invalid (kind == UNKNOWN) factors raise errors
         materializer.factor_cache = {}
-        with pytest.raises(FactorEvaluationError):
+        with pytest.raises(
+            FactorEvaluationError,
+            match=re.escape(
+                "The evaluation method `unknown` for factor `a` is not understood."
+            ),
+        ):
             assert materializer._evaluate_factor(
                 Factor("a"), ModelSpec([]), drop_rows=set()
             )
 
-    def test_categorical_dict_detection(self, materializer):
+    def test__is_categorical(self, materializer):
+        assert materializer._is_categorical([1, 2, 3]) is False
+        assert materializer._is_categorical(pandas.Series(["a", "b", "c"])) is True
+        assert materializer._is_categorical(pandas.Categorical(["a", "b", "c"])) is True
         assert materializer._is_categorical(FactorValues({}, kind="categorical"))
 
     def test_encoding_edge_cases(self, materializer):
@@ -192,6 +212,41 @@ class TestPandasMaterializer:
             )
             == [10, 10, 10]
         )
+
+        # Verify that unencoded dictionaries with drop-fields work
+        assert materializer._encode_evaled_factor(
+            factor=EvaluatedFactor(
+                factor=Factor("a", eval_method="lookup", kind="numerical"),
+                values=FactorValues(
+                    {"a": [1, 2, 3], "b": [4, 5, 6]},
+                    kind="numerical",
+                    spans_intercept=True,
+                    drop_field="a",
+                ),
+            ),
+            spec=ModelSpec([]),
+            drop_rows=set(),
+        ) == {
+            "a[a]": [1, 2, 3],
+            "a[b]": [4, 5, 6],
+        }
+
+        assert materializer._encode_evaled_factor(
+            factor=EvaluatedFactor(
+                factor=Factor("a", eval_method="lookup", kind="numerical"),
+                values=FactorValues(
+                    {"a": [1, 2, 3], "b": [4, 5, 6]},
+                    kind="numerical",
+                    spans_intercept=True,
+                    drop_field="a",
+                ),
+            ),
+            spec=ModelSpec([]),
+            drop_rows=set(),
+            reduced_rank=True,
+        ) == {
+            "a[b]": [4, 5, 6],
+        }
 
         # Verify that encoding of nested dictionaries works well
         assert (

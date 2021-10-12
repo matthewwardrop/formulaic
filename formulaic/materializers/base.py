@@ -26,7 +26,7 @@ from formulaic.transforms import TRANSFORMS
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
 if TYPE_CHECKING:
-    from formulaic.model_spec import ModelSpec
+    from formulaic.model_spec import ModelSpec  # pragma: no cover
 
 
 class FormulaMaterializerMeta(InterfaceMeta):
@@ -359,7 +359,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     )
                 else:
                     raise FactorEvaluationError(
-                        f"Evaluation method {factor.eval_method.value} not recognised for factor {factor.expr}."
+                        f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
                     )
             except FactorEvaluationError:
                 raise
@@ -383,22 +383,25 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
             if (
                 factor.kind is not Factor.Kind.UNKNOWN
-                and factor.kind.value != value.__formulaic_metadata__.kind
+                and factor.kind is not value.__formulaic_metadata__.kind
             ):
                 if factor.kind is Factor.Kind.CATEGORICAL:
                     value.__formulaic_metadata__.kind = factor.kind
                 else:
                     raise FactorEncodingError(
-                        f"Factor is expecting to be of kind '{factor.kind.value}' but is actually of kind '{value.__formulaic_metadata__.kind.value}'."
+                        f"Factor `{factor}` is expecting values of kind '{factor.kind.value}', "
+                        f"but they are actually of kind '{value.__formulaic_metadata__.kind.value}'."
                     )
-                if (
-                    factor.expr in spec.encoder_state
-                    and value.__formulaic_metadata__.kind
-                    is not spec.encoder_state[factor.expr][0]
-                ):
-                    raise FactorEncodingError(
-                        f"Factor kind `{value.__formulaic_metadata__.kind}` does not match model specification of `{spec.encoder_state[factor.expr][0]}`."
-                    )
+            if (
+                factor.expr in spec.encoder_state
+                and value.__formulaic_metadata__.kind
+                is not spec.encoder_state[factor.expr][0]
+            ):
+                raise FactorEncodingError(
+                    f"The model specification expects factor `{factor}` to have values of kind "
+                    f"`{spec.encoder_state[factor.expr][0]}`, but they are actually of kind "
+                    f"`{value.__formulaic_metadata__.kind.value}`."
+                )
             self._check_for_nulls(factor.expr, value, spec.na_action, drop_rows)
             self.factor_cache[factor.expr] = EvaluatedFactor(
                 factor=factor, values=value
@@ -486,6 +489,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     )  # pragma: no cover; it is not currently possible to reach this sentinel
                 spec.encoder_state[factor.expr] = (factor.metadata.kind, encoder_state)
 
+                # Only encode once for encodings where we can just drop a field
+                # later on below.
                 if isinstance(encoded, dict) and factor.metadata.drop_field:
                     cache_key = factor.expr
                 else:
