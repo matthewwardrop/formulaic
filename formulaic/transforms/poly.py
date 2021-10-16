@@ -1,3 +1,4 @@
+from formulaic.materializers.types import FactorValues
 from formulaic.utils.stateful_transforms import stateful_transform
 
 import numpy
@@ -105,4 +106,6 @@ def poly(
         _state["norms2"] = norms2
 
     # Return basis dropping the first (constant) column
-    return P[:, 1:]
+    return FactorValues(
+        P[:, 1:], column_names=tuple(str(i) for i in range(1, degree + 1))
+    )
