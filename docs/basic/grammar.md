@@ -59,6 +59,7 @@ that have *not* been implemented by `formualaic` are explicitly noted also.
 | `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | 🗙 |
 | `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^7] | ✓ |
 | `standardize(...)` | Alias of `scale`. | 🗙 | ✓ | 🗙 |
+| `poly(...)` | Generates a polynomial basis, allowing non-linear fits. | ✓ | 🗙 | ✓ |
 | `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
 | `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | 🗙 | ✓ | ✓ |
 | `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | 🗙 | ✓ | ✓ |

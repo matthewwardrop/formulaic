@@ -5,7 +5,17 @@ import itertools
 import operator
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, Generator, List, Iterable, Set, Tuple, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Iterable,
+    Set,
+    Tuple,
+    Union,
+    TYPE_CHECKING,
+)
 
 from interface_meta import InterfaceMeta, inherit_docs
 
@@ -17,6 +27,7 @@ from formulaic.errors import (
 )
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrix
+from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
 
@@ -465,10 +476,17 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                     return wrapped
 
+                # If we need to unpack values into columns, we do this here.
+                # Otherwise, we pass through the original values.
+                factor_values = FactorValues(
+                    self._extract_columns_for_encoding(factor),
+                    metadata=factor.metadata,
+                )
+
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
                 if factor.metadata.kind is Factor.Kind.CATEGORICAL:
                     encoded = map_dict(self._encode_categorical)(
-                        factor.values,
+                        factor_values,
                         factor.metadata,
                         encoder_state,
                         spec,
@@ -477,11 +495,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     )
                 elif factor.metadata.kind is Factor.Kind.NUMERICAL:
                     encoded = map_dict(self._encode_numerical)(
-                        factor.values, factor.metadata, encoder_state, spec, drop_rows
+                        factor_values, factor.metadata, encoder_state, spec, drop_rows
                     )
                 elif factor.metadata.kind is Factor.Kind.CONSTANT:
                     encoded = map_dict(self._encode_constant)(
-                        factor.values, factor.metadata, encoder_state, spec, drop_rows
+                        factor_values, factor.metadata, encoder_state, spec, drop_rows
                     )
                 else:
                     raise FactorEncodingError(
@@ -518,6 +536,16 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             del encoded[encoded.__formulaic_metadata__.drop_field]
 
         return self._flatten_encoded_evaled_factor(factor.expr, encoded)
+
+    def _extract_columns_for_encoding(
+        self, factor: EvaluatedFactor
+    ) -> Union[Any, Dict[str, Any]]:
+        """
+        If incoming factor has values that need to be unpacked into columns
+        (e.g. a two-dimensions numpy array), do that expansion here. Otherwise,
+        return the current factor values.
+        """
+        return as_columns(factor.values)
 
     def _flatten_encoded_evaled_factor(
         self, name: str, values: FactorValues[dict]

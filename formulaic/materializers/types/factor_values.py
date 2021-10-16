@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Generic, Optional, TypeVar, Union
+from typing import Generic, Optional, Tuple, TypeVar, Union
 
 import wrapt
 
@@ -31,6 +31,7 @@ class FactorValuesMetadata:
     """
 
     kind: Factor.Kind = Factor.Kind.UNKNOWN
+    column_names: Optional[Tuple[str]] = None
     spans_intercept: bool = False
     drop_field: Optional[str] = None
     format: str = "{name}[{field}]"
@@ -59,6 +60,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         *,
         metadata: FactorValuesMetadata = MISSING,
         kind: Union[str, Factor.Kind] = MISSING,
+        column_names: Tuple[str] = MISSING,
         spans_intercept: bool = MISSING,
         drop_field: Optional[str] = MISSING,
         format: str = MISSING,
@@ -67,6 +69,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         metadata_constructor = FactorValuesMetadata
         metadata_kwargs = dict(
             kind=Factor.Kind(kind) if kind is not MISSING else kind,
+            column_names=column_names,
             spans_intercept=spans_intercept,
             drop_field=drop_field,
             format=format,
