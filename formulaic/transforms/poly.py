@@ -64,7 +64,7 @@ def poly(
 
     x = numpy.array(x)
 
-    # Check if we already have already generated the alpha and beta coefficients.
+    # Check if we already have generated the alpha and beta coefficients.
     # If not, we enter "training" mode.
     training = False
     alpha = _state.get("alpha")

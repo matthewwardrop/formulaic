@@ -97,22 +97,29 @@ def basis_spline(
     # Prepare and check arguments
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
-    lower_bound = (
-        numpy.min(x) if _state.get("lower_bound", lower_bound) is None else lower_bound
-    )
-    upper_bound = (
-        numpy.max(x) if _state.get("upper_bound", upper_bound) is None else upper_bound
-    )
+
+    if "lower_bound" in _state:
+        lower_bound = _state["lower_bound"]
+    else:
+        lower_bound = _state["lower_bound"] = (
+            numpy.min(x) if lower_bound is None else lower_bound
+        )
+
+    if "upper_bound" in _state:
+        upper_bound = _state["upper_bound"]
+    else:
+        upper_bound = _state["upper_bound"] = (
+            numpy.max(x) if upper_bound is None else upper_bound
+        )
+
     extrapolation = SplineExtrapolation(extrapolation)
-    _state["lower_bound"] = lower_bound
-    _state["upper_bound"] = upper_bound
 
     # Prepare data
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
         (x < lower_bound) | (x > upper_bound)
     ):
         raise ValueError(
-            "Some field values extend bound upper and/or lower bounds, which can result in ill-conditioned bases. "
+            "Some field values extend beyond upper and/or lower bounds, which can result in ill-conditioned bases. "
             "Pass a value for `extrapolation` to control how extrapolation should be performed."
         )
     if extrapolation is SplineExtrapolation.CLIP:
