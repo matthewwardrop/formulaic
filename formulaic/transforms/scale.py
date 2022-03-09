@@ -29,7 +29,7 @@ def scale(data, center=True, scale=True, ddof=1, _state=None):
     if "scale" not in _state:
         if isinstance(scale, bool) and scale:
             _state["scale"] = numpy.sqrt(
-                numpy.sum(data ** 2, axis=0) / (data.shape[0] - ddof)
+                numpy.sum(data**2, axis=0) / (data.shape[0] - ddof)
             )
         elif not isinstance(scale, bool):
             _state["scale"] = numpy.array(scale)

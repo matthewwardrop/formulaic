@@ -7,7 +7,7 @@ from formulaic.errors import FactorEvaluationError
 
 
 def global_test(x):
-    return x ** 2
+    return x**2
 
 
 class TestSugar:
@@ -17,7 +17,7 @@ class TestSugar:
 
     def test_model_matrix(self, data):
         def local_test(x):
-            return x ** 2
+            return x**2
 
         r = model_matrix("0 + global_test(a) + local_test(b)", data)
         assert list(r["global_test(a)"]) == [1, 4, 9]

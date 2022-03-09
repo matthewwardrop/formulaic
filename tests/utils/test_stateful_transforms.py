@@ -77,33 +77,27 @@ def test_stateful_eval_variable_name_sanitization():
 def test_stateful_eval_distribution():
     state = {}
 
-    assert (
-        stateful_eval(
-            "dummy_transform(data)",
-            {
-                "dummy_transform": dummy_transform,
-                "data": {"__property__": "value", "a": 1, "b": 2},
-            },
-            None,
-            state,
-            None,
-        )
-        == {"__property__": "value", "a": 1, "b": 2}
-    )
+    assert stateful_eval(
+        "dummy_transform(data)",
+        {
+            "dummy_transform": dummy_transform,
+            "data": {"__property__": "value", "a": 1, "b": 2},
+        },
+        None,
+        state,
+        None,
+    ) == {"__property__": "value", "a": 1, "b": 2}
     assert state == {"dummy_transform(data)": {"a": {"data": 1}, "b": {"data": 2}}}
-    assert (
-        stateful_eval(
-            "dummy_transform(data)",
-            {
-                "dummy_transform": dummy_transform,
-                "data": {"__property__": "value2", "a": 3, "b": 4},
-            },
-            None,
-            state,
-            None,
-        )
-        == {"__property__": "value2", "a": 1, "b": 2}
-    )
+    assert stateful_eval(
+        "dummy_transform(data)",
+        {
+            "dummy_transform": dummy_transform,
+            "data": {"__property__": "value2", "a": 3, "b": 4},
+        },
+        None,
+        state,
+        None,
+    ) == {"__property__": "value2", "a": 1, "b": 2}
 
 
 def test_stateful_eval_func_attr():

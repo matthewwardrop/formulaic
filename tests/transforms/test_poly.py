@@ -110,7 +110,7 @@ class TestPoly:
         V = poly(data, degree=3, _state=state)  # as tested above
 
         # Reuse state but with different data
-        V = poly(data ** 2, degree=3, _state=state)
+        V = poly(data**2, degree=3, _state=state)
 
         assert V.shape[1] == 3
 
@@ -151,5 +151,5 @@ class TestPoly:
 
     def test_raw(self, data):
         assert numpy.allclose(
-            poly(data, 3, raw=True), numpy.array([data, data ** 2, data ** 3]).T
+            poly(data, 3, raw=True), numpy.array([data, data**2, data**3]).T
         )

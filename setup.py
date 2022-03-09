@@ -5,13 +5,6 @@ version_info = {}
 with open("formulaic/_version.py") as version_file:
     exec(version_file.read(), version_info)
 
-test_deps = [
-    "black",
-    "flake8",
-    "pytest",
-    "pytest-cov",
-]
-
 PWD = path.abspath(path.dirname(__file__))
 with open(path.join(PWD, "README.md"), encoding="utf-8") as readme:
     long_description = readme.read()
@@ -42,19 +35,23 @@ setup(
     python_requires=">=3.7",
     setup_requires=["setupmeta"],
     install_requires=[
-        "astor",
+        "astor>=0.7.0",
         "interface_meta>=1.2",
-        "numpy",
-        "pandas",
-        "scipy",
-        "wrapt",
+        "numpy",  # Any version supported by pandas and scipy works for us.
+        "pandas>=1.2",
+        "scipy>=1.6",
+        "wrapt>=1.0",
     ],
-    tests_require=test_deps,
     extras_require={
-        "arrow": ["pyarrow"],
+        "arrow": ["pyarrow>=1"],
         "benchmarks": ["patsy", "rpy2", "uncertainties"],
-        "calculus": ["sympy<1.10"],
+        "calculus": ["sympy>=1.3,<1.10"],
         "docs": ["mkdocs-material", "pymdown-extensions", "pygments"],
-        "test": test_deps,
+        "test": [
+            "black==22.1.0",
+            "flake8==4.0.1",
+            "pytest==6.2.5",
+            "pytest-cov==3.0.0",
+        ],
     },
 )

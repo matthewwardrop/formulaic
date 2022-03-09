@@ -88,17 +88,14 @@ class TestFormulaMaterializer:
     def test__simplify_scoped_terms(self, evaled_factors):
         A, B, C = [ScopedFactor(l, reduced=False) for l in "ABC"]
         A_, B_, C_ = [ScopedFactor(l, reduced=True) for l in "ABC"]
-        assert (
-            FormulaMaterializer._simplify_scoped_terms(
-                [
-                    ScopedTerm((C_,)),
-                    ScopedTerm((A_, C_)),
-                    ScopedTerm((B_, C_)),
-                    ScopedTerm((A_, B_, C_)),
-                ]
-            )
-            == [ScopedTerm((A, B, C_))]
-        )
+        assert FormulaMaterializer._simplify_scoped_terms(
+            [
+                ScopedTerm((C_,)),
+                ScopedTerm((A_, C_)),
+                ScopedTerm((B_, C_)),
+                ScopedTerm((A_, B_, C_)),
+            ]
+        ) == [ScopedTerm((A, B, C_))]
 
     def test__flatten_encoded_evaled_factor(self):
 
@@ -146,31 +143,25 @@ class TestFormulaMaterializer:
             )
 
         # Ensure that missing columns are imputed
-        assert (
+        assert list(
             list(
-                list(
-                    PandasMaterializer(df)._enforce_structure(
-                        cols=[("A", {"A"}, {"a": 1})],
-                        spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
-                        drop_rows=[],
-                    )
-                )[0][-1]
-            )
-            == ["a", "b"]
-        )
+                PandasMaterializer(df)._enforce_structure(
+                    cols=[("A", {"A"}, {"a": 1})],
+                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
+                    drop_rows=[],
+                )
+            )[0][-1]
+        ) == ["a", "b"]
 
-        assert (
+        assert list(
             list(
-                list(
-                    PandasMaterializer(df)._enforce_structure(
-                        cols=[("A", {"A"}, {})],
-                        spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
-                        drop_rows=[],
-                    )
-                )[0][-1]
-            )
-            == ["a", "b"]
-        )
+                PandasMaterializer(df)._enforce_structure(
+                    cols=[("A", {"A"}, {})],
+                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
+                    drop_rows=[],
+                )
+            )[0][-1]
+        ) == ["a", "b"]
 
         # Ensure that imputation does not occur if it would be ambiguous
         with pytest.raises(FactorEncodingError):

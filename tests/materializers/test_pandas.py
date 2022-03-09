@@ -199,19 +199,16 @@ class TestPandasMaterializer:
 
     def test_encoding_edge_cases(self, materializer):
         # Verify that constant encoding works well
-        assert (
-            list(
-                materializer._encode_evaled_factor(
-                    factor=EvaluatedFactor(
-                        factor=Factor("10", eval_method="literal", kind="constant"),
-                        values=FactorValues(10, kind="constant"),
-                    ),
-                    spec=ModelSpec([]),
-                    drop_rows=[],
-                )["10"]
-            )
-            == [10, 10, 10]
-        )
+        assert list(
+            materializer._encode_evaled_factor(
+                factor=EvaluatedFactor(
+                    factor=Factor("10", eval_method="literal", kind="constant"),
+                    values=FactorValues(10, kind="constant"),
+                ),
+                spec=ModelSpec([]),
+                drop_rows=[],
+            )["10"]
+        ) == [10, 10, 10]
 
         # Verify that unencoded dictionaries with drop-fields work
         assert materializer._encode_evaled_factor(
@@ -249,36 +246,30 @@ class TestPandasMaterializer:
         }
 
         # Verify that encoding of nested dictionaries works well
-        assert (
-            list(
-                materializer._encode_evaled_factor(
-                    factor=EvaluatedFactor(
-                        factor=Factor("A", eval_method="python", kind="numerical"),
-                        values=FactorValues(
-                            {"a": [1, 2, 3], "b": [4, 5, 6], "__metadata__": None},
-                            kind="numerical",
-                        ),
+        assert list(
+            materializer._encode_evaled_factor(
+                factor=EvaluatedFactor(
+                    factor=Factor("A", eval_method="python", kind="numerical"),
+                    values=FactorValues(
+                        {"a": [1, 2, 3], "b": [4, 5, 6], "__metadata__": None},
+                        kind="numerical",
                     ),
-                    spec=ModelSpec([]),
-                    drop_rows=[],
-                )["A[a]"]
-            )
-            == [1, 2, 3]
-        )
+                ),
+                spec=ModelSpec([]),
+                drop_rows=[],
+            )["A[a]"]
+        ) == [1, 2, 3]
 
-        assert (
-            list(
-                materializer._encode_evaled_factor(
-                    factor=EvaluatedFactor(
-                        factor=Factor("B", eval_method="python", kind="categorical"),
-                        values=FactorValues({"a": ["a", "b", "c"]}, kind="categorical"),
-                    ),
-                    spec=ModelSpec([]),
-                    drop_rows=[],
-                )
+        assert list(
+            materializer._encode_evaled_factor(
+                factor=EvaluatedFactor(
+                    factor=Factor("B", eval_method="python", kind="categorical"),
+                    values=FactorValues({"a": ["a", "b", "c"]}, kind="categorical"),
+                ),
+                spec=ModelSpec([]),
+                drop_rows=[],
             )
-            == ["B[a][T.a]", "B[a][T.b]", "B[a][T.c]"]
-        )
+        ) == ["B[a][T.a]", "B[a][T.b]", "B[a][T.c]"]
 
     def test_empty(self, materializer):
         mm = materializer.get_model_matrix("0", ensure_full_rank=True)
