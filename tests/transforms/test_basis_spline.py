@@ -1,7 +1,11 @@
+import re
+
 import numpy
 import pytest
 
 from formulaic.transforms.basis_spline import basis_spline
+from formulaic import model_matrix
+from formulaic.errors import FactorEvaluationError
 
 
 class TestBasisSpline:
@@ -353,7 +357,8 @@ class TestBasisSpline:
         # > bs(data, Boundary.knots=c(0.25, 0.75))
 
         with pytest.raises(
-            ValueError, match="Some field values extend bound upper and/or lower bounds"
+            ValueError,
+            match="Some field values extend beyond upper and/or lower bounds",
         ):
             basis_spline(data, lower_bound=0.25, upper_bound=0.75)
 
@@ -485,3 +490,23 @@ class TestBasisSpline:
             ValueError, match="Invalid value for `df`. `df` must be greater than 3"
         ):
             basis_spline(data, df=2)
+
+    def test_statefulness(self, data):
+        state = {}
+        basis_spline(data, _state=state)
+        assert state == {
+            "knots": [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+            "lower_bound": 0.0,
+            "upper_bound": 1.0,
+        }
+
+        # Test retention of previous upper and lower bounds by passing in out of
+        # bounds data.
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Some field values extend beyond upper and/or lower bounds, which can result in ill-conditioned bases. "
+                "Pass a value for `extrapolation` to control how extrapolation should be performed."
+            ),
+        ):
+            basis_spline([-2, 2], extrapolation="raise", _state=state)
