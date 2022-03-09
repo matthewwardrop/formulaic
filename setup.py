@@ -53,7 +53,7 @@ setup(
     extras_require={
         "arrow": ["pyarrow"],
         "benchmarks": ["patsy", "rpy2", "uncertainties"],
-        "calculus": ["sympy"],
+        "calculus": ["sympy<1.10"],
         "docs": ["mkdocs-material", "pymdown-extensions", "pygments"],
         "test": test_deps,
     },
