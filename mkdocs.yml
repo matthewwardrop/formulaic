@@ -15,6 +15,9 @@ nav:
     - API: reference/api.md
 theme:
   name: material
+  font:
+    text: Roboto
+    code: Roboto Mono
   features:
     - tabs
   logo: assets/images/logo.svg
