@@ -27,12 +27,11 @@ from formulaic.errors import (
 )
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrix
+from formulaic.parser.types import Factor, Structured, Term
+from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
-
-from formulaic.parser.types import Factor, Term
-from formulaic.transforms import TRANSFORMS
 
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
@@ -127,64 +126,82 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def get_model_matrix(
         self, spec, ensure_full_rank=True, na_action="drop", output=None
     ):
-        from formulaic.formula import Formula
         from formulaic.model_spec import ModelSpec
 
-        # Prepare ModelSpec instance
+        # Prepare arguments
         if output is None:
             output = self.REGISTER_OUTPUTS[0]
-
-        if isinstance(spec, Formula):
-            spec = ModelSpec(
-                formula=spec,
-                materializer=self,
-                ensure_full_rank=ensure_full_rank,
-                na_action=na_action,
-                output=output,
-            )
-        if not isinstance(spec, ModelSpec):
-            spec = ModelSpec(
-                formula=Formula(spec),
-                materializer=self,
-                ensure_full_rank=ensure_full_rank,
-                na_action=na_action,
-                output=output,
-            )
-
         if output not in self.REGISTER_OUTPUTS:
             raise FormulaMaterializationError(
                 f"Nominated output {repr(output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}."
             )
 
-        # Step 0: Check whether formula separators are in play, and if so, recurse.
-        if isinstance(spec.formula.terms, tuple):
-            return tuple(
-                self.get_model_matrix(
-                    Formula(terms),
-                    ensure_full_rank=ensure_full_rank,
-                    na_action=na_action,
-                    output=output,
-                )
-                for terms in spec.formula.terms
+        # Prepare (potentially structured) ModelSpec(s)
+        model_specs = self._prepare_model_specs(
+            spec, ensure_full_rank=ensure_full_rank, na_action=na_action, output=output
+        )
+        if not isinstance(model_specs, Structured):
+            model_specs = Structured(model_specs)
+
+        # Step 0: Pool all factors and transform state, ensuring consistency
+        # across model specs
+        factors = set()
+        transform_state = {}
+        model_specs._map(
+            lambda ms: factors.update(
+                itertools.chain(*(term.factors for term in ms.formula.terms))
             )
+        )
+        model_specs._map(
+            lambda ms: transform_state.update(ms.transform_state)
+        )  # TODO: Enforce consistency
 
-        drop_rows = (
-            set()
-        )  # Keep track of which rows to drop if `self.config.na_action == 'drop'`.
-
-        # Step 1: Evaluate all factors
-        for term in spec.formula.terms:
-            for factor in term.factors:
-                self._evaluate_factor(factor, spec, drop_rows)
-
+        # Step 1: Evaluate all factors and cache the results, keeping track of
+        # which rows need dropping (if `self.config.na_action == 'drop'`).
+        drop_rows = set()
+        dummy_model_spec = ModelSpec(
+            formula=[],
+            ensure_full_rank=ensure_full_rank,
+            na_action=na_action,
+            output=output,
+            transform_state=transform_state,
+        )
+        for factor in factors:
+            self._evaluate_factor(factor, dummy_model_spec, drop_rows)
         drop_rows = sorted(drop_rows)
 
-        # Step 2: Determine strategy to maintain structural full-rankness of output matrix
+        # Step 2: Update the structured model specs with the information from
+        # the shared transform state pool.
+        model_specs._map(
+            lambda ms: ms.transform_state.update(
+                {
+                    factor.expr: transform_state[factor.expr]
+                    for term in ms.formula.terms
+                    for factor in term.factors
+                    if factor.expr in transform_state
+                }
+            )
+        )
+
+        # Step 3: Build the model matrices using the shared factor cache, and
+        # by recursing over the structured model matrices.
+        model_matrices = model_specs._map(
+            lambda model_spec: self._build_model_matrix(model_spec, drop_rows=drop_rows)
+        )
+        model_matrices._self_mapped_attrs = {"model_spec"}
+
+        if len(model_matrices) == 1 and model_matrices._has_root:
+            return model_matrices.root
+        return model_matrices
+
+    def _build_model_matrix(self, spec: ModelSpec, drop_rows):
+
+        # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         scoped_terms_for_terms = self._get_scoped_terms(
             spec.formula.terms, ensure_full_rank=spec.ensure_full_rank
         )
 
-        # Step 3: Generate the columns which will be collated into the full matrix
+        # Step 2: Generate the columns which will be collated into the full matrix
         cols = []
         for term, scoped_terms in scoped_terms_for_terms:
             scoped_cols = OrderedDict()
@@ -213,7 +230,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     )
             cols.append((term, scoped_terms, scoped_cols))
 
-        # Step 4: Populate remaining model spec fields
+        # Step 3: Populate remaining model spec fields
         spec.materializer = self
         if spec.structure:
             cols = self._enforce_structure(cols, spec, drop_rows)
@@ -227,7 +244,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 for term, scoped_terms, scoped_cols in cols
             ]
 
-        # Step 5: Collate factors into one ModelMatrix
+        # Step 4: Collate factors into one ModelMatrix
         return ModelMatrix(
             self._combine_columns(
                 [
@@ -239,6 +256,47 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 drop_rows=drop_rows,
             ),
             spec=spec,
+        )
+
+    # Methods related to input preparation
+
+    def _prepare_model_specs(
+        self,
+        spec,
+        ensure_full_rank,
+        na_action,
+        output,
+    ) -> Union[ModelSpec, Structured[ModelSpec]]:
+        from formulaic.formula import Formula
+        from formulaic.model_spec import ModelSpec
+
+        if isinstance(spec, Structured):
+            return spec._map(
+                functools.partial(
+                    self._prepare_model_specs,
+                    ensure_full_rank=ensure_full_rank,
+                    na_action=na_action,
+                    output=output,
+                ),
+                recurse=False,
+            )
+        elif isinstance(spec, ModelSpec):
+            return spec
+
+        formula = Formula.from_spec(spec)
+        if isinstance(formula.terms, Structured):
+            return self._prepare_model_specs(
+                formula.terms,
+                ensure_full_rank=ensure_full_rank,
+                na_action=na_action,
+                output=output,
+            )
+        return ModelSpec(
+            formula=formula,
+            materializer=self,
+            ensure_full_rank=ensure_full_rank,
+            na_action=na_action,
+            output=output,
         )
 
     # Methods related to ensuring out matrices are structurally full-rank
