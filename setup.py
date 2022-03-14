@@ -37,7 +37,7 @@ setup(
     install_requires=[
         "astor>=0.7.0",
         "interface_meta>=1.2",
-        "numpy",  # Any version supported by pandas and scipy works for us.
+        "numpy>=1.3",
         "pandas>=1.2",
         "scipy>=1.6",
         "wrapt>=1.0",

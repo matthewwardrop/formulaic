@@ -68,6 +68,14 @@ that have *not* been implemented by `formualaic` are explicitly noted also.
 | `te(...)` | Generates a tensor product smooth. | 🗙 | ✓ | ✓ |
 | ...       | Others? Contributions welcome!     | ? | ? | ? |
 
+!!! tip
+    Any function available in the `context` dictionary will also be available
+    as transform, along with some commonly used functions imported from
+    numpy: `log`, `log10`, `log2`, `exp`, `exp10`, and `exp2`. In addition
+    the `numpy` module is always available as `np`. Thus, formulas like:
+    `log(y) ~ x + 10` will always do the right thing, even when these functions
+    have not been made available in the user namespace.
+
 !!! note
     Formulaic does not (yet) support including extra terms in the formula that
     will not result in additions to the dataframe, for example model annotations
