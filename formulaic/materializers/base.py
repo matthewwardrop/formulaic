@@ -188,7 +188,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         model_matrices = model_specs._map(
             lambda model_spec: self._build_model_matrix(model_spec, drop_rows=drop_rows)
         )
-        model_matrices._self_mapped_attrs = {"model_spec"}
+        model_matrices._mapped_attrs = {"model_spec"}
 
         if len(model_matrices) == 1 and model_matrices._has_root:
             return model_matrices.root

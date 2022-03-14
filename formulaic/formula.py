@@ -84,7 +84,7 @@ class Formula:
         )
 
     def __getattr__(self, attr):
-        if attr in self.terms._to_dict(recurse=False):
+        if isinstance(self.terms, Structured) and attr in self.terms._to_dict(recurse=False):
             return Formula(self.terms[attr])
         raise AttributeError(f"This formula has no substructures keyed by '{attr}'.")
 
