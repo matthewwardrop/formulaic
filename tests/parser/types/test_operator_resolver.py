@@ -26,17 +26,17 @@ class TestOperatorResolver:
         return DummyOperatorResolver()
 
     def test_resolve(self, resolver):
-        assert resolver.resolve(Token("+"), 1)[0] is OPERATOR_PLUS
-        assert resolver.resolve(Token("-"), 0)[0] is OPERATOR_UNARY_MINUS
+        assert resolver.resolve(Token("+"), 1, [])[0] is OPERATOR_PLUS
+        assert resolver.resolve(Token("-"), 0, [])[0] is OPERATOR_UNARY_MINUS
 
         with pytest.raises(FormulaSyntaxError):
-            resolver.resolve(Token("@"), 0)
+            resolver.resolve(Token("@"), 0, [])
 
         with pytest.raises(FormulaSyntaxError):
-            resolver.resolve(Token("+"), 0)
+            resolver.resolve(Token("+"), 0, [])
 
         with pytest.raises(FormulaSyntaxError):
-            resolver.resolve(Token("-"), 1)
+            resolver.resolve(Token("-"), 1, [])
 
         with pytest.raises(FormulaParsingError, match="Ambiguous operator `:`"):
-            resolver.resolve(Token(":"), 1)
+            resolver.resolve(Token(":"), 1, [])
