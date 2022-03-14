@@ -1,10 +1,9 @@
-import sys
 from typing import Any, Mapping, Union
 
 from .formula import Formula
 from .model_matrix import ModelMatrix
 from .model_spec import ModelSpec
-from .utils.layered_mapping import LayeredMapping
+from .utils.context import capture_context
 
 
 def model_matrix(
@@ -49,11 +48,7 @@ def model_matrix(
         nominated structure.
     """
     if isinstance(context, int):
-        if hasattr(sys, "_getframe"):
-            frame = sys._getframe(context + 1)
-            context = LayeredMapping(frame.f_locals, frame.f_globals)
-        else:
-            context = None  # pragma: no cover
+        context = capture_context(context + 1)
 
     if isinstance(spec, ModelMatrix):
         spec = spec.model_spec
