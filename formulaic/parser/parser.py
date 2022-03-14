@@ -2,13 +2,18 @@ import ast
 import itertools
 import functools
 import re
-from typing import Any, Iterable, Union
-
-from formulaic.errors import FormulaParsingError
+from typing import Any, List, Iterable, Union
 
 from .algos.tokens_to_ast import tokens_to_ast
 from .algos.tokenize import tokenize
-from .types import ASTNode, Factor, Operator, OperatorResolver, Term, Token
+from .types import (
+    ASTNode,
+    Operator,
+    OperatorResolver,
+    Structured,
+    Term,
+    Token,
+)
 from .utils import exc_for_token
 
 
@@ -39,6 +44,8 @@ class FormulaParser:
             it will default to `DefaultOperatorResolver`.
     """
 
+    ZERO_PATTERN = re.compile(r"(?:^|(?<=\W))0(?=\W|$)")
+
     def __init__(self, operator_resolver: OperatorResolver = None):
         self.operator_resolver = operator_resolver or DefaultOperatorResolver()
 
@@ -55,50 +62,26 @@ class FormulaParser:
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
         """
-        tokens = list(tokenize(formula))
 
-        # Insert "1" or "1 + " to beginning of RHS formula
-        one = Token(token="1", kind="value")
-        plus = Token(token="+", kind="operator")
-        minus = Token(token="-", kind="operator")
+        # Transform formula to add intercepts and replace 0 with -1. We do this
+        # as a string transform to reduce the complexity of the code, and also
+        # to avoid the ambiguity in the AST around intentionally unary vs.
+        # incidentally unary operations (e.g. "+0" vs. "x + (+0)").
 
+        # Substitute "0" -> "-1"
+        formula = self.ZERO_PATTERN.sub("-1", formula)
+
+        # Insert ones
         if include_intercept:
-            if len(tokens) == 0:
-                tokens = [one]
-            else:
-                try:
-                    tilde_index = len(tokens) - 1 - tokens[::-1].index("~")
-                    if tilde_index == len(tokens) - 1:
-                        tokens.append(one)
-                    else:
-                        tokens.insert(tilde_index + 1, one)
-                        tokens.insert(tilde_index + 2, plus)
-                except ValueError:
-                    tokens.insert(0, one)
-                    tokens.insert(1, plus)
+            rhs_offset = formula.index("~") + 1 if "~" in formula else 0
+            formula = formula[:rhs_offset] + "|".join(
+                [
+                    " 1" if len(rhs_part.strip()) == 0 else f" 1 +{rhs_part}"
+                    for rhs_part in formula[rhs_offset:].split("|")
+                ]
+            )
 
-        # Replace all "0"s with "-1"
-        zero_index = -1
-        try:
-            while True:
-                zero_index = tokens.index("0", zero_index + 1)
-                if zero_index - 1 < 0 or tokens[zero_index - 1] == "~":
-                    tokens.pop(zero_index)
-                    zero_index -= 1
-                    continue
-                elif tokens[zero_index - 1] == "+":
-                    tokens[zero_index - 1] = minus
-                elif tokens[zero_index - 1] == "-":
-                    tokens[zero_index - 1] = plus
-                else:
-                    raise FormulaParsingError(
-                        f"Unrecognised use of `0` at index: {tokens[zero_index-1].source_start}."
-                    )
-                tokens[zero_index] = one
-        except ValueError:
-            pass
-
-        return tokens
+        return tokenize(formula)
 
     def get_ast(self, formula: str, *, include_intercept: bool = True) -> ASTNode:
         """
@@ -133,7 +116,9 @@ class FormulaParser:
         terms = self.get_ast(formula, include_intercept=include_intercept).to_terms()
 
         if sort:
-            if isinstance(terms, tuple):
+            if isinstance(terms, Structured):
+                terms = terms._map(sorted)
+            elif isinstance(terms, tuple):
                 terms = tuple(sorted(ts) for ts in terms)
             else:
                 terms = sorted(terms)
@@ -154,7 +139,7 @@ class DefaultOperatorResolver(OperatorResolver):
 
     @property
     def operators(self):
-        def formula_separator_expansion(lhs, rhs):
+        def formula_part_expansion(lhs, rhs):
             terms = (lhs.to_terms(), rhs.to_terms())
 
             out = []
@@ -169,17 +154,6 @@ class DefaultOperatorResolver(OperatorResolver):
             terms = parents.to_terms()
             common = functools.reduce(lambda x, y: x * y, terms)
             return terms.union({common * term for term in nested.to_terms()})
-
-        def unary_negation(arg):
-            # TODO: FormulaParser().get_terms('a * ( - b)') Should return `a`
-            terms = arg.to_terms()
-            if len(terms) > 1 or list(terms)[0] != "0":
-                raise FormulaParsingError(
-                    "Unary negation is only implemented for '0', where it is substituted for '1'."
-                )
-            return {
-                Term(factors=[Factor("1", eval_method="literal")])
-            }  # pragma: no cover; All zero handling is currently done in the token pre-processor.
 
         def power(arg, power):
             if (
@@ -201,7 +175,10 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=-100,
                 associativity=None,
-                to_terms=formula_separator_expansion,
+                to_terms=lambda lhs, rhs: Structured(
+                    lhs=lhs.to_terms(), rhs=rhs.to_terms()
+                ),
+                accepts_context=lambda context: len(context) == 0,
             ),
             Operator(
                 "~",
@@ -209,7 +186,18 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=-100,
                 associativity=None,
                 fixity="prefix",
-                to_terms=lambda expr: (expr.to_terms(),),
+                to_terms=lambda expr: expr.to_terms(),
+                accepts_context=lambda context: len(context) == 0,
+            ),
+            Operator(
+                "|",
+                arity=2,
+                precedence=-50,
+                associativity=None,
+                to_terms=formula_part_expansion,
+                accepts_context=lambda context: all(
+                    isinstance(c, Operator) and c.symbol in "~|" for c in context
+                ),
             ),
             Operator(
                 "+",
@@ -243,7 +231,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=unary_negation,
+                to_terms=lambda arg: set(),
             ),
             Operator(
                 "*",
@@ -279,22 +267,30 @@ class DefaultOperatorResolver(OperatorResolver):
             ),
         ]
 
-    def resolve(self, token: Token, max_prefix_arity) -> Iterable[Operator]:
+    def resolve(
+        self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
+    ) -> Iterable[Operator]:
         if token.token in self.operator_table:
-            return super().resolve(token, max_prefix_arity)
+            return super().resolve(token, max_prefix_arity, context)
 
         symbol = token.token
 
-        # Apply R-like transformations to operator
-        symbol = re.sub(
-            r"[+\-]*\-[+\-]*", "-", symbol
-        )  # Any sequence of '+' and '-' -> '-'
-        symbol = re.sub(r"[+]{2,}", "+", symbol)  # multiple sequential '+' -> '+'
+        # Keep track the number of "+" and "-" characters; if an odd number "-"
+        # than "-", else "+"
+        while True:
+            m = re.search(r"[+\-]{2,}", symbol)
+            if not m:
+                break
+            symbol = (
+                symbol[: m.start(0)] + "-"
+                if len(m.group(0).replace("+", "")) % 2
+                else "+" + symbol[m.end(0) :]
+            )
 
         if symbol in self.operator_table:
-            return [self._resolve(token, symbol, max_prefix_arity)]
+            return [self._resolve(token, symbol, max_prefix_arity, context)]
 
         return [
-            self._resolve(token, sym, max_prefix_arity if i == 0 else 0)
+            self._resolve(token, sym, max_prefix_arity if i == 0 else 0, context)
             for i, sym in enumerate(symbol)
         ]
