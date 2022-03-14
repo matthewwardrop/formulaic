@@ -3,6 +3,72 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.3.0 (14 March 2022)
+
+This is a major new release with many new features, and a few small breaking
+changes. All users are encouraged to upgrade.
+
+**Breaking changes:**
+
+* The minimum supported version of Python is now 3.7 (up from 3.6).
+* Moved transform implementations from `formulaic.materializers.transforms` to
+    the top-level `formulaic.transforms` module, and ported all existing
+    transforms to output `FactorValues` types rather than dictionaries.
+    `FactorValues` is an object proxy that allows output types like
+    `pandas.DataFrame`s to be used as they normally would, with some additional
+    metadata for formulaic accessible via the `__formulaic_metadata__`
+    attribute. This makes non-formula direct usage of these transforms much more
+    pleasant.
+* `~` is no longer a generic formula separator, and can only be used once in a
+    formula. Please use the newly added `|` operator to separate a formula into
+    multiple parts.
+
+**New features and enhancements:**
+
+* Added support for "structured" formulas, and updated the `~` operator to use
+    them. Structured formulas can have named substructures, for example: `lhs`
+    and `rhs` for the `~` operator. The representation of formulas has been
+    updated to show this structure.
+* Added support for context-sensitivity during the resolution of operators,
+    allowing more flexible operators to be implemented (this is exploited by the
+    `|` operator which splits formulas into multiple parts).
+* The `formualic.model_matrix` syntactic sugar function now accepts `ModelSpec`
+    and `ModelMatrix` instances as the "formula" spec, making generation of
+    matrices with the same form as previously generated matrices more
+    convenient.
+* Added the `poly` transform (compatible with R and patsy).
+* `numpy` is now always available in formulas via `np`, allowing formulas like
+    `np.sum(x)`. For convenience, `log`, `log10`, `log2`, `exp`, `exp10` and
+    `exp2` are now exposed as transforms independent of user context.
+* Pickleability is now guaranteed and tested via unit tests. Failure to pickle
+    any formulaic metadata object (such as formulas, model specs, etc) is
+    considered a bug.
+* The capturing of user context for use in formula materialization has been
+    split out into a utility method `formulaic.utils.context.capture_context()`.
+    This can be used by libraries that wrap Formulaic to capture the variables
+    and/or transforms available in a users' environmen where appropriate.
+
+**Bugfixes and cleanups:**
+
+* Migrated all code to use the Black style.
+* Increased unit testing coverage to 100%.
+* Fixed mis-alignment in the right- and left-hand sides of formulas if there
+    were nulls at different indices.
+* Fixed basis spline transforms ignoring state, fixed generated splines for
+    large numbers of knots, and fixed specification of knots via non-list
+    datatypes.
+* Fixed category order being inconsistent if categories are explicitly ordered
+    differently in the underlying data.
+* Lots of other minor nits and cleanups.
+
+**Documentation:**
+
+* The structure of the docsite has been improved (but is still incomplete).
+* The `.parser` and `.utils` modules of Formulaic are now inline documented
+    and annotated.
+
+---
+
 ## 0.2.4 (9 July 2021)
 
 This is a minor release that fixes an issue whereby the ModelSpec instances
