@@ -87,7 +87,11 @@ def tokens_to_ast(
                     if operator_stack
                     else len(output_queue)
                 )
-                operators = operator_resolver.resolve(token, max_prefix_arity)
+                operators = operator_resolver.resolve(
+                    token,
+                    max_prefix_arity=max_prefix_arity,
+                    context=[s.operator for s in operator_stack],
+                )
 
                 for operator in operators:
 

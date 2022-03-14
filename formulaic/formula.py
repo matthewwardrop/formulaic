@@ -3,7 +3,7 @@ import inspect
 from .errors import FormulaInvalidError, FormulaMaterializerInvalidError
 from .materializers.base import FormulaMaterializer
 from .parser import FormulaParser
-from .parser.types import Term
+from .parser.types import Structured, Term
 from .utils.calculus import differentiate_term
 
 
@@ -49,7 +49,9 @@ class Formula:
 
     @classmethod
     def __check_terms(cls, terms, depth=0):
-        if depth == 0 and isinstance(terms, tuple):
+        if isinstance(terms, Structured):
+            terms._map(cls.__check_terms)
+        elif depth == 0 and isinstance(terms, tuple):
             for termset in terms:
                 cls.__check_terms(termset, depth=depth + 1)
         else:
@@ -81,12 +83,32 @@ class Formula:
             [differentiate_term(term, vars, use_sympy=use_sympy) for term in self.terms]
         )
 
+    def __getattr__(self, attr):
+        if attr in self.terms._to_dict(recurse=False):
+            return Formula(self.terms[attr])
+        raise AttributeError(f"This formula has no substructures keyed by '{attr}'.")
+
+    def __getitem__(self, item):
+        if (
+            isinstance(self.terms, tuple)
+            or isinstance(self.terms, Structured)
+            and self.terms._has_root
+            and isinstance(self.terms.root, tuple)
+        ):
+            return Formula(self.terms[item])
+        raise KeyError(
+            f"This formula does not have any sub-parts indexable via `{repr(item)}`."
+        )
+
     def __str__(self):
+        terms = self.terms
         if isinstance(self.terms, tuple):
-            return " ~ ".join(
-                " + ".join(str(term) for term in terms) for terms in self._terms
+            terms = Structured(terms)
+        if isinstance(terms, Structured):
+            return str(
+                terms._map(lambda terms: " + ".join(str(term) for term in terms))
             )
-        return " + ".join(str(term) for term in self.terms)
+        return " + ".join(str(term) for term in terms)
 
     def __eq__(self, other):
         if isinstance(other, Formula):

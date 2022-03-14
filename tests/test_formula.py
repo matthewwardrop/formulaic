@@ -1,9 +1,11 @@
-import pytest
+import re
 
 import pandas
+import pytest
 
 from formulaic import Formula
 from formulaic.errors import FormulaInvalidError, FormulaMaterializerInvalidError
+from formulaic.parser.types import Structured
 
 
 class TestFormula:
@@ -18,7 +20,7 @@ class TestFormula:
 
     @pytest.fixture
     def formula_exprs(self):
-        return Formula("a ~ b ~ c")
+        return Formula("a ~ b")
 
     @pytest.fixture
     def data(self):
@@ -42,7 +44,7 @@ class TestFormula:
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
 
-    def test_terms(self, formula_expr, formula_exprs):
+    def test_terms(self, formula_expr):
         assert [str(t) for t in formula_expr.terms] == [
             "1",
             "a",
@@ -53,18 +55,31 @@ class TestFormula:
             "b:c",
             "a:b:c",
         ]
-        assert tuple([str(t) for t in tg] for tg in formula_exprs.terms) == (
-            ["a"],
-            ["b"],
-            ["1", "c"],
-        )
 
     def test_get_model_matrix(self, formula_expr, formula_exprs, data):
         mm_expr = formula_expr.get_model_matrix(data)
         mm_exprs = formula_exprs.get_model_matrix(data, materializer="pandas")
 
         assert mm_expr.shape == (3, 8)
-        assert isinstance(mm_exprs, tuple) and len(mm_exprs) == 3
+        assert isinstance(mm_exprs, Structured) and len(mm_exprs) == 2
+
+    def test_structured(self, formula_exprs):
+        assert formula_exprs.lhs.terms == ["a"]
+        assert formula_exprs.rhs.terms == ["1", "b"]
+        assert Formula("a | b")[0].terms == ["1", "a"]
+
+        with pytest.raises(
+            AttributeError,
+            match=re.escape("This formula has no substructures keyed by 'missing'."),
+        ):
+            formula_exprs.missing
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                "This formula does not have any sub-parts indexable via `0`."
+            ),
+        ):
+            formula_exprs[0]
 
     def test_differentiate(self):
         f = Formula("a + b + log(c) - 1")
@@ -74,7 +89,10 @@ class TestFormula:
 
     def test_repr(self, formula_expr, formula_exprs):
         assert repr(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
-        assert repr(formula_exprs) == "a ~ b ~ 1 + c"
+        assert repr(formula_exprs) == (".lhs\n" "    a\n" ".rhs\n" "    1 + b")
+        assert repr(Formula("a | b")) == (
+            "root:\n" "    [0]:\n" "        1 + a\n" "    [1]:\n" "        1 + b"
+        )
 
     def test_equality(self):
         assert Formula("a + b") == Formula("a+b")

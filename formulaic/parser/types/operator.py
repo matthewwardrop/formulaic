@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from enum import Enum
 from numbers import Number
-from typing import Callable, Iterable, Union
+from typing import Callable, List, Iterable, Union
 
 from .term import Term
+from .token import Token
 
 
 class Operator:
@@ -27,6 +30,9 @@ class Operator:
             if 'postfix', the operator comes after its arguments.
         to_terms: A callable that maps the arguments pass to the operator to
             an iterable of `Term` instances.
+        accepts_context: A callable that will receive a list of Operator and
+            Token instances that describe the context in which the operator
+            would be applied if this callable returns `True`.
     """
 
     class Associativity(Enum):
@@ -48,6 +54,7 @@ class Operator:
         associativity: Union[str, Associativity] = "none",
         fixity: Union[str, Fixity] = "infix",
         to_terms: Callable[..., Iterable[Term]] = None,
+        accepts_context: Callable[[List[Union[Token, Operator]]], bool] = None,
     ):
         self.symbol = symbol
         self.arity = arity
@@ -55,6 +62,7 @@ class Operator:
         self.associativity = associativity
         self.fixity = fixity
         self._to_terms = to_terms
+        self._accepts_context = accepts_context
 
     @property
     def associativity(self):
@@ -76,6 +84,20 @@ class Operator:
         if self._to_terms is None:
             raise RuntimeError(f"`to_terms` is not implemented for '{self.symbol}'.")
         return self._to_terms(*args)
+
+    def accepts_context(self, context: List[Union[Token, Operator]]):
+        if self._accepts_context:
+            # We only need to pass on tokens and operators with precedence less
+            # than or equal to ourselves, since all other operators will be
+            # evaluated before us.
+            return self._accepts_context(
+                [
+                    c
+                    for c in context
+                    if isinstance(c, Token) or c.precedence <= self.precedence
+                ]
+            )
+        return True
 
     def __repr__(self):
         return self.symbol

@@ -23,8 +23,8 @@ class ModelSpec:
         self.materializer = materializer
         self.na_action = NAAction(na_action)
         self.output = output
-        self.transform_state = transform_state or {}
-        self.encoder_state = encoder_state or {}
+        self.transform_state = transform_state if transform_state is not None else {}
+        self.encoder_state = encoder_state if encoder_state is not None else {}
 
     @property
     def materializer(self):

@@ -160,7 +160,6 @@ def test_encode_categorical_sparse():
 
 
 def _compare_factor_values(a, b, comp=lambda x, y: numpy.allclose(x, y)):
-    print(a, b)
     assert type(a) is type(b)
     if isinstance(a, dict):
         assert sorted(a) == sorted(b)
