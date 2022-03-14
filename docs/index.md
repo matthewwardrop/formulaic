@@ -1,4 +1,4 @@
-![logo](assets/images/logo_with_text.png)
+<img src="assets/images/logo_with_text.png" style="max-width: 600px">
 
 !!! warning
     This documentation is a work in process, and is far from complete.
@@ -35,5 +35,4 @@ It provides:
 with more to come!
 
 For some examples of what Formulaic provides, and how to use it, please refer to
-the [Basic Usage](basic/intro.md) and [Advanced Usage](advanced/intro.md)
-guides.
+the [Concepts](concepts/) and [User Guides](guides) documentation.

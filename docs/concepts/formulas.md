@@ -1,6 +1,6 @@
 This section introduces the basic notions and origins of formulas. If you are
 already familiar with formulas from another context, you might want to skip
-forward to the [Quickstart](quickstart.md).
+forward to the [Formula Grammer](grammar.md) or [User Guides](../guides/).
 
 ## Origins
 
@@ -90,11 +90,12 @@ simplify data preparation workflows.
 
 ## Where to from here?
 
-To get a feel for how you can use `formulaic` to transform your dataframes into
-model matrices, please review the [Quickstart](quickstart.md). To learn about
-the full set of features supported by the formula language as implemented by
-Formulaic, please review the [Formula Grammar](grammar.md). For more advanced
-use-cases, such as overriding or customising the implementations of formula
-parsing, please refer to the [Advanced Usage](../advanced/intro.md) section.
+To learn about the full set of features supported by the formula language as
+implemented by Formulaic, please review the [Formula Grammar](grammar.md). To
+get a feel for how you can use `formulaic` to transform your dataframes into
+model matrices, please review the [Quickstart](../guides/quickstart.md).  For
+more advanced use-cases, such as overriding or customising the implementations
+of formula parsing, please refer to the [Advanced Usage](../guides/advanced.md)
+section.
 
 [^1]: Wilkinson, G. N., and C. E. Rogers. Symbolic description of factorial models for analysis of variance. J. Royal Statistics Society 22, pp. 392–399, 1973.

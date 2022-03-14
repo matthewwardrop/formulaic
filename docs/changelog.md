@@ -1,4 +1,26 @@
-For the latest changes, please refer to the git log: https://github.com/matthewwardrop/formulaic/commits/main.
+For changes since the latest tagged release, please refer to the
+[git commit log](https://github.com/matthewwardrop/formulaic/commits/main).
+
+---
+
+## 0.2.4 (9 July 2021)
+
+This is a minor release that fixes an issue whereby the ModelSpec instances
+attached to ModelMatrix objects would keep reference to the original data,
+greatly inflating the size of the ModelSpec.
+
+## 0.2.3 (4 February 2021)
+
+This release is identical to v0.2.2, except that the source distribution now
+includes the docs, license, and tox configuration.
+
+## 0.2.2 (4 February 2021)
+
+This is a minor release with one bugfix.
+
+- Fix pandas model matrix outputs when constants are generated as part of model
+  matrix construction and the incoming dataframe has a custom rather than range
+  index.
 
 ## 0.2.1 (22 January 2021)
 
@@ -27,6 +49,7 @@ Highlights include:
 - Added documentation.
 - Miscellaneous other bugfixes and cleanups.
 
+---
 
 ## 0.1.2 (6 November 2019)
 
@@ -58,6 +81,7 @@ GitHub actions.
         Add comprehensive unit testing along with several small miscellaneous bug fixes and improvements.
         Add GitHub actions configuration.
 
+---
 
 ## 0.0.1 (1 September 2019)
 

@@ -28,7 +28,7 @@ unless otherwise indicated.
 |-----|
 | `(...)` | 1 | Groups operations, overriding normal precedence rules. All operations with the parentheses are performed before the result of these operations is permitted to be operated upon by its peers. | ✓ | ✓ | ✓ |
 |-----|
-| ** | 2 | Includes all n-th order interactions of the terms in the left operand, where n is the (integral) value of the right operand, e.g. `(a+b+c)**2` is equivalent to `a + b + c + a:b + a:c + b:c | ✓ | ✓ | ✓ |
+| ** | 2 | Includes all n-th order interactions of the terms in the left operand, where n is the (integral) value of the right operand, e.g. `(a+b+c)**2` is equivalent to `a + b + c + a:b + a:c + b:c`. | ✓ | ✓ | ✓ |
 | ^ | 2 | Alias for `**`. | 🗙 | 🗙[^3] | ✓ |
 |-----|
 | `:` | 2 | Adds a new term that corresponds to the interaction of its operands (i.e. their elementwise product). | ✓ | ✓ | ✓ |
@@ -42,7 +42,9 @@ unless otherwise indicated.
 | `+` | 1 | Returns the current term unmodified (not very useful). | ✓ | ✓ | ✓ |
 | `-` | 1 | Negates a term (only implemented for 0, in which case it is replaced with `1`). | ✓ | ✓ | ✓ |
 |-----|
-| `~` | 1,2 | Separates the target features from the input features. If absent, it is assumed that we are considering only the the input features. Unless otherwise indicated, it is assumed that the input features implicitly include an intercept. | ✓[^5] | ✓ | ✓ |
+| `|` | 2 | Splits a formula into multiple parts, allowing the simultaneous generation of multiple model matrices. When on the right-hand-side of the `~` operator, all parts will attract an additional intercept term by default. | ✓ | 🗙 | ✓[^5] |
+|-----|
+| `~` | 1,2 | Separates the target features from the input features. If absent, it is assumed that we are considering only the the input features. Unless otherwise indicated, it is assumed that the input features implicitly include an intercept. | ✓ | ✓ | ✓ |
 
 
 ## Transforms
@@ -107,6 +109,6 @@ and conventions of which you should be aware.
 [^2]: Formulaic additionally supports quoted fields with special characters, e.g. `` my_func(`my|special+column`) ``.
 [^3]: The caret operator is not supported, but will not cause an error. It is ignored by the patsy formula parser, and treated as XOR Python operation on column.
 [^4]: This somewhat confusing operator is useful when you want to include hierachical features in your data, and where certain interaction terms do not make sense (particularly in ANOVA contexts). For example, if `a` represents countries, and `b` represents cities, then the full product of terms from `a * b === a + b + a:b` does not make sense, because any value of `b` is guaranteed to coincide with a value in `a`, and does not independently add value. Thus, the operation `a / b === a + a:b` results in more sensible dataset. As a result, the `/` operator is right-distributive, since if `b` and `c` were both nested in `a`, you would want `a/(b+c) === a + a:b + a:c`. Likewise, the operator is not left-distributive, since if `c` is nested under both `a` and `b` separately, then you want `(a + b)/c === a + b + a:b:c`. Lastly, if `c` is nested in `b`, and `b` is nested in `a`, then you would want `a/b/c === a + a:(b/c) === a + a:b + a:b:c`.
-[^5]: Formulaic additionally supports more than one `~` which splits the features into as many groups as you like.
+[^5]: Implemented by an R package called [Formula](https://cran.r-project.org/web/packages/Formula/index.html) that extends the default formula syntax.
 [^6]: Formulaic only supports one-hot encoding, and does not yet support arbitrary contrast matrices or specification which field to leave out in reduced rank, etc.
 [^7]: Patsy uses the `rescale` keyword rather than `scale`, but provides the same functionality.

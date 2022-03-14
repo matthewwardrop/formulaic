@@ -4,14 +4,16 @@ nav:
     - Introduction: index.md
     - Installation: installation.md
     - Changelog: changelog.md
-  - Basic Usage:
-    - Introduction: basic/intro.md
-    - What are formulas?: basic/formulas.md
-    - Quickstart: basic/quickstart.md
-    - Formula Grammar: basic/grammar.md
-  - Advanced Usage:
-    - Introduction: advanced/intro.md
+  - Concepts:
+    - Introduction: concepts/index.md
+    - What are formulas?: concepts/formulas.md
+    - Formula Grammar: concepts/grammar.md
+  - User Guides:
+    - Introduction: guides/index.md
+    - Quickstart: guides/quickstart.md
+    - Advanced Usage: guides/advanced.md
   - Reference:
+    - Introduction: reference/index.md
     - API: reference/api.md
 theme:
   name: material
@@ -19,7 +21,7 @@ theme:
     text: Roboto
     code: Roboto Mono
   features:
-    - tabs
+    - navigation.tabs
   logo: assets/images/logo.svg
   palette:
     primary: light blue

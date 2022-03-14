@@ -1,6 +1,6 @@
 This document provides high-level documentation on how to get started using
 Formulaic. For deeper documentation about the internals, please refer to the
-[Advanced Usage](../advanced/intro.md) documentation.
+[Advanced Usage](advanced.md) documentation.
 
 
 ## Building Model Matrices
