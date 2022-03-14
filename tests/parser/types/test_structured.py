@@ -1,4 +1,6 @@
+import pickle
 import re
+from io import BytesIO
 
 import pytest
 
@@ -101,3 +103,15 @@ class TestStructured:
         assert str(Structured("a", b="b")) == (
             "root:\n" "    a\n\n" "Structured children:\n\n" ".b\n" "    b"
         )
+
+    def test_pickleable(self):
+        o = BytesIO()
+        s = Structured("a", b="b", c=("c", "d"))
+        pickle.dump(s, o)
+        o.seek(0)
+        s2 = pickle.load(o)
+        assert s2._to_dict() == {
+            None: "a",
+            "b": "b",
+            "c": ("c", "d"),
+        }

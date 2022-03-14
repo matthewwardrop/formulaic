@@ -1,4 +1,6 @@
+import pickle
 import re
+from io import BytesIO
 
 import numpy
 import pandas
@@ -13,7 +15,7 @@ from formulaic.errors import (
 from formulaic.materializers import PandasMaterializer
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
-from formulaic.parser.types import Factor
+from formulaic.parser.types import Factor, Structured
 
 
 PANDAS_TESTS = {
@@ -333,3 +335,12 @@ class TestPandasMaterializer:
             "A[T.b]",
             "A[T.a]",
         ]
+
+    def test_model_spec_pickleable(self, materializer):
+        o = BytesIO()
+        ms = materializer.get_model_matrix("a ~ a:A")
+        pickle.dump(ms.model_spec, o)
+        o.seek(0)
+        ms2 = pickle.load(o)
+        assert isinstance(ms, Structured)
+        assert ms2.lhs.formula.terms == ["a"]

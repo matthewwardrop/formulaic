@@ -1,4 +1,6 @@
+import pickle
 import re
+from io import BytesIO
 
 import pandas
 import pytest
@@ -109,3 +111,11 @@ class TestFormula:
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):
             formula_expr.get_model_matrix(data, materializer=object())
+
+    def test_pickleable(self, formula_exprs):
+        o = BytesIO()
+        pickle.dump(formula_exprs, o)
+        o.seek(0)
+        formula = pickle.load(o)
+        assert formula.lhs.terms == ["a"]
+        assert formula.rhs.terms == ["1", "b"]

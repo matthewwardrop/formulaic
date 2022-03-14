@@ -137,6 +137,8 @@ class Structured(Generic[ItemType]):
         return super().__dir__() + list(self._structure)
 
     def __getattr__(self, attr):
+        if attr in ("__getstate__", "__setstate__"):
+            raise AttributeError(attr)
         if not attr.startswith("_") and attr in self._structure:
             return self._structure[attr]
         if attr in self._mapped_attrs:
