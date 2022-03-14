@@ -46,13 +46,6 @@ setup(
         "arrow": ["pyarrow>=1"],
         "benchmarks": ["patsy", "rpy2", "uncertainties"],
         "calculus": ["sympy>=1.3,<1.10"],
-        "docs": [
-            "mkdocs==1.2.3",
-            "mkdocs-material==8.2.5",
-            "mkdocs-material-extensions==1.0.3",
-            "pymdown-extensions==9.2",
-            "pygments==2.10.0",
-        ],
         "test": [
             "black==22.1.0",
             "flake8==4.0.1",
