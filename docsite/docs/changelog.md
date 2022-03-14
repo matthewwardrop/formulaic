@@ -32,7 +32,7 @@ changes. All users are encouraged to upgrade.
 * Added support for context-sensitivity during the resolution of operators,
     allowing more flexible operators to be implemented (this is exploited by the
     `|` operator which splits formulas into multiple parts).
-* The `formualic.model_matrix` syntactic sugar function now accepts `ModelSpec`
+* The `formulaic.model_matrix` syntactic sugar function now accepts `ModelSpec`
     and `ModelMatrix` instances as the "formula" spec, making generation of
     matrices with the same form as previously generated matrices more
     convenient.
@@ -46,7 +46,7 @@ changes. All users are encouraged to upgrade.
 * The capturing of user context for use in formula materialization has been
     split out into a utility method `formulaic.utils.context.capture_context()`.
     This can be used by libraries that wrap Formulaic to capture the variables
-    and/or transforms available in a users' environmen where appropriate.
+    and/or transforms available in a users' environment where appropriate.
 
 **Bugfixes and cleanups:**
 
