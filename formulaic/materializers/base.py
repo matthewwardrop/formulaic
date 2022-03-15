@@ -126,8 +126,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def get_model_matrix(
         self, spec, ensure_full_rank=True, na_action="drop", output=None
     ):
-        from formulaic.model_spec import ModelSpec
-
         # Prepare arguments
         if output is None:
             output = self.REGISTER_OUTPUTS[0]
@@ -144,30 +142,17 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             model_specs = Structured(model_specs)
 
         # Step 0: Pool all factors and transform state, ensuring consistency
-        # across model specs
-        factors = set()
-        transform_state = {}
-        model_specs._map(
-            lambda ms: factors.update(
-                itertools.chain(*(term.factors for term in ms.formula.terms))
-            )
-        )
-        model_specs._map(
-            lambda ms: transform_state.update(ms.transform_state)
-        )  # TODO: Enforce consistency
+        # during factor evaluation (esp. which rows get dropped).
+        (
+            factors,
+            factor_evaluation_model_spec,
+        ) = self._prepare_factor_evaluation_model_spec(model_specs)
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
         drop_rows = set()
-        dummy_model_spec = ModelSpec(
-            formula=[],
-            ensure_full_rank=ensure_full_rank,
-            na_action=na_action,
-            output=output,
-            transform_state=transform_state,
-        )
         for factor in factors:
-            self._evaluate_factor(factor, dummy_model_spec, drop_rows)
+            self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
         drop_rows = sorted(drop_rows)
 
         # Step 2: Update the structured model specs with the information from
@@ -175,10 +160,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         model_specs._map(
             lambda ms: ms.transform_state.update(
                 {
-                    factor.expr: transform_state[factor.expr]
+                    factor.expr: factor_evaluation_model_spec.transform_state[
+                        factor.expr
+                    ]
                     for term in ms.formula.terms
                     for factor in term.factors
-                    if factor.expr in transform_state
+                    if factor.expr in factor_evaluation_model_spec.transform_state
                 }
             )
         )
@@ -297,6 +284,39 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             ensure_full_rank=ensure_full_rank,
             na_action=na_action,
             output=output,
+        )
+
+    def _prepare_factor_evaluation_model_spec(self, model_specs: Structured[ModelSpec]):
+        from formulaic.model_spec import ModelSpec
+
+        output = set()
+        na_action = set()
+        ensure_full_rank = set()
+        factors = set()
+        transform_state = {}
+
+        def update_pooled_spec(model_spec: ModelSpec):
+            output.add(model_spec.output)
+            na_action.add(model_spec.na_action)
+            ensure_full_rank.add(model_spec.ensure_full_rank)
+            factors.update(
+                itertools.chain(*(term.factors for term in model_spec.formula.terms))
+            )
+            transform_state.update(
+                model_spec.transform_state
+            )  # TODO: Check for consistency?
+
+        model_specs._map(update_pooled_spec)
+
+        if len(output) != 1 or len(na_action) != 1 or len(ensure_full_rank) != 1:
+            raise RuntimeError("Provided `ModelSpec` instances are not consistent.")
+
+        return factors, ModelSpec(
+            formula=[],
+            ensure_full_rank=next(iter(ensure_full_rank)),
+            na_action=next(iter(na_action)),
+            output=next(iter(output)),
+            transform_state=transform_state,
         )
 
     # Methods related to ensuring out matrices are structurally full-rank
