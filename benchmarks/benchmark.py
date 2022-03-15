@@ -79,7 +79,7 @@ def time_formulaic(formula):
 
 @timed_func
 def time_formulaic_sparse(formula):
-    return Formula(formula).get_model_matrix(df, sparse=True)
+    return Formula(formula).get_model_matrix(df, output='sparse')
 
 
 toolings = {
