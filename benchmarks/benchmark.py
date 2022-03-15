@@ -11,7 +11,7 @@ import patsy
 from formulaic import Formula
 from uncertainties import ufloat
 
-ALL_TOOLINGS = ['patsy', 'formulaic', 'formulaic_sparse', 'R', 'R_sparse']
+ALL_TOOLINGS = ["patsy", "formulaic", "formulaic_sparse", "R", "R_sparse"]
 
 formulas = {
     "a": ALL_TOOLINGS,
@@ -27,11 +27,10 @@ formulas = {
 
 
 # Utility libraries
-TimedResult = namedtuple("TimedResult", ['times', 'mean', 'stderr'])
+TimedResult = namedtuple("TimedResult", ["times", "mean", "stderr"])
 
 
 def timed_func(func, min_repetitions=7, max_time=20, get_time=None):
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         times = []
@@ -54,16 +53,18 @@ def timed_func(func, min_repetitions=7, max_time=20, get_time=None):
 
 # Generate data for benchmarks
 s = 1000000
-df = pandas.DataFrame({
-    'A': ['a', 'b', 'c'] * s,
-    'B': ['d', 'e', 'f'] * s,
-    'C': ['g', 'h', 'i'] * s,
-    'D': ['j', 'k', 'l'] * s,
-    'a': numpy.random.randn(3 * s),
-    'b': numpy.random.randn(3 * s),
-    'c': numpy.random.randn(3 * s),
-    'd': numpy.random.randn(3 * s),
-})
+df = pandas.DataFrame(
+    {
+        "A": ["a", "b", "c"] * s,
+        "B": ["d", "e", "f"] * s,
+        "C": ["g", "h", "i"] * s,
+        "D": ["j", "k", "l"] * s,
+        "a": numpy.random.randn(3 * s),
+        "b": numpy.random.randn(3 * s),
+        "c": numpy.random.randn(3 * s),
+        "d": numpy.random.randn(3 * s),
+    }
+)
 df.head()
 
 
@@ -79,13 +80,13 @@ def time_formulaic(formula):
 
 @timed_func
 def time_formulaic_sparse(formula):
-    return Formula(formula).get_model_matrix(df, output='sparse')
+    return Formula(formula).get_model_matrix(df, output="sparse")
 
 
 toolings = {
-    'patsy': time_patsy,
-    'formulaic': time_formulaic,
-    'formulaic_sparse': time_formulaic_sparse,
+    "patsy": time_patsy,
+    "formulaic": time_formulaic,
+    "formulaic_sparse": time_formulaic_sparse,
 }
 
 
@@ -94,9 +95,10 @@ try:
     import rpy2.robjects as robjs
 
     R_VERSION = rpy2.situation.r_version_from_subprocess()
-    R_MATRIX_VERSION = '.'.join(str(i) for i in robjs.r("packageVersion('Matrix')")[0])
+    R_MATRIX_VERSION = ".".join(str(i) for i in robjs.r("packageVersion('Matrix')")[0])
 
-    robjs.r("""
+    robjs.r(
+        """
         library(Matrix)
         library(glue)
 
@@ -111,30 +113,43 @@ try:
             "c"=rnorm(3*s),
             "d"=rnorm(3*s)
         )
-    """)
+    """
+    )
 
-    time_R = timed_func(robjs.r("""
+    time_R = timed_func(
+        robjs.r(
+            """
         function (formula) {
             start_time <- Sys.time()
             model.matrix(as.formula(glue("~ ", formula)), df)
             end_time <- Sys.time()
             difftime(end_time, start_time, units="secs")
         }
-    """), get_time=lambda result, time: result[0])
+    """
+        ),
+        get_time=lambda result, time: result[0],
+    )
 
-    time_R_sparse = timed_func(robjs.r("""
+    time_R_sparse = timed_func(
+        robjs.r(
+            """
         function (formula) {
             start_time <- Sys.time()
             sparse.model.matrix(as.formula(glue("~ ", formula)), df)
             end_time <- Sys.time()
             difftime(end_time, start_time, units="secs")
         }
-    """), get_time=lambda result, time: result[0])
+    """
+        ),
+        get_time=lambda result, time: result[0],
+    )
 
-    toolings.update({
-        'R': time_R,
-        'R_sparse': time_R_sparse,
-    })
+    toolings.update(
+        {
+            "R": time_R,
+            "R_sparse": time_R_sparse,
+        }
+    )
 
 except Exception as e:
     R_VERSION = None
@@ -143,7 +158,7 @@ except Exception as e:
 
 if __name__ == "__main__":
     # Print package versions
-    PYTHON_VERSION = sys.version.split('\n')[0].strip()
+    PYTHON_VERSION = sys.version.split("\n")[0].strip()
     print(
         "version information\n"
         f"    python: {PYTHON_VERSION}\n"
@@ -164,15 +179,28 @@ if __name__ == "__main__":
         print(formula)
         results[formula] = {}
         for tooling, time_func in toolings.items():
-            result = time_func(formula) if tooling in config else TimedResult(None, numpy.nan, numpy.nan)
+            result = (
+                time_func(formula)
+                if tooling in config
+                else TimedResult(None, numpy.nan, numpy.nan)
+            )
             results[formula][tooling] = result
             if not numpy.isnan(result.mean):
-                print(f"    {tooling}: {ufloat(result.mean, result.stderr):.2uP} (mean of {len(result.times)})")
+                print(
+                    f"    {tooling}: {ufloat(result.mean, result.stderr):.2uP} (mean of {len(result.times)})"
+                )
 
     # Dump results into a csv file
     rows = []
     for formula, tooling_results in results.items():
         for tooling, times in tooling_results.items():
-            rows.append({'formula': formula, 'tooling': tooling, 'mean': times.mean, 'stderr': times.stderr})
+            rows.append(
+                {
+                    "formula": formula,
+                    "tooling": tooling,
+                    "mean": times.mean,
+                    "stderr": times.stderr,
+                }
+            )
     data = pandas.DataFrame(rows)
-    data.to_csv(os.path.join(os.path.dirname(__file__), 'benchmarks.csv'))
+    data.to_csv(os.path.join(os.path.dirname(__file__), "benchmarks.csv"))
