@@ -3,6 +3,13 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.3.1 (15 March 2022)
+
+This is a minor patch release that fixes the maintaining of output types,
+NA-handling, and assurance of full-rank for factors that evaluate to pre-encoded
+columns when constructing a model matrix from a pre-defined ModelSpec. The
+benchmarks were also updated.
+
 ## 0.3.0 (14 March 2022)
 
 This is a major new release with many new features, and a few small breaking
