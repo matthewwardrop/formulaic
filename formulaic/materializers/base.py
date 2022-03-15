@@ -309,7 +309,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         model_specs._map(update_pooled_spec)
 
         if len(output) != 1 or len(na_action) != 1 or len(ensure_full_rank) != 1:
-            raise RuntimeError("Provided `ModelSpec` instances are not consistent.")
+            raise RuntimeError(
+                "Provided `ModelSpec` instances are not consistent."
+            )  # pragma: no cover; will only occur if users manually construct a structured model spec.
 
         return factors, ModelSpec(
             formula=[],
