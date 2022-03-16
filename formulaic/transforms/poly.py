@@ -1,8 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from formulaic.materializers.types import FactorValues
 from formulaic.utils.stateful_transforms import stateful_transform
 
 import numpy
-import numpy.typing
+
+try:
+    import numpy.typing
+except ImportError:
+    if TYPE_CHECKING:
+        raise RuntimeError("Recent NumPy is required when type checking")
 
 
 @stateful_transform
