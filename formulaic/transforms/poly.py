@@ -1,8 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy
+
 from formulaic.materializers.types import FactorValues
 from formulaic.utils.stateful_transforms import stateful_transform
 
-import numpy
-import numpy.typing
+try:
+    import numpy.typing
+except ImportError as e:
+    if TYPE_CHECKING:
+        raise RuntimeError("Numpy >=1.20 is required for type-checking.") from e
 
 
 @stateful_transform
