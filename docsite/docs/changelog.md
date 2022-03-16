@@ -3,6 +3,11 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.3.2 (17 March 2022)
+
+This is a minor patch release that fixes an attempt to import `numpy.typing`
+when numpy is not version 1.20 or later.
+
 ## 0.3.1 (15 March 2022)
 
 This is a minor patch release that fixes the maintaining of output types,
