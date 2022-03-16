@@ -11,7 +11,9 @@ try:
     import numpy.typing
 except ImportError as e:
     if TYPE_CHECKING:
-        raise RuntimeError("Numpy >=1.20 is required for type-checking.") from e  # pragma: no cover
+        raise RuntimeError(
+            "Numpy >=1.20 is required for type-checking."
+        ) from e  # pragma: no cover
 
 
 @stateful_transform
