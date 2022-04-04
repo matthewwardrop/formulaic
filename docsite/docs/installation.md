@@ -9,18 +9,11 @@ from the PyPI is as simple as running:
 $ pip install formulaic
 ```
 
-Otherwise, simply download the latest source package, extract it, and run from
-within the top-level "formulaic" source directory:
-
-```
-$ python setup.py install
-```
-
 !!! note
-    If you have a non-standard setup, ensure that `pip` and/or `python` above
-    are replaced with the executables corresponding to the environment for which
-    you are interested in installing `formulaic`. This is done automatically if
-    you are using a virtual environment.
+    If you have a non-standard setup, ensure that `pip` above are replaced with
+    the executables corresponding to the environment for which you are
+    interested in installing `formulaic`. This is done automatically if you are
+    using a virtual environment.
 
 You are ready to use Formulaic. To get introduced to the concepts underpinning
 Formulaic, please review the [Concepts](concepts/) documentation, or to jump
@@ -51,7 +44,12 @@ To install in editable mode, run:
 ```
 $ pip install -e <path_to_cloned_formulaic_repo>
 ```
+You will need `pip>=21.3` in order for this to work.
 
 You can then make any changes you like to the repo, and have them be reflected
 in your local Python sessions. Happy hacking, and I look forward to your
 contributions!
+
+Dependencies are managed using [Poetry](https://python-poetry.org/), and if you
+need to add a dependency, please use `poetry add ...`, which will ensure
+consistency of testing environments/etc.
