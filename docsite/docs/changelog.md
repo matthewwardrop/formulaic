@@ -3,6 +3,12 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.3.3 (4 April 2022)
+
+This is a minor patch release that migrates the package tooling to
+[poetry](https://python-poetry.org/); solving a version inconsistency when
+packaging for `conda`.
+
 ## 0.3.2 (17 March 2022)
 
 This is a minor patch release that fixes an attempt to import `numpy.typing`
