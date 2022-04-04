@@ -12,7 +12,7 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 
 @stateful_transform
-def encode_categorical(
+def contrasts(
     data, reduced_rank=False, spans_intercept=True, output=None, _state=None, _spec=None
 ) -> FactorValues[dict]:
     # TODO: Add support for specifying contrast matrix / etc

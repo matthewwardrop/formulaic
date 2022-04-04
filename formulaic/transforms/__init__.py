@@ -2,7 +2,7 @@ import numpy
 
 from .basis_spline import basis_spline
 from .identity import identity
-from .encode_categorical import encode_categorical
+from .contrasts import contrasts
 from .poly import poly
 from .scale import center, scale
 
@@ -21,6 +21,6 @@ TRANSFORMS = {
     "center": center,
     "poly": poly,
     "scale": scale,
-    "C": encode_categorical,
+    "C": contrasts,
     "I": identity,
 }
