@@ -551,40 +551,62 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     )
                                     if nested_state:
                                         state[k] = nested_state
+                            if isinstance(values, FactorValues):
+                                return FactorValues(encoded, metadata=values.__formulaic_metadata__)
                             return encoded
                         return f(values, metadata, state, *args, **kwargs)
 
                     return wrapped
 
-                # If we need to unpack values into columns, we do this here.
-                # Otherwise, we pass through the original values.
-                factor_values = FactorValues(
-                    self._extract_columns_for_encoding(factor),
-                    metadata=factor.metadata,
-                )
-
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
-                if factor.metadata.kind is Factor.Kind.CATEGORICAL:
-                    encoded = map_dict(self._encode_categorical)(
-                        factor_values,
-                        factor.metadata,
-                        encoder_state,
-                        spec,
-                        drop_rows,
-                        reduced_rank=reduced_rank,
-                    )
-                elif factor.metadata.kind is Factor.Kind.NUMERICAL:
-                    encoded = map_dict(self._encode_numerical)(
-                        factor_values, factor.metadata, encoder_state, spec, drop_rows
-                    )
-                elif factor.metadata.kind is Factor.Kind.CONSTANT:
-                    encoded = map_dict(self._encode_constant)(
-                        factor_values, factor.metadata, encoder_state, spec, drop_rows
+
+                if factor.metadata.encoder is not None:
+                    encoded = as_columns(
+                        factor.metadata.encoder(
+                            factor.values,
+                            reduced_rank=reduced_rank,
+                            drop_rows=drop_rows,
+                            encoder_state=encoder_state,
+                            model_spec=spec,
+                        )
                     )
                 else:
-                    raise FactorEncodingError(
-                        factor
-                    )  # pragma: no cover; it is not currently possible to reach this sentinel
+                    # If we need to unpack values into columns, we do this here.
+                    # Otherwise, we pass through the original values.
+                    factor_values = FactorValues(
+                        self._extract_columns_for_encoding(factor),
+                        metadata=factor.metadata,
+                    )
+
+                    if factor.metadata.kind is Factor.Kind.CATEGORICAL:
+                        encoded = map_dict(self._encode_categorical)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                            reduced_rank=reduced_rank,
+                        )
+                    elif factor.metadata.kind is Factor.Kind.NUMERICAL:
+                        encoded = map_dict(self._encode_numerical)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                        )
+                    elif factor.metadata.kind is Factor.Kind.CONSTANT:
+                        encoded = map_dict(self._encode_constant)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                        )
+                    else:
+                        raise FactorEncodingError(
+                            factor
+                        )  # pragma: no cover; it is not currently possible to reach this sentinel
                 spec.encoder_state[factor.expr] = (factor.metadata.kind, encoder_state)
 
                 # Only encode once for encodings where we can just drop a field

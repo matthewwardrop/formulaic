@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Generic, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
 import wrapt
 
@@ -28,6 +28,12 @@ class FactorValuesMetadata:
         format: The format to use when exploding factors into multiple columns
             (e.g. when encoding categories via dummy-encoding).
         encoded: Whether the values should be treated as pre-encoded.
+        encoder: An optional callable with signature
+            `(values: Any, reduced_rank: bool, drop_rows: List[int], encoder_state: Dict[str, Any], spec: ModelSpec)`
+            that outputs properly encoded values suitable for the current
+            materializer. Note that this should only be used in cases where
+            direct evaluation would yield different results in reduced vs.
+            non-reduced rank scenarios.
     """
 
     kind: Factor.Kind = Factor.Kind.UNKNOWN
@@ -36,6 +42,7 @@ class FactorValuesMetadata:
     drop_field: Optional[str] = None
     format: str = "{name}[{field}]"
     encoded: bool = False
+    encoder: Optional[Callable[[Any, bool, List[int], Dict[str, Any]], Any]] = None
 
     def replace(self, **kwargs) -> FactorValuesMetadata:
         """
@@ -65,6 +72,9 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         drop_field: Optional[str] = MISSING,
         format: str = MISSING,
         encoded: bool = MISSING,
+        encoder: Optional[
+            Callable[[Any, bool, List[int], Dict[str, Any]], Any]
+        ] = MISSING,
     ):
         metadata_constructor = FactorValuesMetadata
         metadata_kwargs = dict(
@@ -74,6 +84,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             drop_field=drop_field,
             format=format,
             encoded=encoded,
+            encoder=encoder,
         )
         for key in set(metadata_kwargs):
             if metadata_kwargs[key] is MISSING:
