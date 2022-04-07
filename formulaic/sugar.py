@@ -53,5 +53,5 @@ def model_matrix(
     if isinstance(spec, ModelMatrix):
         spec = spec.model_spec
     elif not isinstance(spec, ModelSpec):
-        spec = Formula(spec)
+        spec = Formula.from_spec(spec)
     return spec.get_model_matrix(data, context=context, **kwargs)
