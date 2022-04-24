@@ -1,8 +1,12 @@
-from typing import Tuple, Type, Union
+import re
+from typing import Iterable, Optional, Sequence, Set, Tuple, Type, Union
 
 from formulaic.errors import FormulaSyntaxError
 from .types.ast_node import ASTNode
 from .types.token import Token
+
+
+# Exception handling
 
 
 def exc_for_token(
@@ -103,3 +107,141 @@ def __get_tokens_for_gap(
             source_end=rhs_token.source_end,
         ),
     )
+
+
+# Token sequence mutations
+
+
+def replace_tokens(
+    tokens: Iterable[Token],
+    token_to_replace: str,
+    replacement: Union[Token, Sequence[Token]],
+    *,
+    operator_kind: Optional[Token.Kind] = None,
+) -> Iterable[Token]:
+    """
+    Replace any token in the `tokens` sequence with one or more replacement
+    tokens.
+
+    Args:
+        tokens: The sequence of tokens within which tokens should be replaced.
+        token_to_replace: The string representation of the token to replace.
+        replacement: The replacement token(s) to insert into the `tokens`
+            sequence.
+        operator_kind: The type of tokens to be replaced. If not specified, all
+            tokens which match the provided `token_to_match` string will be
+            replaced.
+    """
+
+    for token in tokens:
+        if (
+            operator_kind
+            and token.kind is not operator_kind
+            or token.token != token_to_replace
+        ):
+            yield token
+        else:
+            if isinstance(replacement, Token):
+                yield replacement
+            else:
+                yield from replacement
+
+
+def insert_tokens_after(
+    tokens: Iterable[Token],
+    pattern: Union[str, re.Pattern],
+    tokens_to_add: Sequence[Token],
+    *,
+    operator_kind: Optional[Token.Kind] = None,
+    join_operator: Optional[str] = None,
+) -> Iterable[Token]:
+    """
+    Insert additional tokens into a sequence of tokens after (within token)
+    pattern matches.
+
+    Note: this insertion can happen in the *middle* of existing tokens, which is
+    especially useful when inserting tokens around multiple operators (which are
+    often merged together into a single token). If you want to avoid this, make
+    sure your regex `pattern` includes start and end matchers; e.g.
+    `^<pattern>$`.
+
+    Args:
+        tokens: The sequence of tokens within which tokens should be replaced.
+        pattern: A (potentially compiled) regex expression indicating where
+            tokens should be inserted.
+        tokens_to_add: A sequence of tokens to be inserted wherever `pattern`
+            matches.
+        operator_kind: The type of tokens to be considered for insertion. If not
+            specified, any matching token (part) will result in insertions.
+        join_operator: If the insertion of tokens would result the joining of
+            the added tokens with existing tokens, the value set here will be
+            used to create a joining operator token. If not provided, not
+            additional operators are added.
+    """
+
+    if not isinstance(pattern, re.Pattern):
+        pattern = re.compile(pattern)
+
+    if join_operator:
+        tokens = list(tokens)
+
+    for i, token in enumerate(tokens):
+        if (
+            operator_kind is not None
+            and token.kind is not operator_kind
+            or not pattern.search(token.token)
+        ):
+            yield token
+            continue
+
+        for split_token in token.split(pattern, after=True):
+            yield split_token
+
+            m = pattern.search(split_token.token)
+            if m and m.span()[1] == len(split_token.token):
+                yield from tokens_to_add
+                if join_operator and i < len(tokens) - 1:
+                    yield Token(join_operator, kind=Token.Kind.OPERATOR)
+        continue
+
+
+def merge_operator_tokens(
+    tokens: Iterable[Token], symbols: Optional[Set[str]] = None
+) -> Iterable[Token]:
+    """
+    Merge operator tokens within a sequence of tokens.
+
+    This is useful if you have added operator tokens after tokenization, in
+    order to allow operator resolution of (e.g.) adjacent `+` and `-` operators.
+
+    Args:
+        tokens: The sequence of tokens within which tokens should be replaced.
+        symbols: If specified, only adjacent operator symbols appearing within
+            this set will be merged.
+    """
+    pooled_token = None
+
+    for token in tokens:
+        if (
+            token.kind is not Token.Kind.OPERATOR
+            or symbols
+            and token.token[0] not in symbols
+        ):
+            if pooled_token:
+                yield pooled_token
+                pooled_token = None
+            yield token
+            continue
+
+        # `token` is an operator that can be collapsed on the left
+        if pooled_token:
+            pooled_token = token.copy_with_attrs(token=pooled_token.token + token.token)
+            if symbols and not pooled_token.token[-1] in symbols:
+                yield pooled_token
+                pooled_token = None
+            continue
+
+        pooled_token = token
+
+    if pooled_token:
+        yield pooled_token

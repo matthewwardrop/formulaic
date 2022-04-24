@@ -14,7 +14,12 @@ from .types import (
     Term,
     Token,
 )
-from .utils import exc_for_token
+from .utils import (
+    exc_for_token,
+    insert_tokens_after,
+    merge_operator_tokens,
+    replace_tokens,
+)
 
 
 class FormulaParser:
@@ -64,24 +69,60 @@ class FormulaParser:
         """
 
         # Transform formula to add intercepts and replace 0 with -1. We do this
-        # as a string transform to reduce the complexity of the code, and also
-        # to avoid the ambiguity in the AST around intentionally unary vs.
-        # incidentally unary operations (e.g. "+0" vs. "x + (+0)").
+        # as token transformations to reduce the complexity of the code, and
+        # also to avoid the ambiguity in the AST around intentionally unary vs.
+        # incidentally unary operations (e.g. "+0" vs. "x + (+0)"). This cannot
+        # easily be done as string operations because of quotations and escapes
+        # which are best left to the tokenizer.
 
-        # Substitute "0" -> "-1"
-        formula = self.ZERO_PATTERN.sub("-1", formula)
+        token_one = Token("1", kind=Token.Kind.VALUE)
+        token_plus = Token("+", kind=Token.Kind.OPERATOR)
+        token_minus = Token("-", kind=Token.Kind.OPERATOR)
 
-        # Insert ones
+        tokens = tokenize(formula)
+
+        # Substitute "0" with "-1"
+        tokens = replace_tokens(
+            tokens, "0", [token_minus, token_one], operator_kind=Token.Kind.VALUE
+        )
+
+        # Insert intercepts
         if include_intercept:
-            rhs_offset = formula.index("~") + 1 if "~" in formula else 0
-            formula = formula[:rhs_offset] + "|".join(
-                [
-                    " 1" if len(rhs_part.strip()) == 0 else f" 1 +{rhs_part}"
-                    for rhs_part in formula[rhs_offset:].split("|")
-                ]
+            tokens = list(
+                insert_tokens_after(
+                    tokens,
+                    "~",
+                    [token_one],
+                    operator_kind=Token.Kind.OPERATOR,
+                    join_operator="+",
+                )
             )
+            rhs_index = (
+                max(
+                    [i for i, token in enumerate(tokens) if token.token.endswith("~")],
+                    default=-1,
+                )
+                + 1
+            )
+            tokens = [
+                *(
+                    tokens[:rhs_index]
+                    if rhs_index > 0
+                    else ([token_one, token_plus] if len(tokens) > 0 else [token_one])
+                ),
+                *insert_tokens_after(
+                    tokens[rhs_index:],
+                    r"\|",
+                    [token_one],
+                    operator_kind=Token.Kind.OPERATOR,
+                    join_operator="+",
+                ),
+            ]
 
-        return tokenize(formula)
+        # Collapse inserted "+" and "-" operators to prevent unary issues.
+        tokens = merge_operator_tokens(tokens, symbols={"+", "-"})
+
+        return tokens
 
     def get_ast(self, formula: str, *, include_intercept: bool = True) -> ASTNode:
         """
@@ -113,7 +154,11 @@ class FormulaParser:
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
         """
-        terms = self.get_ast(formula, include_intercept=include_intercept).to_terms()
+        ast = self.get_ast(formula, include_intercept=include_intercept)
+        if ast is None:
+            return []
+
+        terms = ast.to_terms()
 
         if sort:
             if isinstance(terms, Structured):

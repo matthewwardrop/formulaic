@@ -36,11 +36,15 @@ FORMULA_TO_TERMS = {
     # Check that "0" -> "-1" substitution works as expected
     "+0": [],
     "(+0)": ["1"],
+    "-0": ["1"],
     "0 + 0": [],
     "0 + 0 + 1": ["1"],
     "0 + 0 + 1 + 0": [],
     "0 - 0": ["1"],
     "0 ~ 0": {"lhs": [], "rhs": []},
+    "+0 ~ +0": {"lhs": [], "rhs": []},
+    "a ~ +0": {"lhs": ["a"], "rhs": []},
+    "a ~ -0": {"lhs": ["a"], "rhs": ["1"]},
     # Formula separators
     "~ a + b": ["1", "a", "b"],
     "a ~ b + c": {"lhs": ["a"], "rhs": ["1", "b", "c"]},
@@ -67,6 +71,9 @@ FORMULA_TO_TERMS = {
     "-0": ["1"],
     "+x": ["1", "x"],
     "-x": ["1"],
+    # Quoting
+    "`a|b~c*d`": ["1", "a|b~c*d"],
+    "{a | b | c}": ["1", "a | b | c"],
 }
 
 PARSER = FormulaParser()
@@ -99,8 +106,20 @@ class TestFormulaParser:
             PARSER.get_terms("(a | b)")
 
     def test_invalid_use_of_zero(self):
-        with pytest.raises(FormulaParsingError):
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Operator `*` has insuffient arguments and/or is misplaced."
+            ),
+        ):
             PARSER.get_terms("a * 0")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Operator `:` has insuffient arguments and/or is misplaced."
+            ),
+        ):
+            PARSER.get_terms("a : 0")
 
     def test_invalid_power(self):
         with pytest.raises(

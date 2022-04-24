@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import copy
+import re
 from enum import Enum
 from typing import Any, Iterable, Optional, Tuple, Union
 
@@ -169,3 +173,55 @@ class Token:
 
     def __repr__(self):
         return self.token
+
+    # Additional methods for later mutation
+
+    def copy_with_attrs(self, **attrs) -> Token:
+        """
+        Return a copy of this `Token` instance with attributes set from attrs.
+
+        Args:
+            attrs: Attribute keys and values to set on the copy of this
+                instance.
+        """
+        new_token = copy.copy(self)
+        for attr, value in attrs.items():
+            setattr(new_token, attr, value)
+        return new_token
+
+    def split(
+        self, pattern: Union[str, re.Pattern], after=False, before=False
+    ) -> Iterable[Token]:
+        """
+        Split this instance into multple tokens around all non-overlapping
+        matches of `pattern`.
+
+        Args:
+            pattern: The pattern by which to split this `Token` instance.
+            after: Whether to split after the pattern.
+            before: Whether to split before the pattern.
+        """
+        if not after and not before:
+            return [self]
+
+        if not isinstance(pattern, re.Pattern):
+            pattern = re.compile(pattern)
+
+        last_index = 0
+        separators = pattern.finditer(self.token)
+
+        def get_next_token(next_index):
+            return next_index, self.copy_with_attrs(
+                token=self.token[last_index:next_index]
+            )
+
+        for separator in separators:
+            if before:
+                last_index, new_token = get_next_token(separator.span()[0])
+                yield new_token
+            if after:
+                last_index, new_token = get_next_token(separator.span()[1])
+                yield new_token
+
+        if last_index < len(self.token):
+            yield get_next_token(len(self.token))[1]
