@@ -117,7 +117,7 @@ def replace_tokens(
     token_to_replace: str,
     replacement: Union[Token, Sequence[Token]],
     *,
-    operator_kind: Optional[Token.Kind] = None,
+    kind: Optional[Token.Kind] = None,
 ) -> Iterable[Token]:
     """
     Replace any token in the `tokens` sequence with one or more replacement
@@ -128,17 +128,13 @@ def replace_tokens(
         token_to_replace: The string representation of the token to replace.
         replacement: The replacement token(s) to insert into the `tokens`
             sequence.
-        operator_kind: The type of tokens to be replaced. If not specified, all
+        kind: The type of tokens to be replaced. If not specified, all
             tokens which match the provided `token_to_match` string will be
             replaced.
     """
 
     for token in tokens:
-        if (
-            operator_kind
-            and token.kind is not operator_kind
-            or token.token != token_to_replace
-        ):
+        if kind and token.kind is not kind or token.token != token_to_replace:
             yield token
         else:
             if isinstance(replacement, Token):
@@ -152,7 +148,7 @@ def insert_tokens_after(
     pattern: Union[str, re.Pattern],
     tokens_to_add: Sequence[Token],
     *,
-    operator_kind: Optional[Token.Kind] = None,
+    kind: Optional[Token.Kind] = None,
     join_operator: Optional[str] = None,
 ) -> Iterable[Token]:
     """
@@ -171,7 +167,7 @@ def insert_tokens_after(
             tokens should be inserted.
         tokens_to_add: A sequence of tokens to be inserted wherever `pattern`
             matches.
-        operator_kind: The type of tokens to be considered for insertion. If not
+        kind: The type of tokens to be considered for insertion. If not
             specified, any matching token (part) will result in insertions.
         join_operator: If the insertion of tokens would result the joining of
             the added tokens with existing tokens, the value set here will be
@@ -187,22 +183,31 @@ def insert_tokens_after(
 
     for i, token in enumerate(tokens):
         if (
-            operator_kind is not None
-            and token.kind is not operator_kind
+            kind is not None
+            and token.kind is not kind
             or not pattern.search(token.token)
         ):
             yield token
             continue
 
-        for split_token in token.split(pattern, after=True):
+        split_tokens = list(token.split(pattern, after=True))
+        for j, split_token in enumerate(split_tokens):
             yield split_token
 
             m = pattern.search(split_token.token)
             if m and m.span()[1] == len(split_token.token):
                 yield from tokens_to_add
-                if join_operator and i < len(tokens) - 1:
-                    yield Token(join_operator, kind=Token.Kind.OPERATOR)
-        continue
+                if join_operator:
+                    next_token = None
+                    if j < len(split_tokens) - 1:
+                        next_token = split_tokens[j + 1]
+                    elif i < len(tokens) - 1:
+                        next_token = tokens[i + 1]
+                    if (
+                        next_token is not None
+                        and next_token.kind is not Token.Kind.OPERATOR
+                    ):
+                        yield Token(join_operator, kind=Token.Kind.OPERATOR)
 
 
 def merge_operator_tokens(

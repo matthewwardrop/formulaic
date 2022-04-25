@@ -9,11 +9,9 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 try:
     import numpy.typing
-except ImportError as e:
+except ImportError as e:  # pragma: no cover
     if TYPE_CHECKING:
-        raise RuntimeError(
-            "Numpy >=1.20 is required for type-checking."
-        ) from e  # pragma: no cover
+        raise RuntimeError("Numpy >=1.20 is required for type-checking.") from e
 
 
 @stateful_transform

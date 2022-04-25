@@ -134,6 +134,9 @@ class TestFormulaParser:
         ):
             assert PARSER.get_terms("a**(b+c)")
 
+    def test_empty_formula(self):
+        assert PARSER.get_terms("", include_intercept=False) == []
+
 
 class TestDefaultOperatorResolver:
     @pytest.fixture

@@ -77,3 +77,21 @@ class TestToken:
         assert (
             token_b.get_source_context(colorize=True) == "y ~ ⧛\x1b[1;31mlog(x)\x1b[0m⧚"
         )
+
+    def test_copy_with_attrs(self, token_a, token_b):
+        assert token_a.copy_with_attrs() is not token_a
+        assert token_a.copy_with_attrs().token == "a"
+        assert token_a.copy_with_attrs(token="changed").token == "changed"
+        assert token_b.copy_with_attrs(token="c").source == token_b.source
+
+    def test_split(self, token_a):
+        assert len(list(token_a.split("a"))) == 1
+        assert next(iter(token_a.split("a"))) is token_a
+
+        assert list(Token("abc").split("b", after=True)) == [Token("ab"), Token("c")]
+        assert list(Token("abc").split("b", before=True)) == [Token("a"), Token("bc")]
+        assert list(Token("abc").split("b", after=True, before=True)) == [
+            Token("a"),
+            Token("b"),
+            Token("c"),
+        ]

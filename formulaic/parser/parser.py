@@ -83,7 +83,7 @@ class FormulaParser:
 
         # Substitute "0" with "-1"
         tokens = replace_tokens(
-            tokens, "0", [token_minus, token_one], operator_kind=Token.Kind.VALUE
+            tokens, "0", [token_minus, token_one], kind=Token.Kind.VALUE
         )
 
         # Insert intercepts
@@ -93,7 +93,7 @@ class FormulaParser:
                     tokens,
                     "~",
                     [token_one],
-                    operator_kind=Token.Kind.OPERATOR,
+                    kind=Token.Kind.OPERATOR,
                     join_operator="+",
                 )
             )
@@ -114,7 +114,7 @@ class FormulaParser:
                     tokens[rhs_index:],
                     r"\|",
                     [token_one],
-                    operator_kind=Token.Kind.OPERATOR,
+                    kind=Token.Kind.OPERATOR,
                     join_operator="+",
                 ),
             ]

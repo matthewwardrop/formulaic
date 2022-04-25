@@ -202,7 +202,8 @@ class Token:
             before: Whether to split before the pattern.
         """
         if not after and not before:
-            return [self]
+            yield self
+            return
 
         if not isinstance(pattern, re.Pattern):
             pattern = re.compile(pattern)
