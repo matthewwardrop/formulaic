@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import pytest
 
+import numpy
 import pandas
 from formulaic import Formula
 
@@ -74,6 +75,12 @@ class TestModelSpec:
         m2 = model_spec.get_model_matrix(data2)
         assert isinstance(m2, pandas.DataFrame)
         assert list(m2.columns) == model_spec.feature_names
+
+    def test_get_linear_constraints(self, model_spec):
+        lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
+        assert numpy.allclose(lc.constraint_matrix, [[0.0, 1.0, 0.0, -1.0, 0.0, 0.0]])
+        assert lc.constraint_values == [3]
+        assert lc.variable_names == model_spec.feature_names
 
     def test_differentiate(self, model_spec, formula):
         assert model_spec.differentiate("a").formula == formula.differentiate("a")

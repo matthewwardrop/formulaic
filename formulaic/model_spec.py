@@ -1,6 +1,8 @@
 from collections import OrderedDict
 import inspect
 
+from formulaic.utils.constraints import LinearConstraints
+
 from .formula import Formula
 from .materializers import FormulaMaterializer, NAAction
 
@@ -65,6 +67,9 @@ class ModelSpec:
         else:
             materializer = FormulaMaterializer.for_materializer(self.materializer)
         return materializer(data, **kwargs).get_model_matrix(self)
+
+    def get_linear_constraints(self, spec):
+        return LinearConstraints.from_spec(spec, variable_names=self.feature_names)
 
     def differentiate(self, *vars, use_sympy=False):
         return ModelSpec(
