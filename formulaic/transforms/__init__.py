@@ -2,10 +2,21 @@ import numpy
 
 from .basis_spline import basis_spline
 from .identity import identity
-from .encode_categorical import encode_categorical
+from .contrasts import C, encode_contrasts, ContrastsRegistry
 from .poly import poly
 from .scale import center, scale
 
+__all__ = [
+    "basis_spline",
+    "identity",
+    "C",
+    "encode_contrasts",
+    "ContrastsRegistry",
+    "poly",
+    "center",
+    "scale",
+    "TRANSFORMS",
+]
 
 TRANSFORMS = {
     # Common transforms
@@ -21,6 +32,7 @@ TRANSFORMS = {
     "center": center,
     "poly": poly,
     "scale": scale,
-    "C": encode_categorical,
+    "C": C,
+    "contr": ContrastsRegistry,
     "I": identity,
 }

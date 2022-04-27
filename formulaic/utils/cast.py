@@ -1,13 +1,29 @@
-from functools import singledispatch
-
+from functools import singledispatch, wraps
 from typing import Any
 
 import numpy
 import pandas
 import scipy.sparse
 
+from formulaic.materializers.types.factor_values import FactorValues
+
+
+def propagate_metadata(func):
+    @wraps(func)
+    def wrapper(data, *args, **kwargs):
+        evaluated = func(data, *args, **kwargs)
+        if isinstance(data, FactorValues):
+            return FactorValues(
+                evaluated,
+                metadata=data.__formulaic_metadata__,
+            )
+        return evaluated
+
+    return wrapper
+
 
 @singledispatch
+@propagate_metadata
 def as_columns(data: Any) -> Any:
     """
     Get the columns for `data`. If `data` represents a single column, or is a
@@ -17,11 +33,13 @@ def as_columns(data: Any) -> Any:
 
 
 @as_columns.register
+@propagate_metadata
 def _(data: pandas.DataFrame):
     return {col: series for col, series in data.items()}
 
 
 @as_columns.register
+@propagate_metadata
 def _(data: numpy.ndarray):
     if len(data.shape) == 1:
         return data
@@ -41,6 +59,7 @@ def _(data: numpy.ndarray):
 
 
 @as_columns.register
+@propagate_metadata
 def _(data: scipy.sparse.csc_matrix):
     if (
         hasattr(data, "__formulaic_metadata__")

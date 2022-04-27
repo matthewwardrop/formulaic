@@ -522,7 +522,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         drop_rows: set,
         reduced_rank: bool = False,
     ) -> Dict[str, Any]:
-        if not isinstance(factor.values, dict) or not factor.metadata.encoded:
+        if not factor.metadata.encoded:
             if factor.expr in self.encoded_cache:
                 encoded = self.encoded_cache[factor.expr]
             elif (factor.expr, reduced_rank) in self.encoded_cache:
@@ -551,40 +551,64 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     )
                                     if nested_state:
                                         state[k] = nested_state
-                            return encoded
+                            if isinstance(values, FactorValues):
+                                return FactorValues(
+                                    encoded, metadata=values.__formulaic_metadata__
+                                )
+                            return encoded  # pragma: no cover; nothing in formulaic uses this, but is here for generality.
                         return f(values, metadata, state, *args, **kwargs)
 
                     return wrapped
 
-                # If we need to unpack values into columns, we do this here.
-                # Otherwise, we pass through the original values.
-                factor_values = FactorValues(
-                    self._extract_columns_for_encoding(factor),
-                    metadata=factor.metadata,
-                )
-
                 encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
-                if factor.metadata.kind is Factor.Kind.CATEGORICAL:
-                    encoded = map_dict(self._encode_categorical)(
-                        factor_values,
-                        factor.metadata,
-                        encoder_state,
-                        spec,
-                        drop_rows,
-                        reduced_rank=reduced_rank,
-                    )
-                elif factor.metadata.kind is Factor.Kind.NUMERICAL:
-                    encoded = map_dict(self._encode_numerical)(
-                        factor_values, factor.metadata, encoder_state, spec, drop_rows
-                    )
-                elif factor.metadata.kind is Factor.Kind.CONSTANT:
-                    encoded = map_dict(self._encode_constant)(
-                        factor_values, factor.metadata, encoder_state, spec, drop_rows
+
+                if factor.metadata.encoder is not None:
+                    encoded = as_columns(
+                        factor.metadata.encoder(
+                            factor.values,
+                            reduced_rank=reduced_rank,
+                            drop_rows=drop_rows,
+                            encoder_state=encoder_state,
+                            model_spec=spec,
+                        )
                     )
                 else:
-                    raise FactorEncodingError(
-                        factor
-                    )  # pragma: no cover; it is not currently possible to reach this sentinel
+                    # If we need to unpack values into columns, we do this here.
+                    # Otherwise, we pass through the original values.
+                    factor_values = FactorValues(
+                        self._extract_columns_for_encoding(factor),
+                        metadata=factor.metadata,
+                    )
+
+                    if factor.metadata.kind is Factor.Kind.CATEGORICAL:
+                        encoded = map_dict(self._encode_categorical)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                            reduced_rank=reduced_rank,
+                        )
+                    elif factor.metadata.kind is Factor.Kind.NUMERICAL:
+                        encoded = map_dict(self._encode_numerical)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                        )
+                    elif factor.metadata.kind is Factor.Kind.CONSTANT:
+                        encoded = map_dict(self._encode_constant)(
+                            factor_values,
+                            factor.metadata,
+                            encoder_state,
+                            spec,
+                            drop_rows,
+                        )
+                    else:
+                        raise FactorEncodingError(
+                            factor
+                        )  # pragma: no cover; it is not currently possible to reach this sentinel
                 spec.encoder_state[factor.expr] = (factor.metadata.kind, encoder_state)
 
                 # Only encode once for encodings where we can just drop a field
@@ -596,7 +620,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                 self.encoded_cache[cache_key] = encoded
         else:
-            encoded = factor.values
+            encoded = as_columns(
+                factor.values
+            )  # pragma: no cover; we don't use this in formulaic yet.
 
         encoded = FactorValues(
             encoded,

@@ -48,3 +48,9 @@ def test_as_columns():
         )["a"]
         == numpy.array([1])
     )
+
+    # Check metadata propagation
+    values = FactorValues([1, 2, 3], encoded=True, spans_intercept=False, format="foo")
+    assert as_columns(values).__formulaic_metadata__.encoded is True
+    assert as_columns(values).__formulaic_metadata__.spans_intercept is False
+    assert as_columns(values).__formulaic_metadata__.format == "foo"
