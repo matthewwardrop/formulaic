@@ -6,6 +6,7 @@ import numpy
 import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
+from formulaic.utils.cast import as_columns
 
 from .base import FormulaMaterializer
 from .types import NAAction
@@ -31,7 +32,9 @@ class PandasMaterializer(FormulaMaterializer):
         if na_action is NAAction.IGNORE:
             return
 
-        if isinstance(values, dict):
+        if isinstance(
+            values, dict
+        ):  # pragma: no cover; no formulaic transforms return dictionaries any more
             for key, vs in values.items():
                 self._check_for_nulls(f"{name}[{key}]", vs, na_action, drop_rows)
 
@@ -74,16 +77,18 @@ class PandasMaterializer(FormulaMaterializer):
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
-        from formulaic.transforms import contrasts
+        from formulaic.transforms import encode_contrasts
 
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
-        return contrasts(
-            values,
-            reduced_rank=False,
-            _metadata=metadata,
-            _state=encoder_state,
-            _spec=spec,
+        return as_columns(
+            encode_contrasts(
+                values,
+                reduced_rank=False,
+                _metadata=metadata,
+                _state=encoder_state,
+                _spec=spec,
+            )
         )
 
     @override
@@ -132,7 +137,6 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _combine_columns(self, cols, spec, drop_rows):
-
         # If we are outputing a pandas DataFrame, explicitly override index
         # in case transforms/etc have lost track of it.
         if spec.output == "pandas":

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy
 import pandas
@@ -6,32 +6,38 @@ import scipy.sparse as spsparse
 
 
 def categorical_encode_series_to_sparse_csc_matrix(
-    series: Iterable, reduced_rank: bool = False
+    series: Iterable, levels: Optional[Iterable[str]] = None, drop_first: bool = False
 ) -> spsparse.csc_matrix:
     """
     Categorically encode (via dummy encoding) a `series` as a sparse matrix.
 
     Args:
         series: The iterable which should be sparse encoded.
-        reduced_rank: Whether to omit the first column in order to avoid
+        levels: The levels for which to generate dummies (if not specified, a
+            dummy variable is generated for every level in `series`).
+        drop_first: Whether to omit the first column in order to avoid
             structural collinearity.
 
     Returns:
         The sparse (column-major) matrix representation of the series dummy
         encoding.
     """
-    df = pandas.DataFrame({"series": pandas.Categorical(series)})
-    results = df.groupby("series").groups
-    categories = list(results)
-    if reduced_rank:
-        del results[sorted(results)[0]]
-    return categories, {
-        value: spsparse.csc_matrix(
-            (
-                numpy.ones(len(indices), dtype=float),  # data
-                (indices, numpy.zeros(len(indices), dtype=int)),  # row  # column
-            ),
-            shape=(numpy.array(series).shape[0], 1),
-        )
-        for value, indices in results.items()
-    }
+    df = pandas.DataFrame({"series": pandas.Series(series).astype("category")})
+    levels = list(levels or df.series.cat.categories)
+    if drop_first:
+        levels = levels[1:]
+    results = df.groupby("series").groups.copy()
+
+    return levels, spsparse.hstack(
+        [
+            spsparse.csc_matrix(
+                (
+                    numpy.ones(len(indices), dtype=float),  # data
+                    (indices, numpy.zeros(len(indices), dtype=int)),  # row  # column
+                ),
+                shape=(numpy.array(series).shape[0], 1),
+            )
+            for level in levels
+            for indices in (results.get(level, []),)
+        ]
+    )

@@ -555,7 +555,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                 return FactorValues(
                                     encoded, metadata=values.__formulaic_metadata__
                                 )
-                            return encoded
+                            return encoded  # pragma: no cover; nothing in formulaic uses this, but is here for generality.
                         return f(values, metadata, state, *args, **kwargs)
 
                     return wrapped
@@ -620,7 +620,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                 self.encoded_cache[cache_key] = encoded
         else:
-            encoded = as_columns(factor.values)
+            encoded = as_columns(
+                factor.values
+            )  # pragma: no cover; we don't use this in formulaic yet.
 
         encoded = FactorValues(
             encoded,

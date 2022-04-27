@@ -31,7 +31,7 @@ PANDAS_TESTS = {
         ["Intercept", "C(A)[T.b]", "C(A)[T.c]"],
         ["Intercept", "C(A)[T.a]", "C(A)[T.b]", "C(A)[T.c]"],
         ["Intercept", "C(A)[T.c]"],
-        3,
+        2,
     ),
     "a:A": (
         ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
