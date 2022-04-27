@@ -522,7 +522,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         drop_rows: set,
         reduced_rank: bool = False,
     ) -> Dict[str, Any]:
-        if not isinstance(factor.values, dict) or not factor.metadata.encoded:
+        if not factor.metadata.encoded:
             if factor.expr in self.encoded_cache:
                 encoded = self.encoded_cache[factor.expr]
             elif (factor.expr, reduced_rank) in self.encoded_cache:
@@ -552,7 +552,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     if nested_state:
                                         state[k] = nested_state
                             if isinstance(values, FactorValues):
-                                return FactorValues(encoded, metadata=values.__formulaic_metadata__)
+                                return FactorValues(
+                                    encoded, metadata=values.__formulaic_metadata__
+                                )
                             return encoded
                         return f(values, metadata, state, *args, **kwargs)
 
@@ -618,7 +620,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                 self.encoded_cache[cache_key] = encoded
         else:
-            encoded = factor.values
+            encoded = as_columns(factor.values)
 
         encoded = FactorValues(
             encoded,
