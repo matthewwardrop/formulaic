@@ -156,6 +156,8 @@ class Contrasts(metaclass=InterfaceMeta):
     The base class for all contrast implementations.
     """
 
+    INTERFACE_RAISE_ON_VIOLATION = True
+
     FACTOR_FORMAT = "{name}[{field}]"
 
     def apply(
@@ -483,6 +485,7 @@ class SumContrasts(Contrasts):
 
     FACTOR_FORMAT = "{name}[S.{field}]"
 
+    @Contrasts.override
     def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
         n = len(levels)
         if not reduced_rank:
@@ -491,11 +494,13 @@ class SumContrasts(Contrasts):
         contr[-1, :] = -1
         return contr
 
+    @Contrasts.override
     def get_coding_column_names(self, levels, reduced_rank=True):
         if reduced_rank:
             return levels[:-1]
         return levels
 
+    @Contrasts.override
     def get_coefficient_row_names(self, levels, reduced_rank=True):
         if reduced_rank:
             return ["avg", *(f"{level} - avg" for level in levels[:-1])]
@@ -512,6 +517,7 @@ class HelmertContrasts(Contrasts):
 
     FACTOR_FORMAT = "{name}[H.{field}]"
 
+    @Contrasts.override
     def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
         n = len(levels)
         if not reduced_rank:
@@ -524,11 +530,13 @@ class HelmertContrasts(Contrasts):
 
         return contr
 
+    @Contrasts.override
     def get_coding_column_names(self, levels, reduced_rank=True):
         if reduced_rank:
             return levels[:-1]
         return levels
 
+    @Contrasts.override
     def get_coefficient_row_names(self, levels, reduced_rank=True):
         if reduced_rank:
             return ["avg", *(f"{level} - rolling_avg" for level in levels[1:])]

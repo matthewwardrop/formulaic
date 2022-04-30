@@ -41,6 +41,8 @@ if TYPE_CHECKING:
 
 class FormulaMaterializerMeta(InterfaceMeta):
 
+    INTERFACE_RAISE_ON_VIOLATION = True
+
     REGISTERED_NAMES = {}
     REGISTERED_INPUTS = defaultdict(list)
 
