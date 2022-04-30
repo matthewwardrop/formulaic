@@ -57,9 +57,9 @@ that have *not* been implemented by `formualaic` are explicitly noted also.
 | Transform | Description | Formulaic | Patsy | R |
 |----------:|:------------|:---------:|:-----:|:-:|
 | `I(...)` | Identity transform, allowing arbitrary Python/R operations, e.g. `I(x+y)`. Note that in `formulaic`, it is more idiomatic to use `{x+y}`. | ✓ | ✓ | ✓ |
-| `C(...)` | Categorically encode a column, e.g. `C(x)` | partial[^6] | ✓ | ✓ |
+| `C(...)` | Categorically encode a column, e.g. `C(x)` | ✓ | ✓ | ✓ |
 | `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | ✗ |
-| `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^7] | ✓ |
+| `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^6] | ✓ |
 | `standardize(...)` | Alias of `scale`. | ✗ | ✓ | ✗ |
 | `poly(...)` | Generates a polynomial basis, allowing non-linear fits. | ✓ | ✗ | ✓ |
 | `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
@@ -118,5 +118,4 @@ and conventions of which you should be aware.
 [^3]: The caret operator is not supported, but will not cause an error. It is ignored by the patsy formula parser, and treated as XOR Python operation on column.
 [^4]: This somewhat confusing operator is useful when you want to include hierachical features in your data, and where certain interaction terms do not make sense (particularly in ANOVA contexts). For example, if `a` represents countries, and `b` represents cities, then the full product of terms from `a * b === a + b + a:b` does not make sense, because any value of `b` is guaranteed to coincide with a value in `a`, and does not independently add value. Thus, the operation `a / b === a + a:b` results in more sensible dataset. As a result, the `/` operator is right-distributive, since if `b` and `c` were both nested in `a`, you would want `a/(b+c) === a + a:b + a:c`. Likewise, the operator is not left-distributive, since if `c` is nested under both `a` and `b` separately, then you want `(a + b)/c === a + b + a:b:c`. Lastly, if `c` is nested in `b`, and `b` is nested in `a`, then you would want `a/b/c === a + a:(b/c) === a + a:b + a:b:c`.
 [^5]: Implemented by an R package called [Formula](https://cran.r-project.org/web/packages/Formula/index.html) that extends the default formula syntax.
-[^6]: Formulaic only supports one-hot encoding, and does not yet support arbitrary contrast matrices or specification which field to leave out in reduced rank, etc.
-[^7]: Patsy uses the `rescale` keyword rather than `scale`, but provides the same functionality.
+[^6]: Patsy uses the `rescale` keyword rather than `scale`, but provides the same functionality.
