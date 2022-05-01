@@ -101,12 +101,9 @@ def tokenize(
             quote_context.append("}")
             continue
         if char == "`":
-            if token.kind is Token.Kind.PYTHON:
-                token.update(char, i)
-            else:
-                if token:
-                    yield token
-                token = Token(source=formula, kind="name", source_start=i)
+            if token:
+                yield token
+            token = Token(source=formula, kind="name", source_start=i)
             quote_context.append("`")
             continue
         if char in "([":
@@ -124,10 +121,6 @@ def tokenize(
                 yield token
                 token = Token(source=formula)
             yield Token(source=formula).update(char, i, kind="operator")
-            continue
-
-        if token.kind is Token.Kind.PYTHON:
-            token.update(char, i)
             continue
 
         if whitespace_chars.match(char):
