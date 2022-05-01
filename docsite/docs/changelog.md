@@ -3,6 +3,33 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.3.4 (1 May 2022)
+
+This is a backward compatible major release that adds several new features.
+
+**New features and enhancements:**
+
+* Added support for customizing the contrasts generated for categorical
+  features, including treatment, sum, deviation, helmert and custom contrasts.
+* Added support for the generation of linear constraints for `ModelMatrix`
+  instances (see `ModelMatrix.model_spec.get_linear_constraints`).
+* Added support for passing `ModelMatrix`, `ModelSpec` and other formula-like
+  objects to the `model_matrix` sugar method so that pre-processed formulae can
+  be used.
+* Improved the way tokens are manipulated for the right-hand-side intercept and
+  substitutions of `0` with `-1` to avoid substitutions in quoted contexts.
+
+**Bugfixes and cleanups:**
+
+* Fixed variable sanitization during evaluation, allowing variables with
+  special characters to be used in Python transforms; for example:
+  ```bs(`my|feature%is^cool`)```.
+* Fixed the parsing of dictionaries and sets within python expressions in the
+  formula; for example: `C(x, {"a": [1,2,3]})`.
+* Bumped requirement on `astor` to >=0.8 to fix issues with ast-generation in
+  Python 3.8+ when numerical constants are present in the parsed python
+  expression (e.g. "bs(x, df=10)").
+
 ## 0.3.3 (4 April 2022)
 
 This is a minor patch release that migrates the package tooling to
