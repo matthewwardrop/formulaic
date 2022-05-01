@@ -54,6 +54,26 @@ def test_stateful_eval():
 def test_stateful_eval_variable_name_sanitization():
     assert (
         stateful_eval(
+            "`data_a`",
+            {"data_a": 1},
+            None,
+            None,
+            None,
+        )
+        == 1
+    )
+    assert (
+        stateful_eval(
+            "`data|a`",
+            {"data|a": 1},
+            None,
+            None,
+            None,
+        )
+        == 1
+    )
+    assert (
+        stateful_eval(
             "`data|a` / `data|b`",
             {"data|a": 1, "data|b": 2, "data_b": 3},
             None,
@@ -72,6 +92,25 @@ def test_stateful_eval_variable_name_sanitization():
         )
         == 0.5
     )
+    assert (
+        stateful_eval(
+            "sum([`2data|a` / `2data|b`, `2data_b`])",
+            {"2data|a": 1, "2data|b": 2, "2data_b": 3},
+            None,
+            None,
+            None,
+        )
+        == 3.5
+    )
+
+    with pytest.raises(SyntaxError):
+        stateful_eval(
+            "`2data|a",
+            {"2data|a": 1, "2data|b": 2, "2data_b": 3},
+            None,
+            None,
+            None,
+        )
 
 
 def test_stateful_eval_distribution():

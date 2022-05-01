@@ -3,13 +3,12 @@ import functools
 import inspect
 import keyword
 import re
-from typing import Any, Callable, Mapping, Optional, TYPE_CHECKING
+from typing import Any, Callable, Mapping, MutableMapping, Optional, TYPE_CHECKING
 
 import astor
 import numpy
 
-from formulaic.parser.algos.tokenize import tokenize
-from formulaic.parser.types import Token
+from .iterators import peekable_iter
 from .layered_mapping import LayeredMapping
 
 if TYPE_CHECKING:
@@ -165,55 +164,6 @@ def stateful_eval(
     )  # nosec
 
 
-def sanitize_variable_names(expr: str, env: Mapping) -> str:
-    """
-    Sanitize any variables names in the expression that are not valid Python
-    identifiers.
-
-    This function transforms `expr` into a new expression where identifiers
-    that would cause `SyntaxError`s are transformed into valid Python
-    identifiers. E.g. `1a` -> `<random string>`. `env` is updated to reflect
-    this name change, allowing field names to be any string rather than just
-    valid Python names.
-
-    Args:
-        expr: The expression to sanitize.
-        env: The environment to keep updated with any name substitutions. This
-            environment mapping will be mutated in place during this evaluation.
-
-    Returns:
-        The sanitized expression.
-    """
-    tokens = []
-    for token in tokenize(expr):
-        if token.kind.value == "name":
-            name = token.token
-            if not name.isidentifier() or keyword.iskeyword(name):
-                # Compute recognisable basename
-                base_name = "".join(
-                    [char if re.match(r"\w", char) else "_" for char in name]
-                )
-                if base_name[0].isdigit():
-                    base_name = "_" + base_name
-
-                # Verify new name is not in env already
-                new_name = base_name
-                while new_name in env:
-                    new_name = (
-                        base_name
-                        + "_"
-                        + "".join(
-                            numpy.random.choice(list("abcefghiklmnopqrstuvwxyz"), 10)
-                        )
-                    )
-
-                # Add new mapping
-                env[new_name] = env[name]
-                token = Token(new_name, kind="name")
-        tokens.append(token)
-    return " ".join([str(t) for t in tokens])
-
-
 def _is_stateful_transform(node: ast.AST, env: Mapping) -> bool:
     """
     Check whether a given ast.Call node enacts a stateful transform given
@@ -238,3 +188,88 @@ def _is_stateful_transform(node: ast.AST, env: Mapping) -> bool:
         return getattr(func, "__is_stateful_transform__", False)
     except NameError:
         return False
+
+
+# Variable sanitization
+
+
+UNQUOTED_BACKTICK_MATCHER = re.compile(
+    r"(\\\"|\"(?:\\\"|[^\"])*\"|\\'|'(?:\\'|[^'])*'|`)"
+)
+
+
+def sanitize_variable_names(expr: str, env: Mapping) -> str:
+    """
+    Sanitize any variables names in the expression that are not valid Python
+    identifiers and are surrounded by backticks (`). This allows use of field
+    names that are not valid Python names.
+
+    This function transforms `expr` into a new expression where identifiers that
+    would cause `SyntaxError`s are transformed into valid Python identifiers.
+    E.g. "func(`1a`)" -> "func(_1a)". `env` is updated to reflect the mapping of
+    the old identifier to the new one, provided that the original variable name
+    was already present.
+
+    Args:
+        expr: The expression to sanitize.
+        env: The environment to keep updated with any name substitutions. This
+            environment mapping will be mutated in place during this evaluation.
+
+    Returns:
+        The sanitized expression.
+    """
+
+    expr_parts = peekable_iter(UNQUOTED_BACKTICK_MATCHER.split(expr))
+
+    sanitized_expr = []
+
+    for expr_part in expr_parts:
+        if expr_part == "`":
+            variable_name_parts = []
+            while expr_parts.peek(None) not in ("`", None):
+                variable_name_parts.append(next(expr_parts))
+            variable_name = "".join(variable_name_parts)
+            if expr_parts.peek(None) is None:
+                sanitized_expr.append(f"`{variable_name}")
+            else:
+                next(expr_parts)
+                new_name = sanitize_variable_name(variable_name, env)
+                sanitized_expr.append(f" {new_name} ")
+        else:
+            sanitized_expr.append(expr_part)
+
+    return "".join(sanitized_expr).strip()
+
+
+def sanitize_variable_name(name: str, env: MutableMapping) -> str:
+    """
+    Generate a valid Python variable name for variable identifier `name`.
+
+    Args:
+        name: The variable name to sanitize.
+        env: The mapping of variable name to values in the evaluation
+            environment. If `name` is present in this mapping, an alias is
+            created for the same value for the new variable name.
+    """
+    if name.isidentifier() or keyword.iskeyword(name):
+        return name
+
+    # Compute recognisable basename
+    base_name = "".join([char if re.match(r"\w", char) else "_" for char in name])
+    if base_name[0].isdigit():
+        base_name = "_" + base_name
+
+    # Verify new name is not in env already, and if not add a random suffix.
+    new_name = base_name
+    while new_name in env:
+        new_name = (
+            base_name
+            + "_"
+            + "".join(numpy.random.choice(list("abcefghiklmnopqrstuvwxyz"), 10))
+        )
+
+    # Reuse the value for `name` for `new_name` also.
+    if name in env:
+        env[new_name] = env[name]
+
+    return new_name
