@@ -2,7 +2,7 @@ import ast
 import itertools
 import functools
 import re
-from typing import Any, List, Iterable, Union
+from typing import Any, List, Iterable, Set, Tuple, Union
 
 from .algos.tokens_to_ast import tokens_to_ast
 from .algos.tokenize import tokenize
@@ -184,8 +184,10 @@ class DefaultOperatorResolver(OperatorResolver):
 
     @property
     def operators(self):
-        def formula_part_expansion(lhs, rhs):
-            terms = (lhs.to_terms(), rhs.to_terms())
+        def formula_part_expansion(
+            lhs: Set[Term], rhs: Set[Term]
+        ) -> Tuple[Set[Term], Set[Term]]:
+            terms = (lhs, rhs)
 
             out = []
             for termset in terms:
@@ -195,23 +197,26 @@ class DefaultOperatorResolver(OperatorResolver):
                     out.append(termset)
             return tuple(out)
 
-        def nested_product_expansion(parents, nested):
-            terms = parents.to_terms()
-            common = functools.reduce(lambda x, y: x * y, terms)
-            return terms.union({common * term for term in nested.to_terms()})
+        def nested_product_expansion(
+            parents: Set[Term], nested: Set[Term]
+        ) -> Set[Term]:
+            common = functools.reduce(lambda x, y: x * y, parents)
+            return parents.union({common * term for term in nested})
 
-        def power(arg, power):
+        def power(arg: Set[Term], power: Set[Term]) -> Set[Term]:
+            power_term = next(iter(power))
             if (
-                not isinstance(power, Token)
-                or power.kind is not Token.Kind.VALUE
-                or not isinstance(ast.literal_eval(power.token), int)
+                not len(power_term.factors) == 1
+                or power_term.factors[0].token.kind is not Token.Kind.VALUE
+                or not isinstance(ast.literal_eval(power_term.factors[0].expr), int)
             ):
                 raise exc_for_token(
-                    power, "The right-hand argument of `**` must be a positive integer."
+                    power_term.factors[0].token,
+                    "The right-hand argument of `**` must be a positive integer.",
                 )
             return {
                 functools.reduce(lambda x, y: x * y, term)
-                for term in itertools.product(*[arg.to_terms()] * int(power.token))
+                for term in itertools.product(*[arg] * int(power_term.factors[0].expr))
             }
 
         return [
@@ -220,9 +225,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=-100,
                 associativity=None,
-                to_terms=lambda lhs, rhs: Structured(
-                    lhs=lhs.to_terms(), rhs=rhs.to_terms()
-                ),
+                to_terms=lambda lhs, rhs: Structured(lhs=lhs, rhs=rhs),
                 accepts_context=lambda context: len(context) == 0,
             ),
             Operator(
@@ -231,7 +234,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=-100,
                 associativity=None,
                 fixity="prefix",
-                to_terms=lambda expr: expr.to_terms(),
+                to_terms=lambda terms: terms,
                 accepts_context=lambda context: len(context) == 0,
             ),
             Operator(
@@ -249,18 +252,14 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda *args: set(
-                    itertools.chain(*[arg.to_terms() for arg in args])
-                ),
+                to_terms=lambda lhs, rhs: lhs.union(rhs),
             ),
             Operator(
                 "-",
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda left, right: set(
-                    set(left.to_terms()).difference(right.to_terms())
-                ),
+                to_terms=lambda left, right: left.difference(right),
             ),
             Operator(
                 "+",
@@ -268,7 +267,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=lambda arg: arg.to_terms(),
+                to_terms=lambda terms: terms,
             ),
             Operator(
                 "-",
@@ -276,18 +275,18 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=lambda arg: set(),
+                to_terms=lambda terms: set(),
             ),
             Operator(
                 "*",
                 arity=2,
                 precedence=200,
                 associativity="left",
-                to_terms=lambda *args: (
+                to_terms=lambda *term_sets: (
                     {
                         functools.reduce(lambda x, y: x * y, term)
-                        for term in itertools.product(*[arg.to_terms() for arg in args])
-                    }.union(itertools.chain(*[arg.to_terms() for arg in args]))
+                        for term in itertools.product(*term_sets)
+                    }.union(itertools.chain(*term_sets))
                 ),
             ),
             Operator(
@@ -302,9 +301,9 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=300,
                 associativity="left",
-                to_terms=lambda *args: {
+                to_terms=lambda *term_sets: {
                     functools.reduce(lambda x, y: x * y, term)
-                    for term in itertools.product(*[arg.to_terms() for arg in args])
+                    for term in itertools.product(*term_sets)
                 },
             ),
             Operator(

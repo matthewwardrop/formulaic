@@ -132,6 +132,7 @@ class Token:
         return Factor(
             expr=self.token,
             eval_method=kind_to_eval_method[self.kind],
+            token=self,
         )
 
     def to_terms(self) -> Iterable[Term]:

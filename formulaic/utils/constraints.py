@@ -433,7 +433,7 @@ class ConstraintOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=-200,
                 associativity=None,
-                to_terms=lambda lhs, rhs: (lhs.to_terms(), rhs.to_terms()),
+                to_terms=lambda lhs, rhs: (lhs, rhs),
                 accepts_context=lambda context: all([c.token == "," for c in context]),
             ),
             Operator(
@@ -441,27 +441,21 @@ class ConstraintOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=-100,
                 associativity=None,
-                to_terms=lambda lhs, rhs: add_terms(
-                    lhs.to_terms(), negate_terms(rhs.to_terms())
-                ),
+                to_terms=lambda lhs, rhs: add_terms(lhs, negate_terms(rhs)),
             ),
             Operator(
                 "+",
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda *args: functools.reduce(
-                    add_terms, tuple(arg.to_terms() for arg in args)
-                ),
+                to_terms=lambda *args: functools.reduce(add_terms, args),
             ),
             Operator(
                 "-",
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda left, right: sub_terms(
-                    left.to_terms(), right.to_terms()
-                ),
+                to_terms=lambda left, right: sub_terms(left, right),
             ),
             Operator(
                 "+",
@@ -469,7 +463,7 @@ class ConstraintOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=lambda arg: arg.to_terms(),
+                to_terms=lambda arg: arg,
             ),
             Operator(
                 "-",
@@ -477,20 +471,20 @@ class ConstraintOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=lambda arg: negate_terms(arg.to_terms()),
+                to_terms=lambda arg: negate_terms(arg),
             ),
             Operator(
                 "*",
                 arity=2,
                 precedence=200,
                 associativity="left",
-                to_terms=lambda lhs, rhs: mul_terms(lhs.to_terms(), rhs.to_terms()),
+                to_terms=lambda lhs, rhs: mul_terms(lhs, rhs),
             ),
             Operator(
                 "/",
                 arity=2,
                 precedence=200,
                 associativity="left",
-                to_terms=lambda lhs, rhs: div_terms(lhs.to_terms(), rhs.to_terms()),
+                to_terms=lambda lhs, rhs: div_terms(lhs, rhs),
             ),
         ]
