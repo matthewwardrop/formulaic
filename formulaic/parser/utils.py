@@ -54,7 +54,7 @@ def exc_for_missing_operator(
     )
 
 
-def __get_token_for_ast(ast: Union[Token, ASTNode]) -> Token:
+def __get_token_for_ast(ast: Union[Token, ASTNode]) -> Token:  # pragma: no cover
     """
     Ensure that incoming `ast` is a `Token`, or else generate one for debugging
     purposes (note that this token will not be valid `Token` for use other than

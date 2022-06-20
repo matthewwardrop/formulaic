@@ -137,6 +137,16 @@ class TestFormulaParser:
     def test_empty_formula(self):
         assert PARSER.get_terms("", include_intercept=False) == []
 
+    def test_long_formula(self):
+        names = {f"x{i}" for i in range(1000)}
+        expr = "+".join(names)
+
+        # Test recursion handling in string representation of ASTNode
+        assert "..." in repr(PARSER.get_ast(expr))
+
+        terms = PARSER.get_terms(expr, include_intercept=False)
+        assert {str(term) for term in terms} == names
+
 
 class TestDefaultOperatorResolver:
     @pytest.fixture

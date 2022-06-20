@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, Optional, Union, TYPE_CHECKING
 
 from .term import Term
+
+if TYPE_CHECKING:
+    from .token import Token  # pragma: no cover
 
 
 class Factor:
@@ -22,6 +27,8 @@ class Factor:
             numerical, categorical).
         metadata: An additional (optional) dictionary of metadata (currently
             unused).
+        token: The `Token` instance from which the the `Formula` object was
+            created.
     """
 
     class EvalMethod(Enum):
@@ -36,7 +43,7 @@ class Factor:
         NUMERICAL = "numerical"
         CATEGORICAL = "categorical"
 
-    __slots__ = ("expr", "_eval_method", "_kind", "metadata")
+    __slots__ = ("expr", "_eval_method", "_kind", "metadata", "token")
 
     def __init__(
         self,
@@ -44,12 +51,14 @@ class Factor:
         *,
         eval_method: Optional[Union[str, EvalMethod]] = None,
         kind: Optional[Union[str, Kind]] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
+        token: Optional[Token] = None,
     ):
         self.expr = expr
         self.eval_method = eval_method
         self.kind = kind
         self.metadata = metadata or {}
+        self.token = token
 
     @property
     def eval_method(self) -> EvalMethod:

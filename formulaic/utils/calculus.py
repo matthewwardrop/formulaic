@@ -26,7 +26,7 @@ def differentiate_term(
             the factors can be properly interpreted by `sympy`. For example, `I(x)`
             would not be understood.
     """
-    factors = term.factors
+    factors = set(term.factors)
 
     for var in vars:
         affected_factors = set(

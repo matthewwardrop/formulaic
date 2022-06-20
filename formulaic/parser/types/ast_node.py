@@ -1,4 +1,7 @@
-from typing import Any, Iterable, List
+from __future__ import annotations
+
+import graphlib
+from typing import Any, Dict, Iterable, List
 
 from .operator import Operator
 from .term import Term
@@ -25,11 +28,33 @@ class ASTNode:
     def to_terms(self) -> Iterable[Term]:
         """
         Evaluate this AST node and return the resulting set of `Term` instances.
+
+        Note: We use topological evaluation here to avoid recursion issues for
+        long formula (exceeding ~700 terms, though this depends on the recursion
+        limit set in the interpreter).
         """
-        return self.operator.to_terms(*self.args)
+        g = graphlib.TopologicalSorter(self.__generate_evaluation_graph())
+        g.prepare()
+
+        results = {}
+
+        while g.is_active():
+            for node in g.get_ready():
+                results[node] = node.operator.to_terms(
+                    *[
+                        (results[arg] if isinstance(arg, ASTNode) else arg.to_terms())
+                        for arg in node.args
+                    ]
+                )
+                g.done(node)
+
+        return results[self]
 
     def __repr__(self):
-        return f"<ASTNode {self.operator}: {self.args}>"
+        try:
+            return f"<ASTNode {self.operator}: {self.args}>"
+        except RecursionError:
+            return f"<ASTNode {self.operator}: ...>"
 
     def flatten(self, str_args: bool = False) -> List[Any]:
         """
@@ -51,3 +76,15 @@ class ASTNode:
                 for arg in self.args
             ],
         ]
+
+    # Helpers
+
+    def __generate_evaluation_graph(self) -> Dict[ASTNode, List[ASTNode]]:
+        nodes_to_parse = [self]
+        graph = {}
+        while nodes_to_parse:
+            node = nodes_to_parse.pop()
+            children = [child for child in node.args if isinstance(child, ASTNode)]
+            nodes_to_parse.extend(children)
+            graph[node] = children
+        return graph
