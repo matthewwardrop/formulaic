@@ -22,7 +22,9 @@ def categorical_encode_series_to_sparse_csc_matrix(
         The sparse (column-major) matrix representation of the series dummy
         encoding.
     """
-    df = pandas.DataFrame({"series": pandas.Series(series).astype("category").reset_index(drop=True)})
+    df = pandas.DataFrame(
+        {"series": pandas.Series(series).astype("category").reset_index(drop=True)}
+    )
     levels = list(levels or df.series.cat.categories)
     if drop_first:
         levels = levels[1:]
