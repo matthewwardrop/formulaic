@@ -236,3 +236,14 @@ class TestLinearConstraintParser:
             ),
         ):
             LinearConstraintParser(self.COLUMNS).get_matrix("a / b")
+
+    @pytest.mark.parametrize(
+        "constraint", [{"a": 0, "b": 1, "c": 2}, "a = 0, b = 1, c = 2"]
+    )
+    def test_multiple_constraint_syntax(self, constraint):
+        print(self.COLUMNS)
+        lc = LinearConstraints.from_spec(constraint, variable_names=self.COLUMNS)
+        expected_values = numpy.array([0.0, 1, 2])
+        numpy.testing.assert_allclose(lc.constraint_values, expected_values)
+        expected_matrix = numpy.array([[1.0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+        numpy.testing.assert_allclose(lc.constraint_matrix, expected_matrix)
