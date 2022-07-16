@@ -348,6 +348,13 @@ class ConstraintOperatorResolver(OperatorResolver):
 
     @property
     def operators(self):
+        def join_tuples(lhs, rhs):
+            if not isinstance(lhs, tuple):
+                lhs = (lhs,)
+            if not isinstance(rhs, tuple):
+                rhs = (rhs,)
+            return lhs + rhs
+
         def add_terms(terms_left, terms_right):
 
             terms_left = {term: term for term in terms_left}
@@ -433,8 +440,8 @@ class ConstraintOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=-200,
                 associativity=None,
-                to_terms=lambda lhs, rhs: (lhs, rhs),
-                accepts_context=lambda context: all([c.token == "," for c in context]),
+                to_terms=join_tuples,
+                accepts_context=lambda context: all([c.symbol == "," for c in context]),
             ),
             Operator(
                 "=",
