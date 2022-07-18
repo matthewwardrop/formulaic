@@ -90,12 +90,20 @@ class TestStructured:
         assert Structured(Structured(o))._simplify() is o
         assert Structured(o, key="value")._simplify() == Structured(o, key="value")
         assert Structured(key=Structured(o))._simplify() == Structured(key=o)
+        assert Structured(
+            key=Structured(o), _metadata={"a": 1}
+        )._simplify()._metadata == {"a": 1}
+        assert Structured(
+            key=Structured(o), _mapped_attrs={"a"}
+        )._simplify()._mapped_attrs == {"a"}
 
     def test__update(self):
         o = object()
         assert Structured(o), _update([o]) == Structured([o])
         assert Structured()._update(key=o) == Structured(key=o)
         assert Structured(1, key=2)._update(3) == Structured(3, key=2)
+        assert Structured(_metadata={"a": 1})._update()._metadata == {"a": 1}
+        assert Structured(_mapped_attrs={"a"})._update()._mapped_attrs == {"a"}
 
     def test_mutation(self):
         s = Structured(1)

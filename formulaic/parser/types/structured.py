@@ -191,12 +191,14 @@ class Structured(Generic[ItemType]):
             structured = structured.root
         if recurse and isinstance(structured, Structured):
             return Structured(
+                _mapped_attrs=self._mapped_attrs,
+                _metadata=self._metadata,
                 **{
                     key: value._simplify(recurse)
                     if isinstance(value, Structured)
                     else value
-                    for key, value in self._structure.items()
-                }
+                    for key, value in structured._structure.items()
+                },
             )
         return structured
 
@@ -213,6 +215,8 @@ class Structured(Generic[ItemType]):
             structure["root"] = root
         return Structured(
             **{
+                "_mapped_attrs": self._mapped_attrs,
+                "_metadata": self._metadata,
                 **self._structure,
                 **structure,
             }
