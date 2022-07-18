@@ -1,3 +1,4 @@
+from ast import Str
 import pickle
 import re
 from io import BytesIO
@@ -41,6 +42,17 @@ class TestStructured:
         with pytest.raises(KeyError, match="root"):
             Structured()["root"]
 
+        s2 = Structured({"my_key": "my_value"})
+        assert list(s2) == [{"my_key": "my_value"}]
+        assert s2["my_key"] == "my_value"
+
+        s3 = Structured(["a", "b"])
+        assert list(s3) == ["a", "b"]
+        assert s3[0] == "a"
+
+        s4 = Structured((1, 2))
+        assert s4[0] == 1
+
     def test_mapped_attrs(self):
         class O:
             def __init__(self, o):
@@ -53,24 +65,58 @@ class TestStructured:
 
     def test__map(self):
         assert Structured("Hi", a="Hello", b="Greetings")._map(len)._to_dict() == {
-            None: 2,
+            "root": 2,
             "a": 5,
             "b": 9,
         }
         assert Structured(("Hi", "Dave"), a=["Response", "not", "forthcoming"])._map(
             len
         )._to_dict() == {
-            None: (2, 4),
+            "root": (2, 4),
             "a": 3,
         }
         assert Structured(("Hi", Structured("Hi!")), a=Structured(hello="world"))._map(
             len
         )._to_dict() == {
-            None: (2, 1),
+            "root": (2, 1),
             "a": {
                 "hello": 5,
             },
         }
+
+    def test__simplify(self):
+        o = object()
+        assert Structured(o)._simplify() is o
+        assert Structured(Structured(o))._simplify() is o
+        assert Structured(o, key="value")._simplify() == Structured(o, key="value")
+        assert Structured(key=Structured(o))._simplify() == Structured(key=o)
+
+    def test__update(self):
+        o = object()
+        assert Structured(o), _update([o]) == Structured([o])
+        assert Structured()._update(key=o) == Structured(key=o)
+        assert Structured(1, key=2)._update(3) == Structured(3, key=2)
+
+    def test_mutation(self):
+        s = Structured(1)
+        s.root = 10
+        assert s == Structured(10)
+        s.key = 10
+        assert s == Structured(10, key=10)
+        s["key"] = 20
+        assert s == Structured(10, key=20)
+
+        with pytest.raises(AttributeError):
+            s._key = 10
+
+        with pytest.raises(KeyError):
+            s["_key"] = 10
+
+        with pytest.raises(KeyError):
+            s["0invalid"] = 10
+
+        with pytest.raises(KeyError):
+            s[0] = 10
 
     def test_iteration(self):
         assert list(Structured()) == []
@@ -81,28 +127,25 @@ class TestStructured:
         assert list(Structured("a", b="b", c=["c"])) == ["a", "b", ["c"]]
         assert list(Structured("a", b="b", c=("c",))) == ["a", "b", ("c",)]
 
+    def test_equality(self):
+        assert Structured() == Structured()
+        assert Structured(1) != Structured()
+        assert Structured(1) == Structured(1)
+        assert Structured(key="value") == Structured(key="value")
+        assert Structured(key="value") != Structured(key2="value")
+        assert Structured() != object()
+
     def test_repr(self):
-        assert repr(Structured("a")) == ("root:\n" "    'a'")
-        assert repr(Structured("a", b="b")) == (
-            "root:\n" "    'a'\n\n" "Structured children:\n\n" ".b\n" "    'b'"
-        )
-        assert repr(Structured(("a",), b=("b", "c"))) == (
-            "root:\n"
-            "    [0]:\n"
-            "        'a'\n\n"
-            "Structured children:\n\n"
-            ".b\n"
-            "    [0]:\n"
-            "        'b'\n"
-            "    [1]:\n"
-            "        'c'"
+        assert repr(Structured("a")) == "root:\n    'a'"
+        assert repr(Structured("a", b="b")) == "root:\n    'a'\n.b:\n    'b'"
+        assert (
+            repr(Structured(("a",), b=("b", "c")))
+            == "root:\n    [0]:\n        'a'\n.b:\n    [0]:\n        'b'\n    [1]:\n        'c'"
         )
 
         # Verify that string representations correctly avoid use of `repr`
-        assert str(Structured("a")) == ("root:\n" "    a")
-        assert str(Structured("a", b="b")) == (
-            "root:\n" "    a\n\n" "Structured children:\n\n" ".b\n" "    b"
-        )
+        assert str(Structured("a")) == "root:\n    a"
+        assert str(Structured("a", b="b")) == "root:\n    a\n.b:\n    b"
 
     def test_pickleable(self):
         o = BytesIO()
@@ -111,7 +154,7 @@ class TestStructured:
         o.seek(0)
         s2 = pickle.load(o)
         assert s2._to_dict() == {
-            None: "a",
+            "root": "a",
             "b": "b",
             "c": ("c", "d"),
         }

@@ -91,9 +91,9 @@ class TestFormula:
 
     def test_repr(self, formula_expr, formula_exprs):
         assert repr(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
-        assert repr(formula_exprs) == (".lhs\n" "    a\n" ".rhs\n" "    1 + b")
+        assert repr(formula_exprs) == ".lhs:\n    a\n.rhs:\n    1 + b"
         assert repr(Formula("a | b")) == (
-            "root:\n" "    [0]:\n" "        1 + a\n" "    [1]:\n" "        1 + b"
+            "root:\n    [0]:\n        1 + a\n    [1]:\n        1 + b"
         )
 
     def test_equality(self):
