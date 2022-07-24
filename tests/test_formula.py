@@ -38,13 +38,17 @@ class TestFormula:
         ]
 
         f = Formula((["a", "b"], ["c", "d"]))
-        assert isinstance(f.terms, tuple)
+        assert isinstance(f.terms, Structured)
+        assert isinstance(f.terms.root, tuple)
         assert [str(t) for t in f.terms[0]] == ["a", "b"]
         assert [str(t) for t in f.terms[1]] == ["c", "d"]
 
         f = Formula(["a"])
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
+
+        f2 = Formula(f)
+        assert f2.terms == f.terms
 
     def test_terms(self, formula_expr):
         assert [str(t) for t in formula_expr.terms] == [
@@ -66,9 +70,9 @@ class TestFormula:
         assert isinstance(mm_exprs, Structured) and len(mm_exprs) == 2
 
     def test_structured(self, formula_exprs):
-        assert formula_exprs.lhs.terms == ["a"]
-        assert formula_exprs.rhs.terms == ["1", "b"]
-        assert Formula("a | b")[0].terms == ["1", "a"]
+        assert formula_exprs.lhs.terms.root == ["a"]
+        assert formula_exprs.rhs.terms.root == ["1", "b"]
+        assert Formula("a | b")[0].terms.root == ["1", "a"]
 
         with pytest.raises(
             AttributeError,
@@ -85,9 +89,9 @@ class TestFormula:
 
     def test_differentiate(self):
         f = Formula("a + b + log(c) - 1")
-        assert f.differentiate("a").terms == ["1", "0", "0"]
-        assert f.differentiate("c").terms == ["0", "0", "0"]
-        assert f.differentiate("c", use_sympy=True).terms == ["0", "0", "(1/c)"]
+        assert f.differentiate("a").terms.root == ["1", "0", "0"]
+        assert f.differentiate("c").terms.root == ["0", "0", "0"]
+        assert f.differentiate("c", use_sympy=True).terms.root == ["0", "0", "(1/c)"]
 
     def test_repr(self, formula_expr, formula_exprs):
         assert repr(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
@@ -107,6 +111,9 @@ class TestFormula:
             Formula({"a": 1, "b": 2})
         with pytest.raises(FormulaInvalidError):
             Formula([{"a": 1}])
+        with pytest.raises(FormulaInvalidError):
+            # Should not be possible to reach this, but check anyway.
+            Formula._Formula__check_terms(("a",))
 
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):
@@ -117,5 +124,5 @@ class TestFormula:
         pickle.dump(formula_exprs, o)
         o.seek(0)
         formula = pickle.load(o)
-        assert formula.lhs.terms == ["a"]
-        assert formula.rhs.terms == ["1", "b"]
+        assert formula.lhs.terms.root == ["a"]
+        assert formula.rhs.terms.root == ["1", "b"]

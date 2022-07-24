@@ -2,12 +2,12 @@ import ast
 import itertools
 import functools
 import re
-from typing import Any, List, Iterable, Set, Tuple, Union
+from dataclasses import dataclass, field
+from typing import List, Iterable, Set, Tuple, Union
 
-from .algos.tokens_to_ast import tokens_to_ast
 from .algos.tokenize import tokenize
 from .types import (
-    ASTNode,
+    FormulaParser,
     Operator,
     OperatorResolver,
     Structured,
@@ -22,50 +22,39 @@ from .utils import (
 )
 
 
-class FormulaParser:
+@dataclass
+class DefaultFormulaParser(FormulaParser):
     """
-    The default and base formula parser for `Formula`s.
+    The default parser for `Formula`s.
 
-    The role of this class is to transform a string representation of a formula
-    to a sequence of `Term` instances that can be evaluated by materializers
-    and ultimately rendered into model matrices.
-
-    This class can be subclassed to customize this behavior. The three phases of
-    formula parsing are split out into separate methods to make this easier.
-    They are:
-        - get_tokens: Which returns an iterable of `Token` instances. By default
-            this uses `tokenize()` and handles the addition/removal of the
-            intercept.
-        - get_ast: Which converts the iterable of `Token`s into an abstract
-            syntax tree. By default this uses `tokens_to_ast()` and the nominated
-            `OperatorResolver` instance.
-        - get_terms: Which evaluates the abstract syntax tree and returns an
-            iterable of `Term`s.
-    Only the `get_terms()` method is essential from an API perspective.
+    It extends `FormulaParser` by defaulting the operator resolver to
+    `DefaultOperatorResolver`, and by adding the option to enable the inclusion
+    of an intercept.
 
     Attributes:
         operator_resolver: The operator resolver to use when parsing the formula
             string and generating the abstract syntax tree. If not specified,
             it will default to `DefaultOperatorResolver`.
+        include_intercept: Whether to include an intercept by default
+                (formulas can still omit this intercept in the usual manner:
+                adding a '-1' or '+0' term).
     """
 
     ZERO_PATTERN = re.compile(r"(?:^|(?<=\W))0(?=\W|$)")
 
-    def __init__(self, operator_resolver: OperatorResolver = None):
-        self.operator_resolver = operator_resolver or DefaultOperatorResolver()
+    # Attributes
+    operator_resolver: OperatorResolver = field(
+        default_factory=lambda: DefaultOperatorResolver()
+    )
+    include_intercept: bool = True
 
-    def get_tokens(
-        self, formula: str, *, include_intercept: bool = True
-    ) -> Iterable[Token]:
+    def get_tokens(self, formula: str) -> Iterable[Token]:
         """
         Return an iterable of `Token` instances for the nominated `formula`
         string.
 
         Args:
             formula: The formula string to be tokenized.
-            include_intercept: Whether to include an intercept by default
-                (formulas can still omit this intercept in the usual manner:
-                adding a '-1' or '+0' term).
         """
 
         # Transform formula to add intercepts and replace 0 with -1. We do this
@@ -87,7 +76,7 @@ class FormulaParser:
         )
 
         # Insert intercepts
-        if include_intercept:
+        if self.include_intercept:
             tokens = list(
                 insert_tokens_after(
                     tokens,
@@ -123,52 +112,6 @@ class FormulaParser:
         tokens = merge_operator_tokens(tokens, symbols={"+", "-"})
 
         return tokens
-
-    def get_ast(self, formula: str, *, include_intercept: bool = True) -> ASTNode:
-        """
-        Assemble an abstract syntax tree for the nominated `formula` string.
-
-        Args:
-            formula: The formula for which an AST should be generated.
-            include_intercept: Whether to include an intercept by default
-                (formulas can still omit this intercept in the usual manner:
-                adding a '-1' or '+0' term).
-        """
-        return tokens_to_ast(
-            self.get_tokens(formula, include_intercept=include_intercept),
-            operator_resolver=self.operator_resolver,
-        )
-
-    def get_terms(
-        self, formula, *, sort=True, include_intercept=True
-    ) -> Union[Iterable[Term], Iterable[Iterable[Term]], Any]:
-        """
-        Assemble the `Term` instances for a formula string. Depending on the
-        operators involved, this may be an iterable of `Term` instances, or
-        an iterable of iterables of `Term`s, etc.
-
-        Args:
-            formula: The formula for which an AST should be generated.
-            sort: Whether to sort the terms before returning them.
-            include_intercept: Whether to include an intercept by default
-                (formulas can still omit this intercept in the usual manner:
-                adding a '-1' or '+0' term).
-        """
-        ast = self.get_ast(formula, include_intercept=include_intercept)
-        if ast is None:
-            return []
-
-        terms = ast.to_terms()
-
-        if sort:
-            if isinstance(terms, Structured):
-                terms = terms._map(sorted)
-            elif isinstance(terms, tuple):
-                terms = tuple(sorted(ts) for ts in terms)
-            else:
-                terms = sorted(terms)
-
-        return terms
 
 
 class DefaultOperatorResolver(OperatorResolver):

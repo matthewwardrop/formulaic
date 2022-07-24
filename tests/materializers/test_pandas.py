@@ -343,4 +343,4 @@ class TestPandasMaterializer:
         o.seek(0)
         ms2 = pickle.load(o)
         assert isinstance(ms, Structured)
-        assert ms2.lhs.formula.terms == ["a"]
+        assert ms2.lhs.formula.terms.root == ["a"]

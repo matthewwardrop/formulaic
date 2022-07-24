@@ -136,12 +136,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 f"Nominated output {repr(output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}."
             )
 
-        # Prepare (potentially structured) ModelSpec(s)
+        # Prepare ModelSpec(s)
         model_specs = self._prepare_model_specs(
             spec, ensure_full_rank=ensure_full_rank, na_action=na_action, output=output
         )
-        if not isinstance(model_specs, Structured):
-            model_specs = Structured(model_specs)
 
         # Step 0: Pool all factors and transform state, ensuring consistency
         # during factor evaluation (esp. which rows get dropped).
@@ -179,9 +177,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         )
         model_matrices._mapped_attrs = {"model_spec"}
 
-        if len(model_matrices) == 1 and model_matrices._has_root:
-            return model_matrices.root
-        return model_matrices
+        return model_matrices._simplify()
 
     def _build_model_matrix(self, spec: ModelSpec, drop_rows):
 
@@ -255,38 +251,30 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         ensure_full_rank,
         na_action,
         output,
-    ) -> Union[ModelSpec, Structured[ModelSpec]]:
+    ) -> Structured[ModelSpec]:
         from formulaic.formula import Formula
         from formulaic.model_spec import ModelSpec
 
-        if isinstance(spec, Structured):
-            return spec._map(
-                functools.partial(
-                    self._prepare_model_specs,
-                    ensure_full_rank=ensure_full_rank,
-                    na_action=na_action,
-                    output=output,
-                ),
-                recurse=False,
-            )
-        elif isinstance(spec, ModelSpec):
-            return spec
+        if isinstance(spec, str):
+            spec: Structured[List[Term]] = Formula.from_spec(spec).terms
+        elif not isinstance(spec, Structured):
+            spec = Structured(spec)
 
-        formula = Formula.from_spec(spec)
-        if isinstance(formula.terms, Structured):
-            return self._prepare_model_specs(
-                formula.terms,
+        def prepare_model_spec(obj):
+            if isinstance(obj, ModelSpec):
+                return obj
+            formula = Formula.from_spec(obj)
+            if not formula.terms._has_root or formula.terms._has_structure:
+                return formula.terms._map(prepare_model_spec)
+            return ModelSpec(
+                formula=formula,
+                materializer=self,
                 ensure_full_rank=ensure_full_rank,
                 na_action=na_action,
                 output=output,
             )
-        return ModelSpec(
-            formula=formula,
-            materializer=self,
-            ensure_full_rank=ensure_full_rank,
-            na_action=na_action,
-            output=output,
-        )
+
+        return spec._map(prepare_model_spec)
 
     def _prepare_factor_evaluation_model_spec(self, model_specs: Structured[ModelSpec]):
         from formulaic.model_spec import ModelSpec

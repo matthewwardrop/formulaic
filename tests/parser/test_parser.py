@@ -1,10 +1,13 @@
 import re
+from typing import List
+from xml.etree.ElementInclude import include
 
 import pytest
 
 from formulaic.errors import FormulaParsingError, FormulaSyntaxError
-from formulaic.parser import FormulaParser, DefaultOperatorResolver
+from formulaic.parser import DefaultFormulaParser, DefaultOperatorResolver
 from formulaic.parser.types import Structured, Token
+from formulaic.parser.types.term import Term
 
 
 FORMULA_TO_TOKENS = {
@@ -76,7 +79,8 @@ FORMULA_TO_TERMS = {
     "{a | b | c}": ["1", "a | b | c"],
 }
 
-PARSER = FormulaParser()
+PARSER = DefaultFormulaParser()
+PARSER_NO_INTERCEPT = DefaultFormulaParser(include_intercept=False)
 
 
 class TestFormulaParser:
@@ -86,10 +90,10 @@ class TestFormulaParser:
 
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
-        generated_terms = PARSER.get_terms(formula)
-        if isinstance(generated_terms, Structured):
+        generated_terms: Structured[List[Term]] = PARSER.get_terms(formula)
+        if generated_terms._has_structure:
             comp = generated_terms._map(sorted)._to_dict()
-        elif isinstance(generated_terms, tuple):
+        elif generated_terms._has_root and isinstance(generated_terms.root, tuple):
             comp = tuple(
                 sorted([str(term) for term in group]) for group in generated_terms
             )
@@ -135,7 +139,7 @@ class TestFormulaParser:
             assert PARSER.get_terms("a**(b+c)")
 
     def test_empty_formula(self):
-        assert PARSER.get_terms("", include_intercept=False) == []
+        assert PARSER_NO_INTERCEPT.get_terms("") == Structured([])
 
     def test_long_formula(self):
         names = {f"x{i}" for i in range(1000)}
@@ -144,7 +148,7 @@ class TestFormulaParser:
         # Test recursion handling in string representation of ASTNode
         assert "..." in repr(PARSER.get_ast(expr))
 
-        terms = PARSER.get_terms(expr, include_intercept=False)
+        terms = PARSER_NO_INTERCEPT.get_terms(expr)
         assert {str(term) for term in terms} == names
 
 
