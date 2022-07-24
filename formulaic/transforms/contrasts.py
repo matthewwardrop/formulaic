@@ -490,9 +490,9 @@ class SumContrasts(Contrasts):
         n = len(levels)
         if not reduced_rank:
             return spsparse.eye(n).tocsc() if sparse else numpy.eye(n)
-        contr = spsparse.eye(n, n - 1).tocsc() if sparse else numpy.eye(n, n - 1)
+        contr = spsparse.eye(n, n - 1).tolil() if sparse else numpy.eye(n, n - 1)
         contr[-1, :] = -1
-        return contr
+        return contr.tocsc() if sparse else contr
 
     @Contrasts.override
     def get_coding_column_names(self, levels, reduced_rank=True):
