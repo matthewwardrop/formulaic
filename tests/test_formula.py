@@ -29,8 +29,8 @@ class TestFormula:
         return pandas.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
     def test_constructor(self):
-        assert [str(t) for t in Formula(["a", "b", "c"]).terms] == ["a", "b", "c"]
-        assert [str(t) for t in Formula(["a", "c", "b", "1"]).terms] == [
+        assert [str(t) for t in Formula(["a", "b", "c"])] == ["a", "b", "c"]
+        assert [str(t) for t in Formula(["a", "c", "b", "1"])] == [
             "a",
             "c",
             "b",
@@ -38,19 +38,34 @@ class TestFormula:
         ]
 
         f = Formula((["a", "b"], ["c", "d"]))
-        assert isinstance(f.terms, Structured)
-        assert isinstance(f.terms.root, tuple)
-        assert [str(t) for t in f.terms[0]] == ["a", "b"]
-        assert [str(t) for t in f.terms[1]] == ["c", "d"]
+        assert isinstance(f, Structured)
+        assert isinstance(f.root, tuple)
+        assert [str(t) for t in f[0]] == ["a", "b"]
+        assert [str(t) for t in f[1]] == ["c", "d"]
 
         f = Formula(["a"])
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
 
         f2 = Formula(f)
-        assert f2.terms == f.terms
+        assert f2 == f
 
     def test_terms(self, formula_expr):
+        assert [str(t) for t in formula_expr] == [
+            "1",
+            "a",
+            "b",
+            "c",
+            "a:b",
+            "a:c",
+            "b:c",
+            "a:b:c",
+        ]
+
+    @pytest.mark.filterwarnings(
+        r"ignore:`Formula\.terms` is deprecated.*:DeprecationWarning"
+    )
+    def test_terms_alias(self, formula_expr):
         assert [str(t) for t in formula_expr.terms] == [
             "1",
             "a",
@@ -70,28 +85,28 @@ class TestFormula:
         assert isinstance(mm_exprs, Structured) and len(mm_exprs) == 2
 
     def test_structured(self, formula_exprs):
-        assert formula_exprs.lhs.terms.root == ["a"]
-        assert formula_exprs.rhs.terms.root == ["1", "b"]
-        assert Formula("a | b")[0].terms.root == ["1", "a"]
+        assert formula_exprs.lhs == ["a"]
+        assert formula_exprs.rhs == ["1", "b"]
+        assert Formula("a | b")[0].root == ["1", "a"]
 
         with pytest.raises(
             AttributeError,
-            match=re.escape("This formula has no substructures keyed by 'missing'."),
+            match=re.escape(
+                "This `Formula` instance does not have structure @ `'missing'`."
+            ),
         ):
             formula_exprs.missing
         with pytest.raises(
             KeyError,
-            match=re.escape(
-                "This formula does not have any sub-parts indexable via `0`."
-            ),
+            match=re.escape("This `Formula` instance does not have structure @ `0`."),
         ):
             formula_exprs[0]
 
     def test_differentiate(self):
         f = Formula("a + b + log(c) - 1")
-        assert f.differentiate("a").terms.root == ["1", "0", "0"]
-        assert f.differentiate("c").terms.root == ["0", "0", "0"]
-        assert f.differentiate("c", use_sympy=True).terms.root == ["0", "0", "(1/c)"]
+        assert f.differentiate("a").root == ["1", "0", "0"]
+        assert f.differentiate("c").root == ["0", "0", "0"]
+        assert f.differentiate("c", use_sympy=True).root == ["0", "0", "(1/c)"]
 
     def test_repr(self, formula_expr, formula_exprs):
         assert repr(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
@@ -113,7 +128,7 @@ class TestFormula:
             Formula([{"a": 1}])
         with pytest.raises(FormulaInvalidError):
             # Should not be possible to reach this, but check anyway.
-            Formula._Formula__check_terms(("a",))
+            Formula._Formula__validate_prepared_item(("a",))
 
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):
@@ -124,5 +139,5 @@ class TestFormula:
         pickle.dump(formula_exprs, o)
         o.seek(0)
         formula = pickle.load(o)
-        assert formula.lhs.terms.root == ["a"]
-        assert formula.rhs.terms.root == ["1", "b"]
+        assert formula.lhs == ["a"]
+        assert formula.rhs == ["1", "b"]
