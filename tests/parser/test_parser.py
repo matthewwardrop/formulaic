@@ -1,3 +1,5 @@
+from io import BytesIO
+import pickle
 import re
 from typing import List
 from xml.etree.ElementInclude import include
@@ -185,3 +187,11 @@ class TestDefaultOperatorResolver:
             FormulaSyntaxError, match=re.escape("Operator `~` is incorrectly used.")
         ):
             resolver.resolve(Token("~"), 1, [tilde_operator])
+
+    def test_pickleable(self, resolver):
+        o = BytesIO()
+        pickle.dump(resolver, o)
+        o.seek(0)
+        resolver = pickle.load(o)
+        assert "operator_table" not in resolver.__dict__
+        assert resolver.operator_table

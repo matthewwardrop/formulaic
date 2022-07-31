@@ -6,6 +6,12 @@ from ..utils import exc_for_token
 from .operator import Operator
 from .token import Token
 
+# Cached property was introduced in Python 3.8 (we currently support 3.7)
+try:
+    from functools import cached_property
+except ImportError:  # pragma: no cover
+    from cached_property import cached_property
+
 
 class OperatorResolver(metaclass=abc.ABCMeta):
     """
@@ -25,15 +31,6 @@ class OperatorResolver(metaclass=abc.ABCMeta):
             `Operator` instances implementing it.
     """
 
-    def __init__(self):
-        self.operator_table = defaultdict(list)
-        for operator in self.operators:
-            self.operator_table[operator.symbol].append(operator)
-        for symbol in self.operator_table:
-            self.operator_table[symbol] = sorted(
-                self.operator_table[symbol], key=lambda op: op.precedence, reverse=True
-            )
-
     @abc.abstractproperty
     def operators(self) -> List[Operator]:
         """
@@ -41,6 +38,17 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         `.resolve()`.
         """
         ...  # pragma: no cover
+
+    @cached_property
+    def operator_table(self):
+        operator_table = defaultdict(list)
+        for operator in self.operators:
+            operator_table[operator.symbol].append(operator)
+        for symbol in operator_table:
+            operator_table[symbol] = sorted(
+                operator_table[symbol], key=lambda op: op.precedence, reverse=True
+            )
+        return operator_table
 
     def resolve(
         self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
@@ -91,3 +99,7 @@ class OperatorResolver(metaclass=abc.ABCMeta):
                 f"Ambiguous operator `{symbol}`. This is not usually a user error. Please report this!",
             )
         return candidates[0]
+
+    # The operator table cache may not be pickleable, so let's drop it.
+    def __getstate__(self):
+        return {}
