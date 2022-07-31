@@ -97,6 +97,14 @@ class TestStructured:
             key=Structured(o), _mapped_attrs={"a"}
         )._simplify()._mapped_attrs == {"a"}
 
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "Cannot simplify `Structured` instances in-place if `unwrap` is `True`."
+            ),
+        ):
+            Structured()._simplify(unwrap=True, inplace=True)
+
     def test__update(self):
         o = object()
         assert Structured(o), _update([o]) == Structured([o])

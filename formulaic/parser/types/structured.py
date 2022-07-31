@@ -99,10 +99,16 @@ class Structured(Generic[ItemType]):
                 f"The invalid keys are: {set(key for key in structure if key.startswith('_'))}."
             )
         if root is not _MISSING:
-            structure["root"] = root
-        self._structure = structure
+            structure["root"] = self._prepare_item("root", root)
         self._mapped_attrs = set(_mapped_attrs or ())
         self._metadata = _metadata
+
+        self._structure = {
+            key: self._prepare_item(key, item) for key, item in structure.items()
+        }
+
+    def _prepare_item(self, key: str, item: Any) -> Any:
+        return item
 
     @property
     def _has_root(self) -> bool:
@@ -168,7 +174,9 @@ class Structured(Generic[ItemType]):
 
         return {key: do_recursion(value) for key, value in self._structure.items()}
 
-    def _simplify(self, recurse: bool = True) -> Union[Any, Structured[ItemType]]:
+    def _simplify(
+        self, *, recurse: bool = True, unwrap: bool = True, inplace: bool = False
+    ) -> Union[Any, Structured[ItemType]]:
         """
         Simplify this `Structured` instance by:
             - returning the object stored at the root node if there is no other
@@ -178,29 +186,50 @@ class Structured(Generic[ItemType]):
                 any nested `Structured` instances.
 
         Args:
+            unwrap: Whether to unwrap the root node (returning the raw
+                unstructured root value) if there is no other structure.
             recurse: Whether to recurse the simplification into the objects
                 associated with the keys of this (and nested) `Structured`
                 instances.
+            inplace: Whether to simplify the current structure (`True`), or
+                return a new object with the simplifications (`False`). Note
+                that if `True`, `unwrap` *must* be `False`.
         """
+        if inplace and unwrap:
+            raise RuntimeError(
+                f"Cannot simplify `{self.__class__.__name__}` instances "
+                "in-place if `unwrap` is `True`."
+            )
         structured = self
         while (
             isinstance(structured, Structured)
             and structured._has_root
             and not structured._has_structure
+            and (unwrap or isinstance(structured.root, Structured))
         ):
             structured = structured.root
-        if recurse and isinstance(structured, Structured):
-            return Structured(
-                _mapped_attrs=self._mapped_attrs,
-                _metadata=self._metadata,
-                **{
-                    key: value._simplify(recurse)
-                    if isinstance(value, Structured)
-                    else value
-                    for key, value in structured._structure.items()
-                },
-            )
-        return structured
+
+        if not isinstance(structured, Structured):
+            return structured
+
+        structure = structured._structure
+
+        if recurse:
+            structure = {
+                key: value._simplify(recurse=True)
+                if isinstance(value, Structured)
+                else value
+                for key, value in structured._structure.items()
+            }
+
+        if inplace:
+            self._structure = structure
+            return self
+        return self.__class__(
+            _mapped_attrs=self._mapped_attrs,
+            _metadata=self._metadata,
+            **structure,
+        )
 
     def _update(self, root=_MISSING, **structure) -> Structured[ItemType]:
         """
@@ -213,12 +242,15 @@ class Structured(Generic[ItemType]):
         """
         if root is not _MISSING:
             structure["root"] = root
-        return Structured(
+        return self.__class__(
             **{
                 "_mapped_attrs": self._mapped_attrs,
                 "_metadata": self._metadata,
                 **self._structure,
-                **structure,
+                **{
+                    key: self._prepare_item(key, item)
+                    for key, item in structure.items()
+                },
             }
         )
 
@@ -226,18 +258,20 @@ class Structured(Generic[ItemType]):
         return super().__dir__() + list(self._structure)
 
     def __getattr__(self, attr):
-        if attr in ("__getstate__", "__setstate__"):
+        if attr.startswith("_"):
             raise AttributeError(attr)
-        if not attr.startswith("_") and attr in self._structure:
+        if attr in self._structure:
             return self._structure[attr]
         if attr in self._mapped_attrs:
             return self._map(lambda x: getattr(x, attr))
-        raise AttributeError(attr)
+        raise AttributeError(
+            f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(attr)}`."
+        )
 
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
             return super().__setattr__(attr, value)
-        self._structure[attr] = value
+        self._structure[attr] = self._prepare_item(attr, value)
 
     def __getitem__(self, key):
         if self._has_root and not self._has_structure:
@@ -246,7 +280,9 @@ class Structured(Generic[ItemType]):
             return self.root
         if isinstance(key, str) and not key.startswith("_") and key in self._structure:
             return self._structure[key]
-        raise KeyError(key)
+        raise KeyError(
+            f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(key)}`."
+        )
 
     def __setitem__(self, key, value):
         if not isinstance(key, str) or not key.isidentifier():
@@ -256,7 +292,7 @@ class Structured(Generic[ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in self._structure if key.startswith('_'))}."
             )
-        self._structure[key] = value
+        self._structure[key] = self._prepare_item(key, value)
 
     def __iter__(self) -> Generator[Union[ItemType, Structured[ItemType]]]:
         if (
