@@ -261,7 +261,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         def prepare_model_spec(obj):
             if isinstance(obj, ModelSpec):
                 return obj
-            formula = Formula(obj)
+            formula = Formula.from_spec(obj)
             if not formula._has_root or formula._has_structure:
                 return formula._map(prepare_model_spec)
             return ModelSpec(
