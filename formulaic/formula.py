@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import warnings
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 from typing_extensions import TypeAlias
@@ -24,23 +25,67 @@ FormulaSpec: TypeAlias = Union[
 ]
 
 
-class Formula:
+class Formula(Structured[List[Term]]):
     """
-    A representation of a "formula".
+    A Formula is a (potentially structured) list of terms, which is represented
+    by this class.
 
-    A formula is basically just a (structured) set of terms to include in the
-    model matrixes, with implicit or explicit encoding choices.
+    This is a thin wrapper around `Strucuted[List[Term]]` that adds convenience
+    methods for building model matrices from the formula (among other common
+    tasks). You can build a `Formula` instance by passing in a string for
+    parsing, or by manually assembling the terms yourself.
+
+    Examples:
+    ```
+    >>> Formula("y ~ x")
+    .lhs:
+        y
+    .rhs:
+        1 + x
+    >>> Formula("x + y", a=["x", "y:z"], b="y ~ z")
+    root:
+        1 + x + y
+    .a:
+        x + y:z
+    .b:
+        .lhs:
+            y
+        .rhs:
+            z
+    ```
+
+    You can control how strings are parsed into terms by passing in custom
+    parsers via `_parser` and `_nested_parser`.
+    ```
+    >>> Formula("y ~ x", _parser=DefaultFormulaParser(include_intercept=False))
+    .lhs:
+        y
+    .rhs:
+        x
+    ```
 
     Attributes:
-        terms: The terms defined by the (parsed) formula.
+        _parser: The `FormulaParser` instance to use when parsing complete
+            formulae (vs. individual terms). If not specified,
+            `DefaultFormulaParser()` is used.
+        _nested_parser: The `FormulaParser` instance to use when parsing
+            strings describing nested or individual terms (e.g. when `spec` is a
+            list of string term identifiers). If not specified and `_parser` is
+            specified, `_parser` is used; if `_parser` is not specified,
+            `DefaultFormulaParser(include_intercept=False)` is used instead.
     """
+
+    DEFAULT_PARSER = DefaultFormulaParser()
+    DEFAULT_NESTED_PARSER = DefaultFormulaParser(include_intercept=False)
+
+    __slots__ = ("_parser", "_nested_parser")
 
     @classmethod
     def from_spec(
         cls,
         spec: FormulaSpec,
         parser: Optional[FormulaParser] = None,
-        term_parser: Optional[FormulaParser] = None,
+        nested_parser: Optional[FormulaParser] = None,
     ) -> Formula:
         """
         Construct a `Formula` instance from a formula specification.
@@ -50,90 +95,99 @@ class Formula:
             parser: The `FormulaParser` instance to use when parsing complete
                 formulae (vs. individual terms). If not specified,
                 `DefaultFormulaParser()` is used.
-            term_parser: The `FormulaParser` instance to use when parsing
-                strings describing individual terms (e.g. when `spec` is a
-                list of string term identifiers). If not specified and `parser`
-                is specified, `parser` is used; if `parser` is not specified,
-                `DefaultFormulaParser(include_intercept=False)` is used instead.
+            nested_parser: The `FormulaParser` instance to use when parsing
+                strings describing nested or individual terms (e.g. when `spec`
+                is a list of string term identifiers). If not specified and
+                `parser` is specified, `parser` is used; if `parser` is not
+                specified, `DefaultFormulaParser(include_intercept=False)` is
+                used instead.
         """
         if isinstance(spec, Formula):
             return spec
-        return cls(spec, parser=parser, term_parser=term_parser)
-
-    terms: Structured[List[Term]]
+        return Formula(spec, _parser=parser, _nested_parser=nested_parser)
 
     def __init__(
         self,
-        spec: FormulaSpec,
-        parser: Optional[FormulaParser] = None,
-        term_parser: Optional[FormulaParser] = None,
+        *args,
+        _parser: Optional[FormulaParser] = None,
+        _nested_parser: Optional[FormulaParser] = None,
+        **kwargs,
     ):
+        self._parser = _parser or self.DEFAULT_PARSER
+        self._nested_parser = _nested_parser or _parser or self.DEFAULT_NESTED_PARSER
+        super().__init__(*args, **kwargs)
+        self._simplify(unwrap=False, inplace=True)
+
+    def _prepare_item(self, key: str, spec: FormulaSpec) -> Union[List[Term], Formula]:
+        """
+        Convert incoming formula items into either a list of Terms or a nested
+        `Formula` instance.
+
+        Note: Where parsing of strings is required, the nested-parser is used
+        except for the root element of the parent formula.
+
+        Args:
+            key: The structural key where the item will be stored.
+            spec: The specification to convert.
+        """
+
         if isinstance(spec, str):
-            parser = parser or DefaultFormulaParser()
-            terms = parser.get_terms(spec, sort=True)
-        elif isinstance(spec, Formula):
-            terms = spec.terms
-        elif isinstance(spec, (list, set)):
-            term_parser = (
-                term_parser or parser or DefaultFormulaParser(include_intercept=False)
+            spec = (
+                (self._parser if key == "root" else self._nested_parser)
+                .get_terms(spec, sort=True)
+                ._simplify()
             )
-            terms = [
-                term
-                for value in spec
-                for term in (
-                    term_parser.get_terms(value) if isinstance(value, str) else [value]
-                )
-            ]
-        elif isinstance(spec, tuple):
-            terms = tuple(
-                Formula.from_spec(group, parser=parser, term_parser=term_parser).terms
+
+        if isinstance(spec, tuple):
+            # Treat each item in the tuple as a top-level formula.
+            formula_or_terms = tuple(
+                Formula(group, _parser=self._parser, _nested_parser=self._nested_parser)
                 for group in spec
             )
         elif isinstance(spec, Structured):
-            term_parser = (
-                term_parser or parser or DefaultFormulaParser(include_intercept=False)
-            )
-            terms = spec._map(
-                lambda nested_spec: [
-                    term
-                    for value in nested_spec
-                    for term in (
-                        term_parser.get_terms(value)
-                        if isinstance(value, str)
-                        else [value]
-                    )
-                ]
-            )
+            formula_or_terms = Formula(_parser=self._nested_parser, **spec._structure)
+        elif isinstance(spec, (list, set)):
+            formula_or_terms = [
+                term
+                for value in spec
+                for term in (
+                    self._nested_parser.get_terms(value)
+                    if isinstance(value, str)
+                    else [value]
+                )
+            ]
         else:
             raise FormulaInvalidError(
                 f"Unrecognized formula specification: {repr(spec)}."
             )
-        self.terms = terms
 
-    @property
-    def terms(self) -> Structured[Term]:
-        """
-        The terms associated with this formula.
-        """
-        return self._terms
+        self.__validate_prepared_item(formula_or_terms)
 
-    @terms.setter
-    def terms(self, terms: Union[List[Term], Set[Term], Structured[List[Term]]]):
-        if not isinstance(terms, Structured):
-            terms = Structured(terms)
-        self.__check_terms(terms)
-        self._terms = terms
+        if isinstance(formula_or_terms, Structured):
+            formula_or_terms = formula_or_terms._simplify()
+        return formula_or_terms
 
     @classmethod
-    def __check_terms(cls, terms):
-        if isinstance(terms, Structured):
-            return terms._map(cls.__check_terms)
-        if not isinstance(terms, list):
+    def __validate_prepared_item(cls, formula_or_terms: Any):
+        """
+        Verify that all terms are of the appropriate type. The acceptable types
+        are:
+            - List[Terms]
+            - Tuple[List[Terms], ...]
+            - Formula
+        """
+        if isinstance(formula_or_terms, Formula):
+            return formula_or_terms._map(cls.__validate_prepared_item)
+        if isinstance(formula_or_terms, tuple):
+            for term in formula_or_terms:
+                cls.__validate_prepared_item(term)
+            return
+        if not isinstance(formula_or_terms, list):
             # Should be impossible to reach this; here as a sentinel
             raise FormulaInvalidError(
-                f"All components of a formula should be lists of `Term` instances. Found: {repr(terms)}."
+                f"All components of a formula should be lists of `Term` instances. Found: {repr(formula_or_terms)}."
             )
-        for term in terms:
+        for term in formula_or_terms:
             if not isinstance(term, Term):
                 raise FormulaInvalidError(
                     f"All terms in formula should be instances of `formulaic.parser.types.Term`; received term {repr(term)} of type `{type(term)}`."
@@ -196,51 +250,25 @@ class Formula:
             This method is provisional and may be removed in any future major
             version.
         """
-        return Formula(
-            self.terms._map(
-                lambda terms: [
-                    differentiate_term(term, vars, use_sympy=use_sympy)
-                    for term in terms
-                ]
-            )
+        return self._map(
+            lambda terms: [
+                differentiate_term(term, vars, use_sympy=use_sympy) for term in terms
+            ]
         )
 
-    def __getattr__(self, attr):
-        if attr in ("__getstate__", "__setstate__"):
-            raise AttributeError(attr)
-        if isinstance(self.terms, Structured) and attr in self.terms._to_dict(
-            recurse=False
-        ):
-            return Formula(self.terms[attr])
-        raise AttributeError(f"This formula has no substructures keyed by '{attr}'.")
-
-    def __getitem__(self, item):
-        if (
-            isinstance(self.terms, tuple)
-            or isinstance(self.terms, Structured)
-            and self.terms._has_root
-            and isinstance(self.terms.root, tuple)
-        ):
-            return Formula(self.terms[item])
-        raise KeyError(
-            f"This formula does not have any sub-parts indexable via `{repr(item)}`."
+    @property
+    def terms(self):
+        warnings.warn(
+            "`Formula.terms` is deprecated. Please index/iterate over `Formula` directly instead.",
+            DeprecationWarning,
         )
-
-    def __str__(self):
-        if (
-            self.terms._has_structure
-            or self.terms._has_root
-            and isinstance(self.terms.root, tuple)
-        ):
-            return str(
-                self.terms._map(lambda terms: " + ".join(str(term) for term in terms))
-            )
-        return " + ".join(str(term) for term in self.terms)
-
-    def __eq__(self, other):
-        if isinstance(other, Formula):
-            return self.terms == other.terms
-        return NotImplemented
+        return self
 
     def __repr__(self):
-        return str(self)
+        if (
+            not self._has_structure
+            and self._has_root
+            and not isinstance(self.root, tuple)
+        ):
+            return " + ".join([str(t) for t in self])
+        return str(self._map(lambda terms: " + ".join([str(t) for t in terms])))

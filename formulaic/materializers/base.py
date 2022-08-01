@@ -163,7 +163,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     factor.expr: factor_evaluation_model_spec.transform_state[
                         factor.expr
                     ]
-                    for term in ms.formula.terms
+                    for term in ms.formula
                     for factor in term.factors
                     if factor.expr in factor_evaluation_model_spec.transform_state
                 }
@@ -183,7 +183,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         scoped_terms_for_terms = self._get_scoped_terms(
-            spec.formula.terms, ensure_full_rank=spec.ensure_full_rank
+            spec.formula, ensure_full_rank=spec.ensure_full_rank
         )
 
         # Step 2: Generate the columns which will be collated into the full matrix
@@ -255,17 +255,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         from formulaic.formula import Formula
         from formulaic.model_spec import ModelSpec
 
-        if isinstance(spec, str):
-            spec: Structured[List[Term]] = Formula.from_spec(spec).terms
-        elif not isinstance(spec, Structured):
+        if not isinstance(spec, Structured):
             spec = Structured(spec)
 
         def prepare_model_spec(obj):
             if isinstance(obj, ModelSpec):
                 return obj
-            formula = Formula.from_spec(obj)
-            if not formula.terms._has_root or formula.terms._has_structure:
-                return formula.terms._map(prepare_model_spec)
+            formula = Formula(obj)
+            if not formula._has_root or formula._has_structure:
+                return formula._map(prepare_model_spec)
             return ModelSpec(
                 formula=formula,
                 materializer=self,
@@ -290,7 +288,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             na_action.add(model_spec.na_action)
             ensure_full_rank.add(model_spec.ensure_full_rank)
             factors.update(
-                itertools.chain(*(term.factors for term in model_spec.formula.terms))
+                itertools.chain(*(term.factors for term in model_spec.formula))
             )
             transform_state.update(
                 model_spec.transform_state
