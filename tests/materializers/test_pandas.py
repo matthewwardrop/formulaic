@@ -88,14 +88,14 @@ class TestPandasMaterializer:
         )
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[0]))
-        assert list(mm.model_spec.feature_names) == tests[0]
+        assert list(mm.model_spec.column_names) == tests[0]
 
         mm = materializer.get_model_matrix(
             formula, ensure_full_rank=False, output="sparse"
         )
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[1]))
-        assert list(mm.model_spec.feature_names) == tests[1]
+        assert list(mm.model_spec.column_names) == tests[1]
 
     def test_get_model_matrix_invalid_output(self, materializer):
         with pytest.raises(
@@ -147,7 +147,7 @@ class TestPandasMaterializer:
         # Test that categorical kinds are set if type would otherwise be numerical
         ev_factor = materializer._evaluate_factor(
             Factor("a", eval_method="lookup", kind="categorical"),
-            ModelSpec([]),
+            ModelSpec(formula=[]),
             drop_rows=set(),
         )
         assert ev_factor.metadata.kind.value == "categorical"
@@ -162,7 +162,7 @@ class TestPandasMaterializer:
         ):
             materializer._evaluate_factor(
                 Factor("A", eval_method="lookup", kind="numerical"),
-                ModelSpec([]),
+                ModelSpec(formula=[]),
                 drop_rows=set(),
             )
 
@@ -177,7 +177,7 @@ class TestPandasMaterializer:
         ):
             materializer._evaluate_factor(
                 Factor("a", eval_method="lookup", kind="numerical"),
-                ModelSpec([], encoder_state={"a": ("categorical", {})}),
+                ModelSpec(formula=[], encoder_state={"a": ("categorical", {})}),
                 drop_rows=set(),
             )
 
@@ -190,7 +190,7 @@ class TestPandasMaterializer:
             ),
         ):
             assert materializer._evaluate_factor(
-                Factor("a"), ModelSpec([]), drop_rows=set()
+                Factor("a"), ModelSpec(formula=[]), drop_rows=set()
             )
 
     def test__is_categorical(self, materializer):
@@ -207,7 +207,7 @@ class TestPandasMaterializer:
                     factor=Factor("10", eval_method="literal", kind="constant"),
                     values=FactorValues(10, kind="constant"),
                 ),
-                spec=ModelSpec([]),
+                spec=ModelSpec(formula=[]),
                 drop_rows=[],
             )["10"]
         ) == [10, 10, 10]
@@ -223,7 +223,7 @@ class TestPandasMaterializer:
                     drop_field="a",
                 ),
             ),
-            spec=ModelSpec([]),
+            spec=ModelSpec(formula=[]),
             drop_rows=set(),
         ) == {
             "a[a]": [1, 2, 3],
@@ -240,7 +240,7 @@ class TestPandasMaterializer:
                     drop_field="a",
                 ),
             ),
-            spec=ModelSpec([]),
+            spec=ModelSpec(formula=[]),
             drop_rows=set(),
             reduced_rank=True,
         ) == {
@@ -257,7 +257,7 @@ class TestPandasMaterializer:
                         kind="numerical",
                     ),
                 ),
-                spec=ModelSpec([]),
+                spec=ModelSpec(formula=[]),
                 drop_rows=[],
             )["A[a]"]
         ) == [1, 2, 3]
@@ -268,7 +268,7 @@ class TestPandasMaterializer:
                     factor=Factor("B", eval_method="python", kind="categorical"),
                     values=FactorValues({"a": ["a", "b", "c"]}, kind="categorical"),
                 ),
-                spec=ModelSpec([]),
+                spec=ModelSpec(formula=[]),
                 drop_rows=[],
             )
         ) == ["B[a][T.a]", "B[a][T.b]", "B[a][T.c]"]

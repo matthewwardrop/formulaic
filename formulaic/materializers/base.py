@@ -4,7 +4,7 @@ import functools
 import itertools
 import operator
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 from typing import (
     Any,
     Dict,
@@ -37,6 +37,11 @@ from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
 if TYPE_CHECKING:
     from formulaic.model_spec import ModelSpec  # pragma: no cover
+
+
+EncodedTermStructure = namedtuple(
+    "EncodedTermStructure", ("term", "scoped_terms", "columns")
+)
 
 
 class FormulaMaterializerMeta(InterfaceMeta):
@@ -216,18 +221,19 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             cols.append((term, scoped_terms, scoped_cols))
 
         # Step 3: Populate remaining model spec fields
-        spec.materializer = self
         if spec.structure:
             cols = self._enforce_structure(cols, spec, drop_rows)
         else:
-            spec.structure = [
-                (
-                    term,
-                    list(st.copy(without_values=True) for st in scoped_terms),
-                    list(scoped_cols),
-                )
-                for term, scoped_terms, scoped_cols in cols
-            ]
+            spec = spec.update(
+                structure=[
+                    EncodedTermStructure(
+                        term,
+                        list(st.copy(without_values=True) for st in scoped_terms),
+                        list(scoped_cols),
+                    )
+                    for term, scoped_terms, scoped_cols in cols
+                ],
+            )
 
         # Step 4: Collate factors into one ModelMatrix
         return ModelMatrix(

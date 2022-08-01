@@ -48,7 +48,7 @@ def stateful_transform(func: Callable) -> Callable:
         if "_metadata" in params:
             extra_params["_metadata"] = _metadata
         if "_spec" in params:
-            extra_params["_spec"] = _spec or ModelSpec([])
+            extra_params["_spec"] = _spec or ModelSpec(formula=[])
 
         if isinstance(data, dict):
             results = {}

@@ -67,14 +67,14 @@ class TestArrowMaterializer:
         )
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[0]))
-        assert list(mm.model_spec.feature_names) == tests[0]
+        assert list(mm.model_spec.column_names) == tests[0]
 
         mm = materializer.get_model_matrix(
             formula, ensure_full_rank=False, output="sparse"
         )
         assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (3, len(tests[1]))
-        assert list(mm.model_spec.feature_names) == tests[1]
+        assert list(mm.model_spec.column_names) == tests[1]
 
     def test_state(self, materializer):
         import pyarrow

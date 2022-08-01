@@ -124,7 +124,7 @@ class TestFormulaMaterializer:
                 list(
                     PandasMaterializer(data=None)._enforce_structure(
                         cols=[("A", {"A"}, {"a": 1})],
-                        spec=ModelSpec([], structure=[("A", {"A"}, ["a"])]),
+                        spec=ModelSpec(formula=[], structure=[("A", {"A"}, ["a"])]),
                         drop_rows=[],
                     )
                 )
@@ -137,7 +137,7 @@ class TestFormulaMaterializer:
             list(
                 PandasMaterializer(df)._enforce_structure(
                     cols=[("A", {"A"}, {"a": 1, "b": 2})],
-                    spec=ModelSpec([], structure=[("A", {"A"}, ["a"])]),
+                    spec=ModelSpec(formula=[], structure=[("A", {"A"}, ["a"])]),
                     drop_rows=[],
                 )
             )
@@ -147,7 +147,7 @@ class TestFormulaMaterializer:
             list(
                 PandasMaterializer(df)._enforce_structure(
                     cols=[("A", {"A"}, {"a": 1})],
-                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
+                    spec=ModelSpec(formula=[], structure=[("A", {"A"}, ["a", "b"])]),
                     drop_rows=[],
                 )
             )[0][-1]
@@ -157,7 +157,7 @@ class TestFormulaMaterializer:
             list(
                 PandasMaterializer(df)._enforce_structure(
                     cols=[("A", {"A"}, {})],
-                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b"])]),
+                    spec=ModelSpec(formula=[], structure=[("A", {"A"}, ["a", "b"])]),
                     drop_rows=[],
                 )
             )[0][-1]
@@ -168,7 +168,9 @@ class TestFormulaMaterializer:
             list(
                 PandasMaterializer(df)._enforce_structure(
                     cols=[("A", {"A"}, {"a": 1, "b": 2})],
-                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b", "c"])]),
+                    spec=ModelSpec(
+                        formula=[], structure=[("A", {"A"}, ["a", "b", "c"])]
+                    ),
                     drop_rows=[],
                 )
             )
@@ -178,12 +180,14 @@ class TestFormulaMaterializer:
             list(
                 PandasMaterializer(df)._enforce_structure(
                     cols=[("A", {"A"}, {"a": 1, "b": 2, "d": 3})],
-                    spec=ModelSpec([], structure=[("A", {"A"}, ["a", "b", "c"])]),
+                    spec=ModelSpec(
+                        formula=[], structure=[("A", {"A"}, ["a", "b", "c"])]
+                    ),
                     drop_rows=[],
                 )
             )
 
     def test__get_columns_for_term(self):
         assert FormulaMaterializer._get_columns_for_term(
-            None, [{"a": 1}, {"b": 2}], ModelSpec([]), scale=3
+            None, [{"a": 1}, {"b": 2}], ModelSpec(formula=[]), scale=3
         ) == {"a:b": 6}

@@ -30,7 +30,7 @@ def _compare_factor_values(a, b, comp=lambda x, y: numpy.allclose(x, y)):
 class TestContrastsTransform:
     def test_basic_usage_and_state(self):
         state = {}
-        spec = ModelSpec([], output="pandas")
+        spec = ModelSpec(formula=[], output="pandas")
         _compare_factor_values(
             encode_contrasts(
                 data=["a", "b", "c", "a", "b", "c"], _state=state, _spec=spec
@@ -102,7 +102,7 @@ class TestContrastsTransform:
 
     def test_sparse(self):
         state = {}
-        spec = ModelSpec([], output="sparse")
+        spec = ModelSpec(formula=[], output="sparse")
         _compare_factor_values(
             encode_contrasts(
                 data=["a", "b", "c", "a", "b", "c"], _state=state, _spec=spec

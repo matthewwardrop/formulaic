@@ -21,7 +21,7 @@ from formulaic.parser.types import (
 from formulaic.parser.utils import exc_for_token
 
 
-ConstraintSpec = Union[
+LinearConstraintSpec = Union[
     str,
     Dict[str, Number],
     Tuple["numpy.typing.ArrayLike", "numpy.typing.ArrayLike"],
@@ -49,7 +49,7 @@ class LinearConstraints:
 
     @classmethod
     def from_spec(
-        cls, spec: ConstraintSpec, variable_names: Sequence[str] = None
+        cls, spec: LinearConstraintSpec, variable_names: Sequence[str] = None
     ) -> LinearConstraints:
         """
         Construct a `LinearConstraints` instance from a specification.

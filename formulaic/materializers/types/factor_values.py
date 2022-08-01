@@ -63,7 +63,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
 
     def __init__(
         self,
-        values,
+        values: Any,
         *,
         metadata: FactorValuesMetadata = MISSING,
         kind: Union[str, Factor.Kind] = MISSING,
