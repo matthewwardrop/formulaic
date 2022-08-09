@@ -74,6 +74,16 @@ class TestStructured:
             },
         }
 
+        class MyStructured(Structured):
+            pass
+
+        assert isinstance(
+            Structured("Hi", a="Hey")._map(
+                lambda s: f"{s} there!", as_type=MyStructured
+            ),
+            MyStructured,
+        )
+
     def test__simplify(self):
         o = object()
         assert Structured(o)._simplify() is o

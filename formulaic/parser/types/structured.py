@@ -7,8 +7,8 @@ from typing import (
     Generator,
     Generic,
     Optional,
-    Iterable,
     Sequence,
+    Type,
     TypeVar,
     Union,
 )
@@ -114,7 +114,10 @@ class Structured(Generic[ItemType]):
         return set(self._structure) != {"root"}
 
     def _map(
-        self, func: Callable[[ItemType], Any], recurse: bool = True
+        self,
+        func: Callable[[ItemType], Any],
+        recurse: bool = True,
+        as_type: Optional[Type[Structured]] = None,
     ) -> Structured[Any]:
         """
         Map a callable object onto all the structured objects, returning a
@@ -130,6 +133,8 @@ class Structured(Generic[ItemType]):
                 instances also, then the map will be applied only on the leaf
                 nodes (otherwise `func` will received `Structured` instances).
                 (default: True).
+            as_type: An optional subclass of `Structured` to use for the mapped
+                values. If not provided, the base `Structured` type is used.
 
         Returns:
             A `Structured` instance with the same structure as this instance,
@@ -138,12 +143,12 @@ class Structured(Generic[ItemType]):
 
         def apply_func(obj):
             if recurse and isinstance(obj, Structured):
-                return obj._map(func, recurse=True)
+                return obj._map(func, recurse=True, as_type=as_type)
             if isinstance(obj, tuple):
                 return tuple(func(o) for o in obj)
             return func(obj)
 
-        return Structured[ItemType](
+        return (as_type or Structured)(
             **{key: apply_func(obj) for key, obj in self._structure.items()}
         )
 
