@@ -152,6 +152,19 @@ class Structured(Generic[ItemType]):
             **{key: apply_func(obj) for key, obj in self._structure.items()}
         )
 
+    def _flatten(self) -> Generator[ItemType]:
+        """
+        Flatten any nested structure into a sequence of all values stored in
+        this `Structured` instance. The order is currently that yielded by a
+        depth-first iteration, however this is not guaranteed and should not
+        be relied upon.
+        """
+        for value in self._structure.values():
+            if isinstance(value, Structured):
+                yield from value._flatten()
+            else:
+                yield value
+
     def _to_dict(self, recurse: bool = True) -> Dict[Optional[str], Any]:
         """
         Generate a dictionary representation of this structure.
