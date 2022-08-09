@@ -39,10 +39,6 @@ class Structured(Generic[ItemType]):
     Attributes:
         _structure: A dictionary of the keys stored in the `Structured`
             instance.
-        _mapped_attrs: A set attribute names which will, when looked up, be
-            mapped onto all objects in the `Structured` instance, and return
-            a new `Structured` instance with the same structure but all values
-            replaced with the result of the attribute on the stored instances.
         _metadata: A dictionary of metadata which can be used to store arbitrary
             information about the `Structured` instance.
 
@@ -83,13 +79,12 @@ class Structured(Generic[ItemType]):
         ```
     """
 
-    __slots__ = ("_structure", "_mapped_attrs", "_metadata")
+    __slots__ = ("_structure", "_metadata")
 
     def __init__(
         self,
         root: Any = _MISSING,
         *,
-        _mapped_attrs: Iterable[str] = None,
         _metadata: Dict[str, Any] = None,
         **structure,
     ):
@@ -100,7 +95,6 @@ class Structured(Generic[ItemType]):
             )
         if root is not _MISSING:
             structure["root"] = self._prepare_item("root", root)
-        self._mapped_attrs = set(_mapped_attrs or ())
         self._metadata = _metadata
 
         self._structure = {
@@ -226,7 +220,6 @@ class Structured(Generic[ItemType]):
             self._structure = structure
             return self
         return self.__class__(
-            _mapped_attrs=self._mapped_attrs,
             _metadata=self._metadata,
             **structure,
         )
@@ -244,7 +237,6 @@ class Structured(Generic[ItemType]):
             structure["root"] = root
         return self.__class__(
             **{
-                "_mapped_attrs": self._mapped_attrs,
                 "_metadata": self._metadata,
                 **self._structure,
                 **{
@@ -262,8 +254,6 @@ class Structured(Generic[ItemType]):
             raise AttributeError(attr)
         if attr in self._structure:
             return self._structure[attr]
-        if attr in self._mapped_attrs:
-            return self._map(lambda x: getattr(x, attr))
         raise AttributeError(
             f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(attr)}`."
         )

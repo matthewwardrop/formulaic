@@ -53,16 +53,6 @@ class TestStructured:
         s4 = Structured((1, 2))
         assert s4[0] == 1
 
-    def test_mapped_attrs(self):
-        class O:
-            def __init__(self, o):
-                self.o = o
-
-        assert (
-            Structured(O(1), a=O(2), b=(O(3), O(4)), _mapped_attrs={"o"}).o._to_dict()
-            == Structured(1, a=2, b=(3, 4))._to_dict()
-        )
-
     def test__map(self):
         assert Structured("Hi", a="Hello", b="Greetings")._map(len)._to_dict() == {
             "root": 2,
@@ -93,9 +83,6 @@ class TestStructured:
         assert Structured(
             key=Structured(o), _metadata={"a": 1}
         )._simplify()._metadata == {"a": 1}
-        assert Structured(
-            key=Structured(o), _mapped_attrs={"a"}
-        )._simplify()._mapped_attrs == {"a"}
 
         with pytest.raises(
             RuntimeError,
@@ -111,7 +98,6 @@ class TestStructured:
         assert Structured()._update(key=o) == Structured(key=o)
         assert Structured(1, key=2)._update(3) == Structured(3, key=2)
         assert Structured(_metadata={"a": 1})._update()._metadata == {"a": 1}
-        assert Structured(_mapped_attrs={"a"})._update()._mapped_attrs == {"a"}
 
     def test_mutation(self):
         s = Structured(1)
