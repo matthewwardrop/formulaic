@@ -3,6 +3,74 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.4.0 (10 Aug 2022)
+
+This is a major new release with some new features, greatly improved ergonomics
+for structured formulae, matrices and specs, and a few small breaking changes
+(most with backward compatibility shims). All users are encouraged to upgrade.
+
+**Breaking changes:**
+
+* `include_intercept` is no longer an argument to `FormulaParser.get_terms`;
+  and is instead an argument of the `DefaultFormulaParser` constructor. If you
+  want to modify the `include_intercept` behaviour, please use:
+  ```python
+  Formula("y ~ x", _parser=DefaultFormulaParser(include_intercept=False))
+  ```
+* Accessing terms via `Formula.terms` is deprecated since `Formula` became a
+  subclass of `Structured[List[Terms]]`. You can directly iterate over, and/or
+  access nested structure on the `Formula` instance itself. `Formula.terms`
+  has a deprecated property which will return a reference to itself in order to
+  support legacy use-cases. This will be removed in 1.0.0.
+* `ModelSpec.feature_names` and `ModelSpec.feature_columns` are deprecated in
+  favour of `ModelSpec.column_names` and `ModelSpec.column_indices`. Deprecated
+  properties remain in-place to support legacy use-cases. These will be removed
+  in 1.0.0.
+
+**New features and enhancements:**
+
+* Structured formulae (and their derived matrices and specs) are now mutable.
+  Internally `Formula` has been refactored as a subclass of
+  `Structured[List[Terms]]`, and can be incrementally built and modified. The
+  matrix and spec outputs now have explicit subclasses of `Structured`
+  (`ModelMatrices` and `ModelSpecs` respectively) to expose convenience methods
+  that allow these objects to be largely used interchangeably with their
+  singular counterparts.
+* `ModelMatrices` and `ModelSpecs` arenow surfaced as top-level exports of the
+  `formulaic` module.
+* `Structured` (and its subclasses) gained improved integration of nested tuple
+  structure, as well as support for flattened iteration, explicit mapping
+  output types, and lots of cleanups.
+* `ModelSpec` was made into a dataclass, and gained several new
+  properties/methods to support better introspection and mutation of the model
+  spec.
+* `FormulaParser` was renamed `DefaultFormulaParser`, and made a subclass of the
+  new formula parser interface `FormulaParser`. In this process
+  `include_intercept` was removed from the API, and made an instance attribute
+  of the default parser implementation.
+
+**Bugfixes and cleanups:**
+
+* Fixed AST evaluation for large formulae that caused the evaluation to hit the
+  recursion limit.
+* Fixed sparse categorical encoding when the dataframe index is not the standard
+  range index.
+* Fixed a bug in the linear constraints parser when more than two constraints
+  were specified in a comma-separated string.
+* Avoid implicit changing of the sparsity structure of CSC matrices.
+* If manually constructed `ModelSpec`s are provided by the user during
+  materialization, they are updated to reflect the output-type chosen by the
+  user, as well as whether to ensure full rank/etc.
+* Allowed use of older pandas versions. All versions >=1.0.0 are now supported.
+* Various linting cleanups as `pylint` was added to the CI testing.
+
+**Documentation:**
+
+* Apart from the `.materializer` submodule, most code now has inline
+  documentation and annotations.
+
+---
+
 ## 0.3.4 (1 May 2022)
 
 This is a backward compatible major release that adds several new features.
