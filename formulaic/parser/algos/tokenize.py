@@ -159,11 +159,10 @@ def tokenize(
                 kind = "name"
             token.update(char, i, kind=kind)
             continue
-        else:
-            if token and token.kind is not Token.Kind.OPERATOR:
-                yield token
-                token = Token(source=formula)
-            token.update(char, i, kind="operator")
+        if token and token.kind is not Token.Kind.OPERATOR:
+            yield token
+            token = Token(source=formula)
+        token.update(char, i, kind="operator")
     if quote_context:
         raise exc_for_token(
             token,

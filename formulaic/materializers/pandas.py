@@ -117,7 +117,7 @@ class PandasMaterializer(FormulaMaterializer):
                 factors.append(
                     {
                         ":".join(solo_factors): functools.reduce(
-                            lambda a, b: numpy.multiply(a, b),
+                            numpy.multiply,
                             (p for p in solo_factors.values()),
                         )
                     }
@@ -130,7 +130,7 @@ class PandasMaterializer(FormulaMaterializer):
                 )
             else:
                 out[":".join(p[0] for p in product)] = scale * functools.reduce(
-                    lambda a, b: numpy.multiply(a, b),
+                    numpy.multiply,
                     (numpy.array(p[1]) for p in product),
                 )
         return out
@@ -149,10 +149,9 @@ class PandasMaterializer(FormulaMaterializer):
             values = numpy.empty((self.data.shape[0], 0))
             if spec.output == "sparse":
                 return spsparse.csc_matrix(values)
-            elif spec.output == "numpy":
+            if spec.output == "numpy":
                 return values
-            else:
-                return pandas.DataFrame(index=pandas_index)
+            return pandas.DataFrame(index=pandas_index)
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":

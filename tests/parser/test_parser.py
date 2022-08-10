@@ -103,11 +103,11 @@ class TestFormulaParser:
             comp = sorted([str(term) for term in generated_terms])
         assert comp == terms
 
-    def test_invalid_formula_separation(selF):
+    def test_invalid_formula_separation(self):
         with pytest.raises(FormulaParsingError):
             PARSER.get_terms("a ~ b ~ c")
 
-    def test_invalid_part_separation(selF):
+    def test_invalid_part_separation(self):
         with pytest.raises(FormulaParsingError):
             PARSER.get_terms("(a | b)")
 

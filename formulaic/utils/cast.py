@@ -35,7 +35,7 @@ def as_columns(data: Any) -> Any:
 @as_columns.register
 @propagate_metadata
 def _(data: pandas.DataFrame):
-    return {col: series for col, series in data.items()}
+    return dict(data.items())
 
 
 @as_columns.register

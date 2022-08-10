@@ -31,13 +31,13 @@ class OperatorResolver(metaclass=abc.ABCMeta):
             `Operator` instances implementing it.
     """
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def operators(self) -> List[Operator]:
         """
         The `Operator` instance pool which can be matched to tokens by
         `.resolve()`.
         """
-        ...  # pragma: no cover
 
     @cached_property
     def operator_table(self):

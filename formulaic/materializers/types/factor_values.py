@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 
 from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar, Union
@@ -70,7 +71,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         column_names: Tuple[str] = MISSING,
         spans_intercept: bool = MISSING,
         drop_field: Optional[str] = MISSING,
-        format: str = MISSING,
+        format: str = MISSING,  # pylint: disable=redefined-builtin
         encoded: bool = MISSING,
         encoder: Optional[
             Callable[[Any, bool, List[int], Dict[str, Any]], Any]
@@ -107,3 +108,14 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
 
     def __repr__(self) -> str:
         return self.__wrapped__.__repr__()  # pragma: no cover
+
+    # Handle copying behaviour
+
+    def __copy__(self):
+        return type(self)(copy.copy(self.__wrapped__), metadata=self._self_metadata)
+
+    def __deepcopy__(self, memo=None):
+        return type(self)(
+            copy.deepcopy(self.__wrapped__, memo),
+            metadata=copy.deepcopy(self._self_metadata),
+        )

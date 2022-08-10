@@ -17,23 +17,17 @@ class FormulaInvalidError(FormulaicError):
     Provided formula specification is not a valid format.
     """
 
-    pass
-
 
 class FormulaParsingError(FormulaicError):
     """
     An error occured during the parsing of a formula specification.
     """
 
-    pass
-
 
 class FormulaSyntaxError(FormulaParsingError):
     """
     Could not tokenize the nominated formula specification.
     """
-
-    pass
 
 
 # Formula materializer meta-errors

@@ -44,7 +44,7 @@ class DefaultFormulaParser(FormulaParser):
 
     # Attributes
     operator_resolver: OperatorResolver = field(
-        default_factory=lambda: DefaultOperatorResolver()
+        default_factory=lambda: DefaultOperatorResolver()  # pylint: disable=unnecessary-lambda
     )
     include_intercept: bool = True
 
@@ -88,7 +88,7 @@ class DefaultFormulaParser(FormulaParser):
             )
             rhs_index = (
                 max(
-                    [i for i, token in enumerate(tokens) if token.token.endswith("~")],
+                    (i for i, token in enumerate(tokens) if token.token.endswith("~")),
                     default=-1,
                 )
                 + 1

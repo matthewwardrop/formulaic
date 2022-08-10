@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import numpy
-
 import ast
 import functools
 import itertools
 from numbers import Number
 from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
+
+import numpy
 
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
@@ -247,12 +247,9 @@ class LinearConstraintParser:
         if not isinstance(constraints, tuple):
             constraints = (constraints,)
 
-        col_vectors = {
-            col: vec
-            for col, vec in zip(
-                self.variable_names, numpy.eye(len(self.variable_names))
-            )
-        }
+        col_vectors = dict(
+            zip(self.variable_names, numpy.eye(len(self.variable_names)))
+        )
 
         matrix = []
         constants = []
@@ -338,7 +335,9 @@ class ScaledFactor:
         return f"{self.scale}*{self.factor}"  # pragma: no cover
 
 
-class ConstraintOperatorResolver(OperatorResolver):
+class ConstraintOperatorResolver(
+    OperatorResolver
+):  # pylint: disable=unnecessary-lambda
     """
     The default constraint `OperatorResolver` implementation.
 
@@ -441,7 +440,7 @@ class ConstraintOperatorResolver(OperatorResolver):
                 precedence=-200,
                 associativity=None,
                 to_terms=join_tuples,
-                accepts_context=lambda context: all([c.symbol == "," for c in context]),
+                accepts_context=lambda context: all(c.symbol == "," for c in context),
             ),
             Operator(
                 "=",

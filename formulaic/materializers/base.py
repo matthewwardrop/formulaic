@@ -457,7 +457,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             except Exception as e:
                 raise FactorEvaluationError(
                     f"Unable to evaluate factor `{factor}`. [{type(e).__name__}: {e}]"
-                )
+                ) from e
 
             if not isinstance(value, FactorValues):
                 value = FactorValues(value)
@@ -702,29 +702,31 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]]]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
         assert len(cols) == len(spec.structure)
-        for i in range(len(cols)):
-            scoped_cols = cols[i][2]
+        for i, col_spec in enumerate(cols):
+            scoped_cols = col_spec[2]
             target_cols = spec.structure[i][2]
             if len(scoped_cols) > len(target_cols):
                 raise FactorEncodingError(
-                    f"Term `{cols[i][0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                    f"Term `{col_spec[0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
                 )
-            elif len(scoped_cols) < len(target_cols):
+            if len(scoped_cols) < len(target_cols):
                 if len(scoped_cols) == 0:
                     col = self._encode_constant(0, None, None, spec, drop_rows)
                 elif len(scoped_cols) == 1:
-                    col = next(iter(scoped_cols.values()))
+                    col = tuple(scoped_cols.values())[0]
                 else:
                     raise FactorEncodingError(
-                        f"Term `{cols[i][0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                        f"Term `{col_spec[0]}` has generated insufficient columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
                     )
                 scoped_cols = {name: col for name in target_cols}
             elif set(scoped_cols) != set(target_cols):
                 raise FactorEncodingError(
-                    f"Term `{cols[i][0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}."
+                    f"Term `{col_spec[0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}."
                 )
 
-            yield cols[i][0], cols[i][1], {col: scoped_cols[col] for col in target_cols}
+            yield col_spec[0], col_spec[1], {
+                col: scoped_cols[col] for col in target_cols
+            }
 
     def _get_columns_for_term(self, factors, spec, scale=1):
         """
