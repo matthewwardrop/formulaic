@@ -155,6 +155,10 @@ class TestStructured:
         assert Structured(key="value") != Structured(key2="value")
         assert Structured() != object()
 
+    def test_contains(self):
+        assert "key" not in Structured()
+        assert "key" in Structured(key="hi")
+
     def test_repr(self):
         assert repr(Structured("a")) == "root:\n    'a'"
         assert repr(Structured("a", b="b")) == "root:\n    'a'\n.b:\n    'b'"

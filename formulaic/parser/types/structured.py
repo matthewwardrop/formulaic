@@ -336,6 +336,9 @@ class Structured(Generic[ItemType]):
             return self._structure == other._structure
         return False
 
+    def __contains__(self, key):
+        return key in self._structure
+
     def __len__(self) -> int:
         return len(self._structure)
 
