@@ -294,7 +294,8 @@ class Structured(Generic[ItemType]):
 
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
-            return super().__setattr__(attr, value)
+            super().__setattr__(attr, value)
+            return
         self._structure[attr] = self.__prepare_item(attr, value)
 
     def __getitem__(self, key):

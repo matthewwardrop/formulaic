@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING
+import copy
+from typing import Any, Generic, Optional, TypeVar, TYPE_CHECKING
 
 import wrapt
 
@@ -10,7 +11,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from .model_spec import ModelSpec, ModelSpecs
 
 
-class ModelMatrix(wrapt.ObjectProxy):
+MatrixType = TypeVar("MatrixType")
+
+
+class ModelMatrix(Generic[MatrixType], wrapt.ObjectProxy):
     """
     A wrapper around arbitrary model matrix output representations.
 
@@ -39,6 +43,17 @@ class ModelMatrix(wrapt.ObjectProxy):
 
     def __repr__(self):
         return self.__wrapped__.__repr__()  # pragma: no cover
+
+    # Handle copying behaviour
+
+    def __copy__(self):
+        return type(self)(copy.copy(self.__wrapped__), spec=self._self_model_spec)
+
+    def __deepcopy__(self, memo=None):
+        return type(self)(
+            copy.deepcopy(self.__wrapped__, memo),
+            spec=copy.deepcopy(self._self_model_spec),
+        )
 
 
 class ModelMatrices(Structured[ModelMatrix]):

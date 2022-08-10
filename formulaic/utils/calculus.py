@@ -4,7 +4,9 @@ from formulaic.parser.types import Factor, Term
 
 
 def differentiate_term(
-    term: Term, vars: Iterable[str], use_sympy: bool = False
+    term: Term,
+    vars: Iterable[str],  # pylint: disable=redefined-builtin
+    use_sympy: bool = False,
 ) -> Term:
     """
     Symbolically differentiate a `Term` instance with respect to one or more `vars`.
@@ -60,10 +62,10 @@ def _factor_symbols(factor: Factor, use_sympy: bool = False) -> Set[str]:
             import sympy
 
             return {str(s) for s in sympy.S(factor.expr).free_symbols}
-        except ImportError:  # pragma: no cover
+        except ImportError as e:  # pragma: no cover
             raise ImportError(
                 "`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`."
-            )
+            ) from e
     return {factor.expr}
 
 
@@ -92,10 +94,10 @@ def _differentiate_factors(
                 "(" + ") * (".join(factor.expr for factor in factors) + ")"
             ).diff(var)
             eval_method = "python"
-        except ImportError:  # pragma: no cover
+        except ImportError as e:  # pragma: no cover
             raise ImportError(
                 "`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`."
-            )
+            ) from e
     else:
         assert len(factors) == 1
         expr = 1

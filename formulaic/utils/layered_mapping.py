@@ -51,9 +51,7 @@ class LayeredMapping(MutableMapping):
                     yield key
 
     def __len__(self):
-        return len(
-            set(itertools.chain(self.mutations, *[layer for layer in self.layers]))
-        )
+        return len(set(itertools.chain(self.mutations, *self.layers)))
 
     def with_layers(
         self,

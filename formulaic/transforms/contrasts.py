@@ -266,7 +266,6 @@ class Contrasts(metaclass=InterfaceMeta):
             reduced_rank: Whether to output the reduced rank coding matrix.
             sparse: Whether to output sparse results.
         """
-        ...  # pragma: no cover
 
     @abstractmethod
     def get_coding_column_names(self, levels, reduced_rank=True):
@@ -279,7 +278,6 @@ class Contrasts(metaclass=InterfaceMeta):
             reduced_rank: Whether to output the coefficients for reduced rank
                 encodings.
         """
-        ...  # pragma: no cover
 
     # Coefficient matrix methods
 
@@ -335,7 +333,6 @@ class Contrasts(metaclass=InterfaceMeta):
             reduced_rank: Whether to output the coefficients for reduced rank
                 encodings.
         """
-        ...  # pragma: no cover
 
     # Additional metadata
 
