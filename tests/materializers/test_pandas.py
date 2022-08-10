@@ -7,6 +7,7 @@ import pandas
 import pytest
 import scipy.sparse as spsparse
 
+from formulaic import ModelMatrices
 from formulaic.errors import (
     FactorEncodingError,
     FactorEvaluationError,
@@ -66,6 +67,20 @@ class TestPandasMaterializer:
         assert isinstance(mm, pandas.DataFrame)
         assert mm.shape == (3, len(tests[1]))
         assert list(mm.columns) == tests[1]
+
+    def test_get_model_matrix_edge_cases(self, materializer):
+        mm = materializer.get_model_matrix(("a",), ensure_full_rank=True)
+        assert isinstance(mm, tuple)
+        assert isinstance(mm[0], pandas.DataFrame)
+
+        mm = materializer.get_model_matrix("a ~ A", ensure_full_rank=True)
+        assert isinstance(mm, ModelMatrices)
+        assert "lhs" in mm.model_spec
+        assert "rhs" in mm.model_spec
+
+        mm = materializer.get_model_matrix(("a ~ A",), ensure_full_rank=True)
+        assert isinstance(mm, tuple)
+        assert isinstance(mm[0], Structured)
 
     @pytest.mark.parametrize("formula,tests", PANDAS_TESTS.items())
     def test_get_model_matrix_numpy(self, materializer, formula, tests):

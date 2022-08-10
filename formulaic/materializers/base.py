@@ -26,7 +26,7 @@ from formulaic.errors import (
     FormulaMaterializerNotFoundError,
 )
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
-from formulaic.model_matrix import ModelMatrix
+from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Structured, Term
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
@@ -36,7 +36,7 @@ from formulaic.utils.stateful_transforms import stateful_eval
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
 if TYPE_CHECKING:
-    from formulaic.model_spec import ModelSpec  # pragma: no cover
+    from formulaic.model_spec import ModelSpec, ModelSpecs  # pragma: no cover
 
 
 EncodedTermStructure = namedtuple(
@@ -178,9 +178,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Step 3: Build the model matrices using the shared factor cache, and
         # by recursing over the structured model matrices.
         model_matrices = model_specs._map(
-            lambda model_spec: self._build_model_matrix(model_spec, drop_rows=drop_rows)
+            lambda model_spec: self._build_model_matrix(
+                model_spec, drop_rows=drop_rows
+            ),
+            as_type=ModelMatrices,
         )
-        model_matrices._mapped_attrs = {"model_spec"}
 
         return model_matrices._simplify()
 
@@ -257,19 +259,23 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         ensure_full_rank,
         na_action,
         output,
-    ) -> Structured[ModelSpec]:
+    ) -> ModelSpecs:
         from formulaic.formula import Formula
-        from formulaic.model_spec import ModelSpec
+        from formulaic.model_spec import ModelSpec, ModelSpecs
 
         if not isinstance(spec, Structured):
             spec = Structured(spec)
 
         def prepare_model_spec(obj):
             if isinstance(obj, ModelSpec):
-                return obj
+                return obj.update(
+                    ensure_full_rank=ensure_full_rank,
+                    na_action=na_action,
+                    output=output,
+                )
             formula = Formula.from_spec(obj)
             if not formula._has_root or formula._has_structure:
-                return formula._map(prepare_model_spec)
+                return formula._map(prepare_model_spec, as_type=ModelSpecs)
             return ModelSpec(
                 formula=formula,
                 materializer=self,
@@ -278,9 +284,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 output=output,
             )
 
-        return spec._map(prepare_model_spec)
+        return spec._map(prepare_model_spec, as_type=ModelSpecs)
 
-    def _prepare_factor_evaluation_model_spec(self, model_specs: Structured[ModelSpec]):
+    def _prepare_factor_evaluation_model_spec(self, model_specs: ModelSpecs):
         from formulaic.model_spec import ModelSpec
 
         output = set()
