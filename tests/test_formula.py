@@ -87,7 +87,7 @@ class TestFormula:
     def test_structured(self, formula_exprs):
         assert formula_exprs.lhs == ["a"]
         assert formula_exprs.rhs == ["1", "b"]
-        assert Formula("a | b")[0].root == ["1", "a"]
+        assert Formula("a | b")[0] == ["1", "a"]
 
         with pytest.raises(
             AttributeError,

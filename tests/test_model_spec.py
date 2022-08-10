@@ -5,7 +5,7 @@ import pytest
 
 import numpy
 import pandas
-from formulaic import Formula, ModelSpec
+from formulaic import Formula, ModelSpec, ModelSpecs, ModelMatrix, ModelMatrices
 from formulaic.parser.types import Factor, Term
 
 
@@ -136,3 +136,28 @@ class TestModelSpec:
             ),
         ):
             model_spec.get_slice("missing")
+
+    def test_model_specs(self, model_spec, data2):
+        model_specs = ModelSpecs(a=model_spec)
+
+        assert isinstance(model_specs.get_model_matrix(data2), ModelMatrices)
+        assert isinstance(model_specs.get_model_matrix(data2).a, ModelMatrix)
+        assert numpy.all(
+            model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
+        )
+
+        # Validate missing materializer and output type behaviour
+        model_specs2 = ModelSpecs(
+            lhs=ModelSpec(formula="A"), rhs=ModelSpec(formula="a")
+        )
+        assert numpy.all(
+            model_specs2.get_model_matrix(data2).lhs
+            == ModelSpec(formula="A").get_model_matrix(data2)
+        )
+
+        # Validate differentiation
+        assert model_specs.differentiate("a").a == model_spec.differentiate("a")
+
+        # Validate invalid type checking
+        with pytest.raises(TypeError, match="`ModelSpecs` instances expect all.*"):
+            ModelSpecs("invalid type!")

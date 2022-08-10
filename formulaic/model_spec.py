@@ -14,7 +14,7 @@ from .formula import Formula
 from .materializers import FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .model_matrix import ModelMatrix
+    from .model_matrix import ModelMatrices, ModelMatrix
 
 # Cached property was introduced in Python 3.8 (we currently support 3.7)
 try:
@@ -201,7 +201,7 @@ class ModelSpec:
 
     def get_model_matrix(
         self, data: Any, **kwargs
-    ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
+    ) -> Union[ModelMatrix, ModelMatrices]:
         """
         Build the model matrix (or matrices) realisation of this model spec for
         the nominated `data`.
@@ -272,3 +272,59 @@ class ModelSpec:
         return {
             k: v for k, v in self.__dict__.items() if k in self.__dataclass_fields__
         }
+
+
+class ModelSpecs(Structured[ModelSpec]):
+    """
+    A `Structured[ModelSpec]` subclass that exposes some convenience methods
+    that should be mapped onto all contained `ModelSpec` instances.
+    """
+
+    def _prepare_item(self, key: str, item: Any) -> Any:
+        # Verify that all included items are `ModelSpec` instances.
+        if not isinstance(item, ModelSpec):
+            raise TypeError(
+                "`ModelSpecs` instances expect all items to be instances of "
+                f"`ModelSpec`. [Got: {repr(item)} of type {repr(type(item))} "
+                f"for key {repr(key)}."
+            )
+        return item
+
+    def get_model_matrix(self, data, **kwargs) -> ModelMatrices:
+        """
+        This method proxies the `ModelSpec.get_model_matrix(...)` API and allows
+        it to be called on a structured set of `ModelSpec` instances. If all
+        `ModelSpec.materializer` values are unset or the same, then they are
+        jointly evaluated allowing re-use of the same cached across the specs.
+
+        Args:
+            data: The data for which model matrices should be generated.
+            kwargs: Additional keyword arguments to pass on to
+            `ModelSpec.get_model_matrix(...)` and thus to the materializer.
+        """
+        materializers = set(
+            self._map(lambda model_spec: model_spec.materializer)._flatten()
+        ).difference({None})
+        if (
+            len(materializers) > 1
+        ):  # pragma: no cover; sentinel for when model specs have been manually constructed and are incompatible
+            return self._map(
+                lambda model_spec: model_spec.get_model_matrix(data, **kwargs)
+            )
+        if materializers:
+            materializer = materializer = FormulaMaterializer.for_materializer(
+                next(iter(materializers))
+            )
+        else:
+            materializer = FormulaMaterializer.for_data(data)
+        return materializer(data, **kwargs).get_model_matrix(self)
+
+    def differentiate(self, *vars, use_sympy=False) -> ModelSpecs:
+        """
+        This method proxies the experimental `ModelSpec.differentiate(...)` API.
+        See `ModelSpec.differentiate` for more details.
+        """
+        return self._map(
+            lambda model_spec: model_spec.differentiate(*vars, use_sympy=use_sympy),
+            as_type=ModelSpecs,
+        )

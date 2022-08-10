@@ -4,8 +4,10 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import wrapt
 
+from formulaic.parser.types.structured import Structured
+
 if TYPE_CHECKING:  # pragma: no cover
-    from .model_spec import ModelSpec
+    from .model_spec import ModelSpec, ModelSpecs
 
 
 class ModelMatrix(wrapt.ObjectProxy):
@@ -37,3 +39,37 @@ class ModelMatrix(wrapt.ObjectProxy):
 
     def __repr__(self):
         return self.__wrapped__.__repr__()  # pragma: no cover
+
+
+class ModelMatrices(Structured[ModelMatrix]):
+    """
+    A `Structured[ModelMatrix]` subclass that adds a `.model_spec` attribute
+    (mirrorin `ModelMatrix.model_spec`) that returns a structured container for
+    all the `ModelSpec` instances associated with the `ModelSpec` objects
+    referenced by this container.
+    """
+
+    def _prepare_item(
+        self, key: str, item: Any
+    ) -> Any:  # Verify that all included items are `ModelSpec` instances.
+        # Verify that all included items are `ModelMatrix` instances.
+        if not isinstance(item, ModelMatrix):
+            raise TypeError(
+                "`ModelMatrices` instances expect all items to be instances "
+                f"of `ModelMatrix`. [Got: {repr(item)} of type "
+                f"{repr(type(item))} for key {repr(key)}."
+            )
+        return item
+
+    @property
+    def model_spec(self) -> ModelSpecs:
+        """
+        The `ModelSpecs` instance representing the structured set of `ModelSpec`
+        instances associated with the `ModelMatrix` instances stored in this
+        `Structured` instance.
+        """
+        from .model_spec import ModelSpecs
+
+        return self._map(
+            lambda model_matrix: model_matrix.model_spec, as_type=ModelSpecs
+        )
