@@ -268,7 +268,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         def prepare_model_spec(obj):
             if isinstance(obj, ModelSpec):
-                return obj
+                return obj.update(
+                    ensure_full_rank=ensure_full_rank,
+                    na_action=na_action,
+                    output=output,
+                )
             formula = Formula.from_spec(obj)
             if not formula._has_root or formula._has_structure:
                 return formula._map(prepare_model_spec, as_type=ModelSpecs)
@@ -282,7 +286,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         return spec._map(prepare_model_spec, as_type=ModelSpecs)
 
-    def _prepare_factor_evaluation_model_spec(self, model_specs: Structured[ModelSpec]):
+    def _prepare_factor_evaluation_model_spec(self, model_specs: ModelSpecs):
         from formulaic.model_spec import ModelSpec
 
         output = set()
