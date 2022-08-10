@@ -94,14 +94,23 @@ class Structured(Generic[ItemType]):
                 f"The invalid keys are: {set(key for key in structure if key.startswith('_'))}."
             )
         if root is not _MISSING:
-            structure["root"] = self._prepare_item("root", root)
+            structure["root"] = self.__prepare_item("root", root)
         self._metadata = _metadata
 
         self._structure = {
-            key: self._prepare_item(key, item) for key, item in structure.items()
+            key: self.__prepare_item(key, item) for key, item in structure.items()
         }
 
-    def _prepare_item(self, key: str, item: Any) -> Any:
+    def __prepare_item(self, key: str, item: Any) -> ItemType:
+        if isinstance(item, Structured):
+            return item._map(
+                lambda x: self._prepare_item(key, x), as_type=self.__class__
+            )
+        if isinstance(item, tuple):
+            return tuple(self.__prepare_item(key, v) for v in item)
+        return self._prepare_item(key, item)
+
+    def _prepare_item(self, key: str, item: Any) -> ItemType:
         return item
 
     @property
@@ -145,7 +154,7 @@ class Structured(Generic[ItemType]):
             if recurse and isinstance(obj, Structured):
                 return obj._map(func, recurse=True, as_type=as_type)
             if isinstance(obj, tuple):
-                return tuple(func(o) for o in obj)
+                return tuple(apply_func(o) for o in obj)
             return func(obj)
 
         return (as_type or Structured)(
@@ -182,6 +191,8 @@ class Structured(Generic[ItemType]):
         def do_recursion(obj):
             if recurse and isinstance(obj, Structured):
                 return obj._to_dict()
+            if isinstance(obj, tuple):
+                return tuple(do_recursion(o) for o in obj)
             return obj
 
         return {key: do_recursion(value) for key, value in self._structure.items()}
@@ -227,11 +238,16 @@ class Structured(Generic[ItemType]):
         structure = structured._structure
 
         if recurse:
+
+            def simplify_obj(obj):
+                if isinstance(obj, Structured):
+                    return obj._simplify(recurse=True)
+                if isinstance(obj, tuple):
+                    return tuple(simplify_obj(o) for o in obj)
+                return obj
+
             structure = {
-                key: value._simplify(recurse=True)
-                if isinstance(value, Structured)
-                else value
-                for key, value in structured._structure.items()
+                key: simplify_obj(value) for key, value in structured._structure.items()
             }
 
         if inplace:
@@ -258,7 +274,7 @@ class Structured(Generic[ItemType]):
                 "_metadata": self._metadata,
                 **self._structure,
                 **{
-                    key: self._prepare_item(key, item)
+                    key: self.__prepare_item(key, item)
                     for key, item in structure.items()
                 },
             }
@@ -279,7 +295,7 @@ class Structured(Generic[ItemType]):
     def __setattr__(self, attr, value):
         if attr.startswith("_"):
             return super().__setattr__(attr, value)
-        self._structure[attr] = self._prepare_item(attr, value)
+        self._structure[attr] = self.__prepare_item(attr, value)
 
     def __getitem__(self, key):
         if self._has_root and not self._has_structure:
@@ -300,7 +316,7 @@ class Structured(Generic[ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in self._structure if key.startswith('_'))}."
             )
-        self._structure[key] = self._prepare_item(key, value)
+        self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Union[ItemType, Structured[ItemType]]]:
         if (

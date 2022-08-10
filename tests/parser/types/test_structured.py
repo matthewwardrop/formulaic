@@ -68,10 +68,13 @@ class TestStructured:
         assert Structured(("Hi", Structured("Hi!")), a=Structured(hello="world"))._map(
             len
         )._to_dict() == {
-            "root": (2, 1),
+            "root": (2, {"root": 3}),
             "a": {
                 "hello": 5,
             },
+        }
+        assert Structured((Structured("Hi", a="Hi"),))._map(len)._to_dict() == {
+            "root": ({"root": 2, "a": 2},)
         }
 
         class MyStructured(Structured):
