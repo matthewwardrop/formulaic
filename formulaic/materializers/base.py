@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import itertools
 import operator
 from abc import abstractmethod
@@ -23,11 +24,12 @@ from formulaic.errors import (
     FactorEncodingError,
     FactorEvaluationError,
     FormulaMaterializationError,
+    FormulaMaterializerInvalidError,
     FormulaMaterializerNotFoundError,
 )
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
-from formulaic.parser.types import Factor, Structured, Term
+from formulaic.parser.types import Factor, Term
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
@@ -35,8 +37,8 @@ from formulaic.utils.stateful_transforms import stateful_eval
 
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
-if TYPE_CHECKING:
-    from formulaic.model_spec import ModelSpec, ModelSpecs  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
+    from formulaic import FormulaSpec, ModelSpec, ModelSpecs
 
 
 EncodedTermStructure = namedtuple(
@@ -67,7 +69,15 @@ class FormulaMaterializerMeta(InterfaceMeta):
         if isinstance(materializer, str):
             if materializer not in cls.REGISTERED_NAMES:
                 raise FormulaMaterializerNotFoundError(materializer)
-            materializer = cls.REGISTERED_NAMES[materializer]
+            return cls.REGISTERED_NAMES[materializer]
+        if isinstance(materializer, FormulaMaterializer):
+            return type(materializer)
+        if not inspect.isclass(materializer) or not issubclass(
+            materializer, FormulaMaterializer
+        ):
+            raise FormulaMaterializerInvalidError(
+                "Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`."
+            )
         return materializer
 
     def for_data(cls, data, output=None):
@@ -107,10 +117,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     # Public API
 
     @inherit_docs(method="_init")
-    def __init__(self, data, context=None, **kwargs):
+    def __init__(self, data, context=None, **params):
         self.data = data
         self.context = context or {}
-        self._init(**kwargs)
+        self.params = params
+        self._init()
 
         self.layered_context = LayeredMapping(
             self.data_context, self.context, TRANSFORMS
@@ -131,20 +142,16 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return len(self.data)
 
     def get_model_matrix(
-        self, spec, ensure_full_rank=True, na_action="drop", output=None
+        self,
+        spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        **spec_overrides,
     ):
-        # Prepare arguments
-        if output is None:
-            output = self.REGISTER_OUTPUTS[0]
-        if output not in self.REGISTER_OUTPUTS:
-            raise FormulaMaterializationError(
-                f"Nominated output {repr(output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}."
-            )
+        from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
-        model_specs = self._prepare_model_specs(
-            spec, ensure_full_rank=ensure_full_rank, na_action=na_action, output=output
-        )
+        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(spec, **spec_overrides)
+        should_simplify = isinstance(spec, ModelSpec)
+        model_specs: ModelSpecs = self._prepare_model_specs(spec)
 
         # Step 0: Pool all factors and transform state, ensuring consistency
         # during factor evaluation (esp. which rows get dropped).
@@ -184,7 +191,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             as_type=ModelMatrices,
         )
 
-        return model_matrices._simplify()
+        if should_simplify:
+            return model_matrices._simplify()
+        return model_matrices
 
     def _build_model_matrix(self, spec: ModelSpec, drop_rows):
 
@@ -253,36 +262,26 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Methods related to input preparation
 
-    def _prepare_model_specs(
-        self,
-        spec,
-        ensure_full_rank,
-        na_action,
-        output,
-    ) -> ModelSpecs:
-        from formulaic.formula import Formula
-        from formulaic.model_spec import ModelSpec, ModelSpecs
+    def _prepare_model_specs(self, spec: Union[ModelSpec, ModelSpecs]) -> ModelSpecs:
+        from formulaic.model_spec import ModelSpecs
 
-        if not isinstance(spec, Structured):
-            spec = Structured(spec)
+        if not isinstance(spec, ModelSpecs):
+            spec = ModelSpecs(spec)
 
-        def prepare_model_spec(obj):
-            if isinstance(obj, ModelSpec):
-                return obj.update(
-                    ensure_full_rank=ensure_full_rank,
-                    na_action=na_action,
-                    output=output,
+        def prepare_model_spec(model_spec: ModelSpec):
+            overrides = {
+                "materializer": self.REGISTER_NAME,
+                "materializer_params": self.params,
+            }
+
+            if model_spec.output is None:
+                overrides["output"] = self.REGISTER_OUTPUTS[0]
+            elif model_spec.output not in self.REGISTER_OUTPUTS:
+                raise FormulaMaterializationError(
+                    f"Nominated output {repr(model_spec.output)} is invalid. Available output types are: {set(self.REGISTER_OUTPUTS)}."
                 )
-            formula = Formula.from_spec(obj)
-            if not formula._has_root or formula._has_structure:
-                return formula._map(prepare_model_spec, as_type=ModelSpecs)
-            return ModelSpec(
-                formula=formula,
-                materializer=self,
-                ensure_full_rank=ensure_full_rank,
-                na_action=na_action,
-                output=output,
-            )
+
+            return model_spec.update(**overrides)
 
         return spec._map(prepare_model_spec, as_type=ModelSpecs)
 

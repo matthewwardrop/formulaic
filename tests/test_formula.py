@@ -43,6 +43,11 @@ class TestFormula:
         assert [str(t) for t in f[0]] == ["a", "b"]
         assert [str(t) for t in f[1]] == ["c", "d"]
 
+        f = Formula(("a", ["b", "c"]))
+        assert f._has_structure
+        assert f[0].root == ["1", "a"]
+        assert f[1].root == ["b", "c"]
+
         f = Formula(["a"])
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f

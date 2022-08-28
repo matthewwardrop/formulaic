@@ -29,6 +29,10 @@ class TestFormulaMaterializer:
             is PandasMaterializer
         )
         assert (
+            FormulaMaterializer.for_materializer(PandasMaterializer(pandas.DataFrame()))
+            is PandasMaterializer
+        )
+        assert (
             FormulaMaterializer.for_data(pandas.DataFrame(), output="numpy")
             is PandasMaterializer
         )

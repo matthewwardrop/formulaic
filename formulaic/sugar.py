@@ -1,18 +1,18 @@
 from typing import Any, Mapping, Union
 
-from .formula import Formula
-from .model_matrix import ModelMatrix
-from .model_spec import ModelSpec
+from .formula import FormulaSpec
+from .model_matrix import ModelMatrices, ModelMatrix
+from .model_spec import ModelSpec, ModelSpecs
 from .utils.context import capture_context
 
 
 def model_matrix(
-    spec: Union[Formula, str, list, set, tuple, ModelMatrix, ModelSpec],
+    spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
     data: Any,
     *,
     context: Union[int, Mapping[str, Any]] = 0,
-    **kwargs
-) -> ModelMatrix:
+    **spec_overrides,
+) -> Union[ModelMatrix, ModelMatrices]:
     """
     Generate a model matrix directly from a formula or model spec.
 
@@ -40,8 +40,8 @@ def model_matrix(
             means that all variables in the caller's scope should be made
             accessible when interpreting and evaluating formulae). Otherwise, a
             mapping from variable name to value is expected.
-        kwargs: Any additional arguments to pass through to the associated
-            `.get_model_matrix()` method.
+        spec_overrides: Any `ModelSpec` attributes to set/override. See
+            `ModelSpec` for more details.
 
     Returns:
         The data transformed in to the model matrix with the requested
@@ -49,9 +49,6 @@ def model_matrix(
     """
     if isinstance(context, int):
         context = capture_context(context + 1)
-
-    if isinstance(spec, ModelMatrix):
-        spec = spec.model_spec
-    elif not isinstance(spec, ModelSpec):
-        spec = Formula.from_spec(spec)
-    return spec.get_model_matrix(data, context=context, **kwargs)
+    return ModelSpec.from_spec(spec, **spec_overrides).get_model_matrix(
+        data, context=context
+    )

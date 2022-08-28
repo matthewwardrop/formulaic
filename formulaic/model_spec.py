@@ -1,16 +1,25 @@
 from __future__ import annotations
 
-import inspect
 import warnings
 from collections import OrderedDict
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    TYPE_CHECKING,
+)
 
 from formulaic.materializers.base import EncodedTermStructure
 from formulaic.parser.types import Structured, Term
 from formulaic.utils.constraints import LinearConstraintSpec, LinearConstraints
 
-from .formula import Formula
+from .formula import Formula, FormulaSpec
 from .materializers import FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -54,9 +63,43 @@ class ModelSpec:
                 place during encoding.
     """
 
+    @classmethod
+    def from_spec(
+        cls,
+        spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        **attrs,
+    ) -> Union[ModelSpec, ModelSpecs]:
+        """
+        Construct a `ModelSpec` (or `Structured[ModelSpec]`) instance for the
+        nominated `spec`, setting and/or overriding any `ModelSpec` attributes
+        present in `attrs`.
+
+        Args:
+            spec: The specification for which to generate a `ModelSpec`
+                instance or structured set of `ModelSpec` instances.
+            attrs: Any `ModelSpec` attributes to set and/or override on all
+                generated `ModelSpec` instances.
+        """
+        from .model_matrix import ModelMatrix
+
+        def prepare_model_spec(obj):
+            if isinstance(obj, ModelMatrix):
+                obj = obj.model_spec
+            if isinstance(obj, ModelSpec):
+                return obj.update(**attrs)
+            formula = Formula.from_spec(obj)
+            if not formula._has_root or formula._has_structure:
+                return formula._map(prepare_model_spec, as_type=ModelSpecs)
+            return ModelSpec(formula=formula, **attrs)
+
+        if isinstance(spec, Formula) or not isinstance(spec, Structured):
+            return prepare_model_spec(spec)
+        return spec._map(prepare_model_spec, as_type=ModelSpecs)
+
     # Configuration attributes
     formula: Formula
     materializer: Optional[str] = None
+    materializer_params: Optional[Dict[str, Any]] = None
     ensure_full_rank: bool = True
     na_action: NAAction = "drop"
     output: Optional[str] = None
@@ -75,15 +118,10 @@ class ModelSpec:
             )
 
         # Materializer
-        if (
-            isinstance(self.materializer, FormulaMaterializer)
-            or inspect.isclass(self.materializer)
-            and issubclass(self.materializer, FormulaMaterializer)
-        ):
-            self.__dict__["materializer"] = self.materializer.REGISTER_NAME
-        assert self.materializer is None or isinstance(
-            self.materializer, str
-        ), self.materializer
+        if self.materializer is not None and not isinstance(self.materializer, str):
+            self.__dict__["materializer"] = FormulaMaterializer.for_materializer(
+                self.materializer
+            ).REGISTER_NAME
 
         self.__dict__["na_action"] = NAAction(self.na_action)
 
@@ -202,8 +240,8 @@ class ModelSpec:
     # Utility methods
 
     def get_model_matrix(
-        self, data: Any, **kwargs
-    ) -> Union[ModelMatrix, ModelMatrices]:
+        self, data: Any, context: Optional[Mapping[str, Any]] = None, **attr_overrides
+    ) -> ModelMatrix:
         """
         Build the model matrix (or matrices) realisation of this model spec for
         the nominated `data`.
@@ -212,14 +250,19 @@ class ModelSpec:
             data: The data for which to build the model matrices.
             context: An additional mapping object of names to make available in
                 when evaluating formula term factors.
-            kwargs: Additional materializer-specific arguments to pass on to the
-                materializer's `.get_model_matrix` method.
+            attr_overrides: Any `ModelSpec` attributes to override before
+                constructing model matrices. This is shorthand for first
+                running `ModelSpec.update(**attr_overrides)`.
         """
+        if attr_overrides:
+            return self.update(**attr_overrides).get_model_matrix(data, context=context)
         if self.materializer is None:
             materializer = FormulaMaterializer.for_data(data)
         else:
             materializer = FormulaMaterializer.for_materializer(self.materializer)
-        return materializer(data, **kwargs).get_model_matrix(self)
+        return materializer(
+            data, context=context, **(self.materializer_params or {})
+        ).get_model_matrix(self)
 
     def get_linear_constraints(self, spec: LinearConstraintSpec) -> LinearConstraints:
         """
@@ -292,34 +335,67 @@ class ModelSpecs(Structured[ModelSpec]):
             )
         return item
 
-    def get_model_matrix(self, data, **kwargs) -> ModelMatrices:
+    def get_model_matrix(
+        self, data: Any, context: Optional[Mapping[str, Any]] = None, **attr_overrides
+    ) -> ModelMatrices:
         """
         This method proxies the `ModelSpec.get_model_matrix(...)` API and allows
         it to be called on a structured set of `ModelSpec` instances. If all
-        `ModelSpec.materializer` values are unset or the same, then they are
-        jointly evaluated allowing re-use of the same cached across the specs.
+        `ModelSpec.materializer` and `ModelSpec.materializer_params` values are
+        unset or the same, then they are jointly evaluated allowing re-use of
+        the same cached across the specs.
 
         Args:
-            data: The data for which model matrices should be generated.
-            kwargs: Additional keyword arguments to pass on to
-            `ModelSpec.get_model_matrix(...)` and thus to the materializer.
+            data: The data for which to build the model matrices.
+            context: An additional mapping object of names to make available in
+                when evaluating formula term factors.
+            attr_overrides: Any `ModelSpec` attributes to override before
+                constructing model matrices. This is shorthand for first
+                running `ModelSpec.from_spec(model_specs, **attr_overrides)`.
         """
-        materializers = set(
-            self._map(lambda model_spec: model_spec.materializer)._flatten()
-        ).difference({None})
-        if (
-            len(materializers) > 1
-        ):  # pragma: no cover; sentinel for when model specs have been manually constructed and are incompatible
-            return self._map(
-                lambda model_spec: model_spec.get_model_matrix(data, **kwargs)
+        from formulaic import ModelMatrices
+
+        if attr_overrides:
+            return ModelSpec.from_spec(self, **attr_overrides).get_model_matrix(
+                data, context=context
             )
-        if materializers:
-            materializer = materializer = FormulaMaterializer.for_materializer(
-                next(iter(materializers))
+
+        # Check whether we can generate model matrices jointly (i.e. all
+        # materializers and their params are the same)
+        jointly_generate = False
+        materializer, materializer_params = None, None
+
+        for spec in self._flatten():
+            if not spec.materializer:
+                continue
+            if materializer not in (
+                None,
+                spec.materializer,
+            ) or materializer_params not in (
+                None,
+                spec.materializer_params,
+            ):
+                break
+            materializer, materializer_params = (
+                spec.materializer,
+                spec.materializer_params or None,
             )
         else:
-            materializer = FormulaMaterializer.for_data(data)
-        return materializer(data, **kwargs).get_model_matrix(self)
+            jointly_generate = True
+
+        if jointly_generate:
+            if materializer is None:
+                materializer = FormulaMaterializer.for_data(data)
+            else:
+                materializer = FormulaMaterializer.for_materializer(materializer)
+            return materializer(
+                data, context=context, **(materializer_params or {})
+            ).get_model_matrix(self)
+
+        return self._map(
+            lambda model_spec: model_spec.get_model_matrix(data, context=context),
+            as_type=ModelMatrices,
+        )
 
     def differentiate(
         self, *vars, use_sympy=False  # pylint: disable=redefined-builtin

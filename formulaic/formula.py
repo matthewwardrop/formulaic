@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import inspect
 import warnings
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 from typing_extensions import TypeAlias
 
-from .errors import FormulaInvalidError, FormulaMaterializerInvalidError
-from .materializers.base import FormulaMaterializer
+from .errors import FormulaInvalidError
 from .model_matrix import ModelMatrix
 from .parser import DefaultFormulaParser
 from .parser.types import FormulaParser, Structured, Term
@@ -185,12 +183,7 @@ class Formula(Structured[List[Term]]):
                 )
 
     def get_model_matrix(
-        self,
-        data: Any,
-        context: Optional[Mapping[str, Any]] = None,
-        materializer: Optional[FormulaMaterializer] = None,
-        ensure_full_rank: bool = True,
-        **kwargs,
+        self, data: Any, context: Optional[Mapping[str, Any]] = None, **spec_overrides
     ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
         """
         Build the model matrix (or matrices) realisation of this formula for the
@@ -200,28 +193,13 @@ class Formula(Structured[List[Term]]):
             data: The data for which to build the model matrices.
             context: An additional mapping object of names to make available in
                 when evaluating formula term factors.
-            materializer: The `FormulaMatericalizer` class to use when
-                materializing the data. If not specified, an attempt is made to
-                automatically detect this based on the type of `data` (e.g.
-                pandas DataFrames |-> `PandasMaterializer`).
-            ensure_full_rank: Whether to ensure the model matrices are
-                structurally full rank (contain no columns that are guaranteed
-                to be linearly dependent).
-            kwargs: Additional materializer-specific arguments to pass on to the
-                materializer's `.get_model_matrix` method.
+            spec_overrides: Any `ModelSpec` attributes to set/override. See
+                `ModelSpec` for more details.
         """
-        if materializer is None:
-            materializer = FormulaMaterializer.for_data(data)
-        else:
-            materializer = FormulaMaterializer.for_materializer(materializer)
-        if not inspect.isclass(materializer) or not issubclass(
-            materializer, FormulaMaterializer
-        ):
-            raise FormulaMaterializerInvalidError(
-                "Materializers must be subclasses of `formulaic.materializers.FormulaMaterializer`."
-            )
-        return materializer(data, context=context or {}).get_model_matrix(
-            self, ensure_full_rank=ensure_full_rank, **kwargs
+        from .model_spec import ModelSpec
+
+        return ModelSpec.from_spec(self, **spec_overrides).get_model_matrix(
+            data, context=context
         )
 
     def differentiate(  # pylint: disable=redefined-builtin
