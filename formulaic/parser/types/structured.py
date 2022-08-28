@@ -171,6 +171,12 @@ class Structured(Generic[ItemType]):
         for value in self._structure.values():
             if isinstance(value, Structured):
                 yield from value._flatten()
+            elif isinstance(value, tuple):
+                for v in value:
+                    if isinstance(v, Structured):
+                        yield from v._flatten()
+                    else:
+                        yield v
             else:
                 yield value
 
