@@ -259,6 +259,20 @@ class Formula(Structured[List[Term]]):
         )
         return self
 
+    def __getattr__(self, attr):
+        # Keep substructures wrapped to retain access to helper functions.
+        subformula = super().__getattr__(attr)
+        if attr != "root":
+            return Formula.from_spec(subformula)
+        return subformula
+
+    def __getitem__(self, key):
+        # Keep substructures wrapped to retain access to helper functions.
+        subformula = super().__getitem__(key)
+        if key != "root":
+            return Formula.from_spec(subformula)
+        return subformula
+
     def __repr__(self):  # pylint: disable=signature-differs
         if not self._has_structure and self._has_root:
             return " + ".join([str(t) for t in self])
