@@ -115,12 +115,26 @@ class Structured(Generic[ItemType]):
 
     @property
     def _has_root(self) -> bool:
-        "Whether this instance of `Structured` has a root node."
+        """
+        Whether this instance of `Structured` has a root node.
+        """
         return "root" in self._structure
 
     @property
-    def _has_structure(self) -> bool:
+    def _has_keys(self) -> bool:
+        """
+        Whether this instance of `Structured` has any non-root named
+        substructures.
+        """
         return set(self._structure) != {"root"}
+
+    @property
+    def _has_structure(self) -> bool:
+        """
+        Whether this instance of `Structured` has any non-trivial structure,
+        including named or unnamed substructures.
+        """
+        return self._has_keys or self._has_root and isinstance(self.root, tuple)
 
     def _map(
         self,
@@ -305,7 +319,7 @@ class Structured(Generic[ItemType]):
         self._structure[attr] = self.__prepare_item(attr, value)
 
     def __getitem__(self, key):
-        if self._has_root and not self._has_structure:
+        if self._has_root and not self._has_keys:
             return self.root[key]
         if key in (None, "root") and self._has_root:
             return self.root
@@ -326,17 +340,14 @@ class Structured(Generic[ItemType]):
         self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Union[ItemType, Structured[ItemType]]]:
-        if (
-            self._has_root
-            and not self._has_structure
-            and isinstance(self.root, Sequence)
-        ):
+        if self._has_root and not self._has_keys and isinstance(self.root, Sequence):
             yield from self.root
-        elif self._has_root:
-            yield self.root
-        for key, value in self._structure.items():
-            if key != "root":
-                yield value
+        else:
+            if self._has_root:  # Always yield root first.
+                yield self.root
+            for key, value in self._structure.items():
+                if key != "root":
+                    yield value
 
     def __eq__(self, other):
         if isinstance(other, Structured):

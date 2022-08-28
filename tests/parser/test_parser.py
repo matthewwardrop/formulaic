@@ -93,7 +93,7 @@ class TestFormulaParser:
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
         generated_terms: Structured[List[Term]] = PARSER.get_terms(formula)
-        if generated_terms._has_structure:
+        if generated_terms._has_keys:
             comp = generated_terms._map(sorted)._to_dict()
         elif generated_terms._has_root and isinstance(generated_terms.root, tuple):
             comp = tuple(

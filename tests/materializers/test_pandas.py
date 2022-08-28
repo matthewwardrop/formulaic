@@ -70,7 +70,7 @@ class TestPandasMaterializer:
 
     def test_get_model_matrix_edge_cases(self, materializer):
         mm = materializer.get_model_matrix(("a",), ensure_full_rank=True)
-        assert isinstance(mm, tuple)
+        assert isinstance(mm, ModelMatrices)
         assert isinstance(mm[0], pandas.DataFrame)
 
         mm = materializer.get_model_matrix("a ~ A", ensure_full_rank=True)
@@ -79,8 +79,8 @@ class TestPandasMaterializer:
         assert "rhs" in mm.model_spec
 
         mm = materializer.get_model_matrix(("a ~ A",), ensure_full_rank=True)
-        assert isinstance(mm, tuple)
-        assert isinstance(mm[0], Structured)
+        assert isinstance(mm, ModelMatrices)
+        assert isinstance(mm[0], ModelMatrices)
 
     @pytest.mark.parametrize("formula,tests", PANDAS_TESTS.items())
     def test_get_model_matrix_numpy(self, materializer, formula, tests):

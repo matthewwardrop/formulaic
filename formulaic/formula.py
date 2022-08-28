@@ -138,13 +138,7 @@ class Formula(Structured[List[Term]]):
                 ._simplify()
             )
 
-        if isinstance(item, tuple):
-            # Treat each item in the tuple as a top-level formula.
-            formula_or_terms = tuple(
-                Formula(group, _parser=self._parser, _nested_parser=self._nested_parser)
-                for group in item
-            )
-        elif isinstance(item, Structured):
+        if isinstance(item, Structured):
             formula_or_terms = Formula(_parser=self._nested_parser, **item._structure)
         elif isinstance(item, (list, set)):
             formula_or_terms = [
@@ -178,10 +172,6 @@ class Formula(Structured[List[Term]]):
         """
         if isinstance(formula_or_terms, Formula):
             formula_or_terms._map(cls.__validate_prepared_item)
-            return
-        if isinstance(formula_or_terms, tuple):
-            for term in formula_or_terms:
-                cls.__validate_prepared_item(term)
             return
         if not isinstance(formula_or_terms, list):
             # Should be impossible to reach this; here as a sentinel
@@ -270,10 +260,6 @@ class Formula(Structured[List[Term]]):
         return self
 
     def __repr__(self):  # pylint: disable=signature-differs
-        if (
-            not self._has_structure
-            and self._has_root
-            and not isinstance(self.root, tuple)
-        ):
+        if not self._has_structure and self._has_root:
             return " + ".join([str(t) for t in self])
         return str(self._map(lambda terms: " + ".join([str(t) for t in terms])))
