@@ -1,11 +1,15 @@
 from collections import OrderedDict
+from pyexpat import model
 import re
 
 import pytest
 
 import numpy
 import pandas
+import scipy.sparse
 from formulaic import Formula, ModelSpec, ModelSpecs, ModelMatrix, ModelMatrices
+from formulaic.materializers.base import FormulaMaterializerMeta
+from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.parser.types import Factor, Term
 
 
@@ -104,6 +108,9 @@ class TestModelSpec:
         assert model_spec.column_names == tuple(m2.columns)
         assert model_spec.feature_names == tuple(m2.columns)
 
+        m3 = model_spec.get_model_matrix(data2, output="sparse")
+        assert isinstance(m3, scipy.sparse.spmatrix)
+
     def test_get_linear_constraints(self, model_spec):
         lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
         assert numpy.allclose(lc.constraint_matrix, [[0.0, 1.0, 0.0, -1.0, 0.0, 0.0]])
@@ -145,6 +152,9 @@ class TestModelSpec:
         assert numpy.all(
             model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
         )
+        sparse_matrices = model_specs.get_model_matrix(data2, output="sparse")
+        assert isinstance(sparse_matrices, ModelMatrices)
+        assert isinstance(sparse_matrices.a, scipy.sparse.spmatrix)
 
         # Validate missing materializer and output type behaviour
         model_specs2 = ModelSpecs(
@@ -154,6 +164,21 @@ class TestModelSpec:
             model_specs2.get_model_matrix(data2).lhs
             == ModelSpec(formula="A").get_model_matrix(data2)
         )
+
+        # Validate non-joint generation of model matrices
+        class MyPandasMaterializer(PandasMaterializer):
+            REGISTER_NAME = "my_pandas_materializer"
+
+        incompatible_specs = ModelSpecs(
+            a=model_spec, b=model_spec.update(materializer=MyPandasMaterializer)
+        )
+        matrices = incompatible_specs.get_model_matrix(data2)
+        print(matrices, type(matrices))
+        assert isinstance(matrices, ModelMatrices)
+        assert numpy.all(matrices.a == model_spec.get_model_matrix(data2))
+        assert numpy.all(matrices.b == model_spec.get_model_matrix(data2))
+
+        FormulaMaterializerMeta.REGISTERED_NAMES.pop("my_pandas_materializer")
 
         # Validate differentiation
         assert model_specs.differentiate("a").a == model_spec.differentiate("a")

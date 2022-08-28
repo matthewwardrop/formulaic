@@ -43,6 +43,11 @@ class TestFormula:
         assert [str(t) for t in f[0]] == ["a", "b"]
         assert [str(t) for t in f[1]] == ["c", "d"]
 
+        f = Formula(("a", ["b", "c"]))
+        assert f._has_structure
+        assert f[0].root == ["1", "a"]
+        assert f[1].root == ["b", "c"]
+
         f = Formula(["a"])
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
@@ -85,9 +90,11 @@ class TestFormula:
         assert isinstance(mm_exprs, Structured) and len(mm_exprs) == 2
 
     def test_structured(self, formula_exprs):
-        assert formula_exprs.lhs == ["a"]
-        assert formula_exprs.rhs == ["1", "b"]
-        assert Formula("a | b")[0] == ["1", "a"]
+        assert formula_exprs.lhs.root == ["a"]
+        assert formula_exprs.rhs.root == ["1", "b"]
+        assert Formula("a | b")[0].root == ["1", "a"]
+        assert isinstance(Formula(["a"], b=["b"])["root"], list)
+        assert isinstance(formula_exprs["lhs"], Formula)
 
         with pytest.raises(
             AttributeError,
@@ -139,5 +146,5 @@ class TestFormula:
         pickle.dump(formula_exprs, o)
         o.seek(0)
         formula = pickle.load(o)
-        assert formula.lhs == ["a"]
-        assert formula.rhs == ["1", "b"]
+        assert formula.lhs.root == ["a"]
+        assert formula.rhs.root == ["1", "b"]

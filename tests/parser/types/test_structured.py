@@ -91,6 +91,8 @@ class TestStructured:
         assert set(
             Structured("Hi", a="Hello", b=Structured(c="Greetings"))._flatten()
         ) == {"Hi", "Hello", "Greetings"}
+        assert set(Structured((1, 2), a=3, b=(4, 5))._flatten()) == {1, 2, 3, 4, 5}
+        assert set(Structured((1, Structured(2, b=(3, 4))))._flatten()) == {1, 2, 3, 4}
 
     def test__simplify(self):
         o = object()
