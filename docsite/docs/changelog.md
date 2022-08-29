@@ -3,6 +3,42 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.5.0 (28 Aug 2022)
+
+This is a major new release with some minor API changes, some ergonomic
+improvements, and a few bug fixes.
+
+**Breaking changes:**
+
+* Accessing named substructures of `Formula` objects (e.g. `formula.lhs`) no
+  longer returns a list of terms; but rather a `Formula` object, so that the
+  helper methods can remain accessible. You can access the raw terms by
+  iterating over the formula (`list(formula)`) or looking up the root node
+  (`formula.root`).
+
+**New features and improvements:**
+
+* The `ModelSpec` object is now the source of truth in all `ModelMatrix`
+  generations, and can be constructed directly from any supported specification
+  using `ModelSpec.from_spec(...)`. Supported specifications include formula
+  strings, parsed formulae, model matrices and prior model specs.
+* The `.get_model_matrix()` helper methods across `Formula`,
+  `FormulaMaterializer`, `ModelSpec` and `model_matrix` objects/helpers
+  functions are now consistent, and all use `ModelSpec` directly under the hood.
+* When accessing substructures of `Formula` objects (e.g. `formula.lhs`), the
+  term lists will be wrapped as trivial `Formula` instances rather than returned
+  as raw lists (so that the helper methods like `.get_model_matrix()` can still
+  be used).
+* `FormulaSpec` is now exported from the top-level module.
+
+**Bugfixes and cleanups:**
+
+* Fixed `ModelSpec` specifications being overriden by default arguments to
+  `FormulaMaterializer.get_model_matrix`.
+* `Structured._flatten()` now correctly flattens unnamed substructures.
+
+---
+
 ## 0.4.0 (10 Aug 2022)
 
 This is a major new release with some new features, greatly improved ergonomics
