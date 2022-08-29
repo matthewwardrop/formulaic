@@ -1,12 +1,15 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
 name = "formulaic"
-version = "0.0.0"
 description = "An implementation of Wilkinson formulas."
-authors = ["Matthew Wardrop <mpwardrop@gmail.com>"]
+authors = [
+    {name = "Matthew Wardrop", email = "mpwardrop@gmail.com"},
+]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/matthewwardrop/formulaic"
-documentation = "https://matthewwardrop.github.io/formulaic"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -15,46 +18,105 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
+requires-python = ">=3.7.2"
+dependencies = [
+    "astor>=0.8",
+    "cached-property>=1.3.0; python_version < \"3.8\"",
+    "graphlib-backport>=1.0.0; python_version < \"3.9\"",
+    "interface-meta>=1.2.0",
+    "numpy>=1.16.5",
+    "pandas>=1.0",
+    "scipy>=1.6",
+    "wrapt>=1.0",
+    "typing-extensions>=4.2.0",
+]
+dynamic = ["version"]
 
+[project.urls]
+repository = "https://github.com/matthewwardrop/formulaic"
+documentation = "https://matthewwardrop.github.io/formulaic"
+
+[project.optional-dependencies]
+arrow = ["pyarrow>=1"]
+calculus = ["sympy<1.10,>=1.3"]
+
+[tool.hatch.version]
+source = "vcs"
+
+# Build target configuration
+
+[tool.hatch.build.targets.sdist]
 include = [
-    { path = "docsite", format = "sdist" },
-    { path = "benchmarks", format = "sdist" },
-    { path = "tests", format = "sdist" },
-    { path = "poetry.lock", format = "sdist" },
-    { path = "tox.ini", format = "sdist" },
+    "docsite",
+    "benchmarks",
+    "formulaic",
+    "tests",
+    "LICENSE",
+    "pyproject.toml",
+    "README.md",
 ]
 
-[tool.poetry-dynamic-versioning]
-enable = true
+# Testing configuration
 
-[tool.poetry.build]
-generate-setup-file = false
+[tool.hatch.envs.default]
+dependencies = [
+    "formulaic[arrow,calculus]",
+    "pytest==6.2.5",
+    "pytest-cov==3.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.7.2"
-astor = ">=0.8"
-cached_property = {version = ">=1.3.0", python = "<3.8"}
-graphlib-backport = {version = "^1.0.0", python = "<3.9"}
-interface-meta = "^1.2.0"
-numpy = ">=1.3"
-pandas = ">=1.0"
-scipy = ">=1.6"
-wrapt = ">=1.0"
-pyarrow = {version = ">=1", optional = true}
-sympy = {version = ">=1.3,<1.10", optional = true}
-typing-extensions = "^4.2.0"
+[tool.hatch.envs.default.scripts]
+tests = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv tests'
 
-[tool.poetry.extras]
-arrow = ["pyarrow"]
-calculus = ["sympy"]
+[[tool.hatch.envs.test.matrix]]
+python = ["37", "38", "39", "310"]
 
-[tool.poetry.dev-dependencies]
-black = "^22.1"
-flake8 = "^4.0.1"
-pytest = "^6.2.5"
-pytest-cov = "^3.0.0"
-tox = "^3.24.5"
-pylint = "^2.14.5"
+[[tool.hatch.envs.test_min.matrix]]
+python = ["37"]
+
+[tool.hatch.envs.test_min]
+dependencies = [
+    "formulaic[arrow,calculus]",
+    "pytest==6.2.5",
+    "pytest-cov==3.0.0",
+    "astor==0.8",
+    "cached-property==1.3.0; python_version < \"3.8\"",
+    "graphlib-backport==1.0.0; python_version < \"3.9\"",
+    "interface-meta==1.2.0",
+    "numpy==1.16.5",
+    "pandas==1.0",
+    "scipy==1.6",
+    "wrapt==1.0",
+    "typing-extensions==4.2.0",
+]
+
+[tool.hatch.envs.lint]
+dependencies = [
+    "black==22.6",
+    "flake8==5.0.4",
+    "flake8-pyproject",
+    "pylint==2.14.5",
+    "pytest-cov==3.0.0",
+    "pytest==6.2.5",
+]
+
+[tool.hatch.envs.lint.scripts]
+check = [
+    "black --check formulaic tests",
+    "flake8 formulaic",
+    "pylint formulaic",
+]
+format = "black formulaic tests"
+
+# Linting configuration
+
+[tool.flake8]
+ignore = [
+    "C901","E203","E501","E712","E722","E731","W503","W504","W601"
+]
+max-complexity = 25
+import-order-style = "edited"
+application-import-names = "formulaic"
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
@@ -80,7 +142,3 @@ disable = [
     "unnecessary-lambda-assignment",
     "unused-argument",
 ]
-
-[build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry.core.masonry.api"

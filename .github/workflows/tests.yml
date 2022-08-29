@@ -1,4 +1,4 @@
-name: Run Tox Tests
+name: Run Tests
 
 on:
   push:
@@ -10,23 +10,30 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
+      fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install tox tox-gh-actions poetry poetry-dynamic-versioning
-    - name: Test with tox
-      run: tox
+        pip install hatch hatch-vcs
+    - name: Run tests
+      run: hatch run tests
+    - if: matrix.python-version == '3.7'
+      name: Check works with min requirements
+      run: hatch run test_min:pytest tests
+    - if: matrix.python-version == '3.9'
+      name: Lint
+      run: hatch run lint:check
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1.0.10
       with:
