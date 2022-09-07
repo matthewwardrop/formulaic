@@ -103,8 +103,7 @@ and conventions of which you should be aware.
     include an intercept term. In R, `b-1` and `(b-1)` both do not have an
     intercept, whereas in Formulaic and Patsy the parentheses are resolved
     first, and so the first does not have an intercept and the second does
-    (because and implicit '1 +' is added prepended to the right hand side of the
-    formula).
+    (because '1 +' is implicitly prepended to the right hand side of the formula).
   - Formulaic borrows a clever algorithm introduced by Patsy to carefully choose
     where to reduce the rank of the model matrix in order to ensure that the
     matrix is structurally full rank. This avoids producing over-specified model
