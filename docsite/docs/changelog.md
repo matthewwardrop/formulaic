@@ -3,6 +3,15 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.5.1 (09 Sep 2022)
+
+This is a minor patch release that fixes two bugs.
+
+**Bugfixes and cleanups:**
+
+* Fixed generation of string representation of `Formula` objects.
+* Fixed generation of `formulaic.__version__` during package build.
+
 ## 0.5.0 (28 Aug 2022)
 
 This is a major new release with some minor API changes, some ergonomic
