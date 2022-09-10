@@ -121,6 +121,8 @@ class TestFormula:
         assert repr(Formula("a | b")) == (
             "root:\n    [0]:\n        1 + a\n    [1]:\n        1 + b"
         )
+        assert str(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
+        assert str(formula_exprs) == ".lhs:\n    a\n.rhs:\n    1 + b"
 
     def test_equality(self):
         assert Formula("a + b") == Formula("a+b")

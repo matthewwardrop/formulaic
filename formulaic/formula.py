@@ -251,7 +251,7 @@ class Formula(Structured[List[Term]]):
             return Formula.from_spec(subformula)
         return subformula
 
-    def __repr__(self):  # pylint: disable=signature-differs
+    def __repr__(self, to_str: bool = False):
         if not self._has_structure and self._has_root:
             return " + ".join([str(t) for t in self])
         return str(self._map(lambda terms: " + ".join([str(t) for t in terms])))
