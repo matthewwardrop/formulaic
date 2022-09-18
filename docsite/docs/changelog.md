@@ -3,7 +3,18 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
-## 0.5.1 (09 Sep 2022)
+## 0.5.2 (17 Sep 2022)
+
+This is a minor patch releases that fixes one bug.
+
+**Bugfixes and cleanups:**
+
+* Fixed alignment between the length of a `Structured` instance and iteration
+  over this instance (including `Formula` instances). Formerly the length would
+  only count the number of keys in its structure, rather than the number of
+  objects that would be yielded during iteration.
+
+## 0.5.1 (9 Sep 2022)
 
 This is a minor patch release that fixes two bugs.
 
