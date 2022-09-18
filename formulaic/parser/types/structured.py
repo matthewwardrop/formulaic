@@ -358,7 +358,7 @@ class Structured(Generic[ItemType]):
         return key in self._structure
 
     def __len__(self) -> int:
-        return len(self._structure)
+        return sum(1 for _ in self)
 
     def __str__(self):
         return self.__repr__(to_str=str)

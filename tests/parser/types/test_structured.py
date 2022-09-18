@@ -143,11 +143,14 @@ class TestStructured:
     def test_iteration(self):
         assert list(Structured()) == []
         assert list(Structured("a")) == ["a"]
+        assert list(Structured(["a", "b", "c"])) == ["a", "b", "c"]
+        assert len(Structured(["a", "b", "c"])) == 3
         assert list(Structured(b="b", c="c")) == ["b", "c"]
         assert list(Structured(c="c", b="b")) == ["c", "b"]
         assert list(Structured("a", b="b", c="c")) == ["a", "b", "c"]
         assert list(Structured("a", b="b", c=["c"])) == ["a", "b", ["c"]]
         assert list(Structured("a", b="b", c=("c",))) == ["a", "b", ("c",)]
+        assert len(Structured("a", b="b", c=("c",))) == 3
 
     def test_equality(self):
         assert Structured() == Structured()
