@@ -114,13 +114,13 @@ def tokenize(
                 if token:
                     yield token
                     token = Token(source=formula)
-                yield Token(source=formula).update(char, i, kind="operator")
+                yield Token(source=formula).update(char, i, kind="context")
             continue
         if char in ")":
             if token:
                 yield token
                 token = Token(source=formula)
-            yield Token(source=formula).update(char, i, kind="operator")
+            yield Token(source=formula).update(char, i, kind="context")
             continue
 
         if whitespace_chars.match(char):

@@ -69,9 +69,7 @@ def tokens_to_ast(
         ]
 
     for token in tokens:
-        if token.kind is not token.Kind.OPERATOR:
-            output_queue.append(token)
-        else:
+        if token.kind is token.Kind.CONTEXT:
             if token.token == "(":
                 stack_operator(token, token)
             elif token.token == ")":
@@ -81,33 +79,39 @@ def tokens_to_ast(
                     operator_stack.pop()
                 else:
                     raise exc_for_token(token, "Could not find matching parenthesis.")
-            else:
-                max_prefix_arity = (
-                    len(output_queue) - operator_stack[-1].index
-                    if operator_stack
-                    else len(output_queue)
-                )
-                operators = operator_resolver.resolve(
+            else:  # pragma: no cover
+                raise exc_for_token(
                     token,
-                    max_prefix_arity=max_prefix_arity,
-                    context=[s.operator for s in operator_stack],
+                    f"Context token `{token.token}` is unrecognized.",
                 )
+        elif token.kind is token.Kind.OPERATOR:
+            max_prefix_arity = (
+                len(output_queue) - operator_stack[-1].index
+                if operator_stack
+                else len(output_queue)
+            )
+            operators = operator_resolver.resolve(
+                token,
+                max_prefix_arity=max_prefix_arity,
+                context=[s.operator for s in operator_stack],
+            )
 
-                for operator in operators:
+            for operator in operators:
 
-                    while (
-                        operator_stack
-                        and (operator_stack[-1].token != "(")
-                        and (
-                            operator_stack[-1].operator.precedence > operator.precedence
-                            or operator_stack[-1].operator.precedence
-                            == operator.precedence
-                            and operator.associativity is Operator.Associativity.LEFT
-                        )
-                    ):
-                        output_queue = operate(operator_stack.pop(), output_queue)
+                while (
+                    operator_stack
+                    and (operator_stack[-1].token != "(")
+                    and (
+                        operator_stack[-1].operator.precedence > operator.precedence
+                        or operator_stack[-1].operator.precedence == operator.precedence
+                        and operator.associativity is Operator.Associativity.LEFT
+                    )
+                ):
+                    output_queue = operate(operator_stack.pop(), output_queue)
 
-                    stack_operator(operator, token)
+                stack_operator(operator, token)
+        else:
+            output_queue.append(token)
 
     while operator_stack:
         if operator_stack[-1].token == "(":

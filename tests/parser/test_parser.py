@@ -53,6 +53,7 @@ FORMULA_TO_TERMS = {
     # Formula separators
     "~ a + b": ["1", "a", "b"],
     "a ~ b + c": {"lhs": ["a"], "rhs": ["1", "b", "c"]},
+    "a ~ (b + c)": {"lhs": ["a"], "rhs": ["1", "b", "c"]},
     # Formula parts
     "a | b": (["1", "a"], ["1", "b"]),
     "a | b | c": (["1", "a"], ["1", "b"], ["1", "c"]),
