@@ -13,13 +13,13 @@ TOKEN_TESTS = {
     "a * (b + c:d)": [
         "name:a",
         "operator:*",
-        "operator:(",
+        "context:(",
         "name:b",
         "operator:+",
         "name:c",
         "operator::",
         "name:d",
-        "operator:)",
+        "context:)",
     ],
     "a() + d(a=1, b=2, c  = 3)": [
         "python:a()",

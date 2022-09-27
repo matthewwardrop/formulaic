@@ -18,6 +18,7 @@ class Token:
     require any modification of this low-level code.
 
     The four kinds of token are:
+      - context: a token used to scope terms into a given context
       - operator: an operator to be applied to other surrounding tokens (will
             always consist of non-word characters).
       - name: a name of a feature/variable to be lifted from the model matrix
@@ -39,6 +40,7 @@ class Token:
     """
 
     class Kind(Enum):
+        CONTEXT = "context"
         OPERATOR = "operator"
         VALUE = "value"
         NAME = "name"
