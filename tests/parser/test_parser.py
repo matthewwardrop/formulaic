@@ -35,9 +35,11 @@ FORMULA_TO_TERMS = {
     "a - 1": ["a"],
     "a + 0": ["a"],
     "a + b - a": ["1", "b"],
+    # Contexts
     "(a + b) - a": ["1", "b"],
     "(a - a) + b": ["1", "b"],
     "a + (b - a)": ["1", "a", "b"],
+    "[a + b] - a": ["1", "b"],
     # Check that "0" -> "-1" substitution works as expected
     "+0": [],
     "(+0)": ["1"],

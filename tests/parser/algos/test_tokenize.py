@@ -21,6 +21,7 @@ TOKEN_TESTS = {
         "name:d",
         "context:)",
     ],
+    "[a + b]": ["context:[", "name:a", "operator:+", "name:b", "context:]"],
     "a() + d(a=1, b=2, c  = 3)": [
         "python:a()",
         "operator:+",

@@ -116,7 +116,7 @@ def tokenize(
                     token = Token(source=formula)
                 yield Token(source=formula).update(char, i, kind="context")
             continue
-        if char in ")":
+        if char in ")]":
             if token:
                 yield token
                 token = Token(source=formula)

@@ -173,7 +173,6 @@ class TestModelSpec:
             a=model_spec, b=model_spec.update(materializer=MyPandasMaterializer)
         )
         matrices = incompatible_specs.get_model_matrix(data2)
-        print(matrices, type(matrices))
         assert isinstance(matrices, ModelMatrices)
         assert numpy.all(matrices.a == model_spec.get_model_matrix(data2))
         assert numpy.all(matrices.b == model_spec.get_model_matrix(data2))

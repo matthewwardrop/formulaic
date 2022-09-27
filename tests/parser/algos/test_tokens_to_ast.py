@@ -68,8 +68,8 @@ FORMULA_ERRORS = {
         FormulaSyntaxError,
         r"Operator `\+` has insuffient arguments and/or is misplaced.",
     ],
-    "( a + b": [FormulaSyntaxError, r"Could not find matching parenthesis."],
-    "a + b )": [FormulaSyntaxError, r"Could not find matching parenthesis."],
+    "( a + b": [FormulaSyntaxError, r"Could not find matching context marker."],
+    "a + b )": [FormulaSyntaxError, r"Could not find matching context marker."],
     "a b": [FormulaSyntaxError, r"Missing operator between `a` and `b`."],
     "y + y2 y3 ~ x + z": [
         FormulaSyntaxError,

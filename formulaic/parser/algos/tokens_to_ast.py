@@ -6,6 +6,11 @@ from ..utils import exc_for_token, exc_for_missing_operator
 
 
 OrderedOperator = namedtuple("OrderedOperator", ("operator", "token", "index"))
+CONTEXT_OPENERS = {"(", "["}
+CONTEXT_CLOSERS = {
+    ")": "(",
+    "]": "[",
+}
 
 
 def tokens_to_ast(
@@ -70,15 +75,18 @@ def tokens_to_ast(
 
     for token in tokens:
         if token.kind is token.Kind.CONTEXT:
-            if token.token == "(":
+            if token.token in CONTEXT_OPENERS:
                 stack_operator(token, token)
-            elif token.token == ")":
-                while operator_stack and operator_stack[-1].token != "(":
+            elif token.token in CONTEXT_CLOSERS:
+                starting_token = CONTEXT_CLOSERS[token.token]
+                while operator_stack and operator_stack[-1].token != starting_token:
                     output_queue = operate(operator_stack.pop(), output_queue)
-                if operator_stack and operator_stack[-1].token == "(":
+                if operator_stack and operator_stack[-1].token == starting_token:
                     operator_stack.pop()
                 else:
-                    raise exc_for_token(token, "Could not find matching parenthesis.")
+                    raise exc_for_token(
+                        token, "Could not find matching context marker."
+                    )
             else:  # pragma: no cover
                 raise exc_for_token(
                     token,
@@ -100,7 +108,7 @@ def tokens_to_ast(
 
                 while (
                     operator_stack
-                    and (operator_stack[-1].token != "(")
+                    and operator_stack[-1].token.kind is not Token.Kind.CONTEXT
                     and (
                         operator_stack[-1].operator.precedence > operator.precedence
                         or operator_stack[-1].operator.precedence == operator.precedence
@@ -114,9 +122,9 @@ def tokens_to_ast(
             output_queue.append(token)
 
     while operator_stack:
-        if operator_stack[-1].token == "(":
+        if operator_stack[-1].token.kind is Token.Kind.CONTEXT:
             raise exc_for_token(
-                operator_stack[-1].token, "Could not find matching parenthesis."
+                operator_stack[-1].token, "Could not find matching context marker."
             )
         output_queue = operate(operator_stack.pop(), output_queue)
 
