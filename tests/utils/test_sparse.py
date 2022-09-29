@@ -8,10 +8,18 @@ def test_sparse_category_encoding():
     data = pandas.Series(list("abcdefgabcdefg"))
 
     levels, encoded = categorical_encode_series_to_sparse_csc_matrix(data)
+
     (
         reduced_levels,
         reduced_encoded,
     ) = categorical_encode_series_to_sparse_csc_matrix(data, drop_first=True)
+
+    (
+        provided_levels,
+        encoded_with_provided_levels,
+    ) = categorical_encode_series_to_sparse_csc_matrix(
+        data, levels=list("bdf"), drop_first=True
+    )
 
     assert levels == list("abcdefg")
     assert encoded.shape == (14, 7)
@@ -20,3 +28,30 @@ def test_sparse_category_encoding():
     assert reduced_levels == list("bcdefg")
     assert reduced_encoded.shape == (14, 6)
     assert numpy.all(reduced_encoded.sum(axis=0) == 2 * numpy.ones(6))
+
+    numpy.testing.assert_array_equal(encoded.data, numpy.ones(14, dtype=float))
+    numpy.testing.assert_array_equal(
+        encoded.indices, numpy.array([0, 7, 1, 8, 2, 9, 3, 10, 4, 11, 5, 12, 6, 13])
+    )
+    numpy.testing.assert_array_equal(
+        encoded.indptr, numpy.array([0, 2, 4, 6, 8, 10, 12, 14])
+    )
+
+    numpy.testing.assert_array_equal(reduced_encoded.data, numpy.ones(12, dtype=float))
+    numpy.testing.assert_array_equal(
+        reduced_encoded.indices, numpy.array([1, 8, 2, 9, 3, 10, 4, 11, 5, 12, 6, 13])
+    )
+    numpy.testing.assert_array_equal(
+        reduced_encoded.indptr, numpy.array([0, 2, 4, 6, 8, 10, 12])
+    )
+
+    assert provided_levels == list("df")
+    numpy.testing.assert_array_equal(
+        encoded_with_provided_levels.data, numpy.ones(4, dtype=float)
+    )
+    numpy.testing.assert_array_equal(
+        encoded_with_provided_levels.indices, numpy.array([3, 10, 5, 12])
+    )
+    numpy.testing.assert_array_equal(
+        encoded_with_provided_levels.indptr, numpy.array([0, 2, 4])
+    )
