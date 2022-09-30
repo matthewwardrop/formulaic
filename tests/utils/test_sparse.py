@@ -18,7 +18,7 @@ def test_sparse_category_encoding():
         provided_levels,
         encoded_with_provided_levels,
     ) = categorical_encode_series_to_sparse_csc_matrix(
-        data, levels=list("bdf"), drop_first=True
+        data, levels=list("fdb"), drop_first=True
     )
 
     assert levels == list("abcdefg")
@@ -45,12 +45,13 @@ def test_sparse_category_encoding():
         reduced_encoded.indptr, numpy.array([0, 2, 4, 6, 8, 10, 12])
     )
 
-    assert provided_levels == list("df")
+    assert provided_levels == list("db")
+    assert encoded_with_provided_levels.shape == (14, 2)
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.data, numpy.ones(4, dtype=float)
     )
     numpy.testing.assert_array_equal(
-        encoded_with_provided_levels.indices, numpy.array([3, 10, 5, 12])
+        encoded_with_provided_levels.indices, numpy.array([3, 10, 1, 8])
     )
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.indptr, numpy.array([0, 2, 4])
