@@ -4,6 +4,7 @@ import graphlib
 from typing import Any, Dict, Iterable, List
 
 from .operator import Operator
+from .structured import Structured
 from .term import Term
 
 
@@ -40,12 +41,17 @@ class ASTNode:
 
         while g.is_active():
             for node in g.get_ready():
-                results[node] = node.operator.to_terms(
-                    *[
-                        (results[arg] if isinstance(arg, ASTNode) else arg.to_terms())
-                        for arg in node.args
-                    ]
+                node_args = (
+                    (results[arg] if isinstance(arg, ASTNode) else arg.to_terms())
+                    for arg in node.args
                 )
+                if node.operator.structural:
+                    results[node] = node.operator.to_terms(*node_args)
+                else:
+                    results[node] = Structured._merge(
+                        *node_args,
+                        merger=node.operator.to_terms,
+                    )
                 g.done(node)
 
         return results[self]
