@@ -340,7 +340,7 @@ class Structured(Generic[ItemType]):
         self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Union[ItemType, Structured[ItemType]]]:
-        if self._has_root and not self._has_keys and isinstance(self.root, Sequence):
+        if self._has_root and not self._has_keys and isinstance(self.root, Iterable):
             yield from self.root
         else:
             if self._has_root:  # Always yield root first.

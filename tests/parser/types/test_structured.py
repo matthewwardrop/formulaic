@@ -43,7 +43,7 @@ class TestStructured:
             Structured()["root"]
 
         s2 = Structured({"my_key": "my_value"})
-        assert list(s2) == [{"my_key": "my_value"}]
+        assert list(s2) == ["my_key"]
         assert s2["my_key"] == "my_value"
 
         s3 = Structured(["a", "b"])
@@ -114,7 +114,7 @@ class TestStructured:
 
     def test__update(self):
         o = object()
-        assert Structured(o), _update([o]) == Structured([o])
+        assert Structured(o)._update([o]) == Structured([o])
         assert Structured()._update(key=o) == Structured(key=o)
         assert Structured(1, key=2)._update(3) == Structured(3, key=2)
         assert Structured(_metadata={"a": 1})._update()._metadata == {"a": 1}
