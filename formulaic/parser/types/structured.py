@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import itertools
+from collections import defaultdict
 from typing import (
     Any,
     Callable,
     Dict,
     Generator,
     Generic,
+    Iterable,
     Optional,
-    Sequence,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -298,6 +301,99 @@ class Structured(Generic[ItemType]):
                     for key, item in structure.items()
                 },
             }
+        )
+
+    @classmethod
+    def _merge(
+        cls,
+        *objects: Any,
+        merger: Callable[..., ItemType] = None,
+        _context: Tuple[str, ...] = (),
+    ) -> Union[ItemType, Structured[ItemType]]:
+        """
+        Merge arbitrarily many objects into a single `Structured` instance.
+
+        If any of `objects` are `Structured` or `tuple` instances, then all
+        `objects` will be treated as `Structured` instances (being upcast as
+        necessary) and then merged recursively; otherwise the objects will be
+        merged directly by `merger`.
+
+        Note: An empty set of objects will result in an empty `Structured`
+        instance being returned.
+
+        Args:
+            objects: A tuple of Structured instances (will be upcast to a
+                trivial `Structured` instance as necessary).
+            merger: A callable which takes as arguments two or more items which
+                are to be merged. If not provided, a basic fallback is provided
+                that knows how to merge lists, dictionaries and sets.
+            _context: A string representing the context of the merge. Intended
+                for internal use.
+        """
+        if merger is None:
+            merger = cls.__merger_default
+
+        # If objects are not specified, return an empty `Structured` instance.
+        if not objects:
+            return cls()
+
+        # Check for sequential (tuple) structures, and if so merge them and
+        # return them wrapped in a `Structured` instance.
+        all_tuples = all(isinstance(obj, tuple) for obj in objects)
+        any_tuples = any(isinstance(obj, tuple) for obj in objects)
+
+        if any_tuples and not all_tuples:
+            raise ValueError(
+                f"Substructures for `.{'.'.join(_context)}` are not aligned and cannot be merged."
+            )
+
+        if all_tuples:
+            merged = tuple(itertools.chain(*objects))
+            if _context:
+                # We are merging substructure of `Structured` instances (and don't need the class wrapper)
+                return merged
+            return cls(merged)
+
+        # Check whether all objects are not Structured instances (or tuples,
+        # already excluded by above). If so, just call `merger` on them
+        # directly.
+        if all(not isinstance(obj, Structured) for obj in objects):
+            return merger(*objects)
+
+        # Otherwise,iterate over objects, upcasting to `Structured` as necessary
+        # and recursively merge them by merging their structure dictionaries.
+        values_to_merge = defaultdict(list)
+
+        for obj in objects:
+            if isinstance(obj, Structured):
+                for key, value in obj._structure.items():
+                    values_to_merge[key].append(value)
+            else:
+                values_to_merge["root"].append(obj)
+
+        return cls(
+            **{
+                key: (
+                    cls._merge(*values, merger=merger, _context=_context + (key,))
+                    if len(values) > 1
+                    else values[0]
+                )
+                for key, values in values_to_merge.items()
+            }
+        )
+
+    @staticmethod
+    def __merger_default(*items):
+        if all(isinstance(item, list) for item in items):
+            return list(itertools.chain(*items))
+        if all(isinstance(item, set) for item in items):
+            return set.union(*items)
+        if all(isinstance(item, dict) for item in items):
+            return dict(itertools.chain(*(d.items() for d in items)))
+        raise NotImplementedError(
+            "The fallback `merger` for `Structured._merge` does not know how to "
+            f"merge objects of types {repr(tuple(type(item) for item in items))}. "
+            "Please specify `merger` explicitly."
         )
 
     def __dir__(self):

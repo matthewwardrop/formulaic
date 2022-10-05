@@ -119,6 +119,56 @@ class TestStructured:
         assert Structured(1, key=2)._update(3) == Structured(3, key=2)
         assert Structured(_metadata={"a": 1})._update()._metadata == {"a": 1}
 
+    def test__merge(self):
+
+        _m = Structured._merge
+
+        assert _m() == Structured()
+        assert _m(Structured(), Structured()) == Structured()
+        assert _m(Structured(["a"]), ["b"]) == Structured(["a", "b"])
+        assert _m(Structured(a=1), Structured(b=2)) == Structured(a=1, b=2)
+        assert _m(Structured((1, 2, 3)), Structured((4, 5, 6))) == Structured(
+            (1, 2, 3, 4, 5, 6)
+        )
+        assert _m((1, 2, 3), (4, 5, 6)) == Structured((1, 2, 3, 4, 5, 6))
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Substructures for `.` are not aligned and cannot be merged."
+            ),
+        ):
+            _m((1, 2, 3), [4, 5, 6])
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Substructures for `.a.b` are not aligned and cannot be merged."
+            ),
+        ):
+            _m(
+                Structured(a=Structured(b=(1, 2, 3))),
+                Structured(a=Structured(b=[4, 5, 6])),
+            )
+
+        # Test default resolver
+        assert _m(Structured(a=[1]), Structured(a=[1])) == Structured(a=[1, 1])
+        assert _m(Structured(a={1}), Structured(a={1})) == Structured(a={1})
+        assert _m(
+            Structured(a={"a": 1, "b": 2}), Structured(a={"b": 3, "c": 4})
+        ) == Structured(a={"a": 1, "b": 3, "c": 4})
+
+        with pytest.raises(
+            NotImplementedError,
+            match=re.escape(
+                "The fallback `merger` for `Structured._merge` does not know how to merge objects of types (<class 'str'>, <class 'str'>). Please specify `merger` explicitly."
+            ),
+        ):
+            _m("asd", "asd")
+
+        # Test custom resolver
+        assert True
+
     def test_mutation(self):
         s = Structured(1)
         s.root = 10
