@@ -33,6 +33,10 @@ class Operator:
         accepts_context: A callable that will receive a list of Operator and
             Token instances that describe the context in which the operator
             would be applied if this callable returns `True`.
+        structural: Whether this operator adds structure to the terms sets, in
+            which case `Structured._merge` will not be used in the
+            `ASTNode.to_terms()`, and the termsets will be directly passed to
+            `Operator.to_terms()`.
     """
 
     class Associativity(Enum):
@@ -55,6 +59,7 @@ class Operator:
         fixity: Union[str, Fixity] = "infix",
         to_terms: Callable[..., Iterable[Term]] = None,
         accepts_context: Callable[[List[Union[Token, Operator]]], bool] = None,
+        structural: bool = False,
     ):
         self.symbol = symbol
         self.arity = arity
@@ -63,6 +68,7 @@ class Operator:
         self.fixity = fixity
         self._to_terms = to_terms
         self._accepts_context = accepts_context
+        self.structural = structural
 
     @property
     def associativity(self):

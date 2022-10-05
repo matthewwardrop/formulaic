@@ -170,6 +170,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 associativity=None,
                 to_terms=lambda lhs, rhs: Structured(lhs=lhs, rhs=rhs),
                 accepts_context=lambda context: len(context) == 0,
+                structural=True,
             ),
             Operator(
                 "~",
@@ -179,6 +180,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 fixity="prefix",
                 to_terms=lambda terms: terms,
                 accepts_context=lambda context: len(context) == 0,
+                structural=True,
             ),
             Operator(
                 "|",
@@ -189,6 +191,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 accepts_context=lambda context: all(
                     isinstance(c, Operator) and c.symbol in "~|" for c in context
                 ),
+                structural=True,
             ),
             Operator(
                 "+",

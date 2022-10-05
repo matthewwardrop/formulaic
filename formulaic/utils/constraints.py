@@ -441,6 +441,7 @@ class ConstraintOperatorResolver(
                 associativity=None,
                 to_terms=join_tuples,
                 accepts_context=lambda context: all(c.symbol == "," for c in context),
+                structural=True,
             ),
             Operator(
                 "=",
