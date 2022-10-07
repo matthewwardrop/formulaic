@@ -13,10 +13,14 @@ class Term:
 
     Attributes:
         factors: The set of factors to be multipled to form the term.
+        preserve_rank: Whether to preserve the term structure even when
+            `ensure_full_rank` is specified. Other terms without this set may
+            still be affected by the presence of this term.
     """
 
-    def __init__(self, factors: Iterable["Factor"]):
+    def __init__(self, factors: Iterable["Factor"], preserve_rank: bool = False):
         self.factors = tuple(sorted(set(factors)))
+        self.preserve_rank = preserve_rank
         self._factor_exprs = tuple(factor.expr for factor in self.factors)
         self._hash = hash(repr(self))
 
