@@ -12,6 +12,7 @@ from .types import (
     OperatorResolver,
     Structured,
     Term,
+    TermGroup,
     Token,
 )
 from .utils import (
@@ -101,7 +102,7 @@ class DefaultFormulaParser(FormulaParser):
                 ),
                 *insert_tokens_after(
                     tokens[rhs_index:],
-                    r"\|",
+                    r"\|+",
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
@@ -192,6 +193,40 @@ class DefaultOperatorResolver(OperatorResolver):
                     isinstance(c, Operator) and c.symbol in "~|" for c in context
                 ),
                 structural=True,
+            ),
+            Operator(
+                "|",
+                arity=2,
+                precedence=50,
+                associativity="left",
+                to_terms=lambda terms, groups: (
+                    Structured(
+                        group={
+                            TermGroup(term, group)
+                            for term, group in itertools.product(
+                                terms, groups.difference({"1"})
+                            )
+                        },
+                    )
+                ),
+                accepts_context=lambda context: context and context[-1] == "(",
+            ),
+            Operator(
+                "||",
+                arity=2,
+                precedence=50,
+                associativity="left",
+                to_terms=lambda terms, groups: (
+                    Structured(
+                        group_independent={
+                            TermGroup(term, group, joiner="||")
+                            for term, group in itertools.product(
+                                terms, groups.difference({"1"})
+                            )
+                        },
+                    )
+                ),
+                accepts_context=lambda context: context and context[-1] == "(",
             ),
             Operator(
                 "+",

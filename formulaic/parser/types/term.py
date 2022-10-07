@@ -52,3 +52,23 @@ class Term:
 
     def __repr__(self):
         return ":".join(self._factor_exprs)
+
+
+class TermGroup(Term):
+    """
+    Represents a group randomized term a formula.
+
+    Attributes:
+        term:
+        group:
+        joiner:
+    """
+
+    def __init__(self, term, group, joiner="|"):
+        self.term = term
+        self.group = group
+        self.joiner = joiner
+        super().__init__(factors=[*term.factors, *group.factors], preserve_rank=True)
+
+    def __repr__(self):
+        return repr(self.term) + self.joiner + repr(self.group)
