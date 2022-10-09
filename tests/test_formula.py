@@ -113,6 +113,10 @@ class TestFormula:
         f = Formula("a + b + log(c) - 1")
         assert f.differentiate("a").root == ["1", "0", "0"]
         assert f.differentiate("c").root == ["0", "0", "0"]
+
+    def test_differentiate_with_sympy(self):
+        pytest.importorskip("sympy")
+        f = Formula("a + b + log(c) - 1")
         assert f.differentiate("c", use_sympy=True).root == ["0", "0", "(1/c)"]
 
     def test_repr(self, formula_expr, formula_exprs):
