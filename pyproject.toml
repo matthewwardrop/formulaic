@@ -72,8 +72,8 @@ include = [
 dependencies = [
     'formulaic[arrow,calculus]; python_version < "3.11"',
     'formulaic[calculus]; python_version == "3.11"',
-    "pytest==6.2.5",
-    "pytest-cov==3.0.0",
+    "pytest==7.2.0",
+    "pytest-cov==4.0.0",
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -88,8 +88,8 @@ python = ["37"]
 [tool.hatch.envs.test_min]
 dependencies = [
     "formulaic[arrow,calculus]",
-    "pytest==6.2.5",
-    "pytest-cov==3.0.0",
+    "pytest==7.2.0",
+    "pytest-cov==4.0.0",
     "astor==0.8",
     "cached-property==1.3.0; python_version < \"3.8\"",
     "graphlib-backport==1.0.0; python_version < \"3.9\"",

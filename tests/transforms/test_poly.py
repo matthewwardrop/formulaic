@@ -47,8 +47,8 @@ class TestPoly:
             r_reference,
         )
 
-        assert pytest.approx(state["alpha"], {0: 0.5})
-        assert pytest.approx(state["norms2"], {0: 21.0, 2: 1.925})
+        assert state["alpha"] == pytest.approx({0: 0.5})
+        assert state["norms2"] == pytest.approx({0: 21.0, 1: 1.925})
 
         assert numpy.allclose(
             poly(data, _state=state)[:, 0],
@@ -95,9 +95,9 @@ class TestPoly:
             r_reference,
         )
 
-        assert pytest.approx(state["alpha"], {0: 0.5, 1: 0.5, 2: 0.5})
-        assert pytest.approx(
-            state["norms2"], {1: 0.09166666666666667, 2: 0.07283333333333333}
+        assert state["alpha"] == pytest.approx({0: 0.5, 1: 0.5, 2: 0.5})
+        assert state["norms2"] == pytest.approx(
+            {0: 21.0, 1: 1.925, 2: 0.14020416666666669, 3: 0.009734175}
         )
 
         assert numpy.allclose(
