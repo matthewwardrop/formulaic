@@ -118,7 +118,7 @@ class PandasMaterializer(FormulaMaterializer):
                     {
                         ":".join(solo_factors): functools.reduce(
                             numpy.multiply,
-                            (p for p in solo_factors.values()),
+                            (numpy.asanyarray(p) for p in solo_factors.values()),
                         )
                     }
                 )
