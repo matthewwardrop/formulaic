@@ -137,7 +137,9 @@ class Formula(Structured[List[Term]]):
             )
 
         if isinstance(item, Structured):
-            formula_or_terms = Formula(_parser=self._nested_parser, **item._structure)
+            formula_or_terms = Formula(
+                _parser=self._nested_parser, **item._structure
+            )._simplify()
         elif isinstance(item, (list, set)):
             formula_or_terms = [
                 term
@@ -148,19 +150,17 @@ class Formula(Structured[List[Term]]):
                     else [value]
                 )
             ]
+            self.__validate_terms(formula_or_terms)
+            formula_or_terms = sorted(formula_or_terms)
         else:
             raise FormulaInvalidError(
                 f"Unrecognized formula specification: {repr(item)}."
             )
 
-        self.__validate_prepared_item(formula_or_terms)
-
-        if isinstance(formula_or_terms, Structured):
-            formula_or_terms = formula_or_terms._simplify()
         return formula_or_terms
 
     @classmethod
-    def __validate_prepared_item(cls, formula_or_terms: Any):
+    def __validate_terms(cls, formula_or_terms: Any):
         """
         Verify that all terms are of the appropriate type. The acceptable types
         are:
@@ -168,9 +168,6 @@ class Formula(Structured[List[Term]]):
             - Tuple[List[Terms], ...]
             - Formula
         """
-        if isinstance(formula_or_terms, Formula):
-            formula_or_terms._map(cls.__validate_prepared_item)
-            return
         if not isinstance(formula_or_terms, list):
             # Should be impossible to reach this; here as a sentinel
             raise FormulaInvalidError(

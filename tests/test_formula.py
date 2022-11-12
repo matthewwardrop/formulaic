@@ -31,10 +31,10 @@ class TestFormula:
     def test_constructor(self):
         assert [str(t) for t in Formula(["a", "b", "c"])] == ["a", "b", "c"]
         assert [str(t) for t in Formula(["a", "c", "b", "1"])] == [
-            "a",
-            "c",
-            "b",
             "1",
+            "a",
+            "b",
+            "c",
         ]
 
         f = Formula((["a", "b"], ["c", "d"]))
@@ -141,7 +141,7 @@ class TestFormula:
             Formula([{"a": 1}])
         with pytest.raises(FormulaInvalidError):
             # Should not be possible to reach this, but check anyway.
-            Formula._Formula__validate_prepared_item(("a",))
+            Formula._Formula__validate_terms(("a",))
 
     def test_invalid_materializer(self, formula_expr, data):
         with pytest.raises(FormulaMaterializerInvalidError):
