@@ -3,6 +3,8 @@ Formulaic. It is almost identical that used by patsy and R, and so most formulas
 should work without modification. However, there are some differences, which are
 called out below.
 
+## Mention that multiple fields can be on LHS
+
 
 ## Operators
 
