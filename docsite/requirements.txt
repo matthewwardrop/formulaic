@@ -21,10 +21,7 @@ fastjsonschema==2.16.2
 ghp-import==2.1.0
     # via mkdocs
 importlib-metadata==4.12.0
-    # via
-    #   jupyter-client
-    #   markdown
-    #   mkdocs
+    # via mkdocs
 jinja2==3.1.2
     # via
     #   mkdocs
@@ -51,7 +48,7 @@ markdown==3.4.1
     #   mkdocs
     #   mkdocs-material
     #   pymdown-extensions
-markdown-it-py==2.1.0
+markdown-it-py==2.2.0
     # via
     #   jupytext
     #   mdit-py-plugins
