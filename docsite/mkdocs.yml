@@ -1,20 +1,25 @@
 site_name: Formulaic
 nav:
-  - Overview:
+  - Getting Started:
     - Introduction: index.md
+    - What are formulas?: formulas.md
     - Installation: installation.md
+    - Migrating from Patsy/R: migration.md
     - Changelog: changelog.md
-  - Concepts:
-    - Introduction: concepts/index.md
-    - What are formulas?: concepts/formulas.md
-    - Formula Grammar: concepts/grammar.md
   - User Guides:
     - Introduction: guides/index.md
-    - Quickstart: guides/quickstart.md
-    - Advanced Usage: guides/advanced.md
-  - Reference:
-    - Introduction: reference/index.md
-    - API: reference/api.md
+    - Quickstart: guides/quickstart.ipynb
+    - How it works: guides/formulae.ipynb
+    - Formula Grammar: guides/grammar.md
+    - Model Specs: guides/model_specs.md
+    - Transforms: guides/transforms.md
+    - Categorical Encoding: guides/contrasts.ipynb
+    - Spline Encoding: guides/splines.md
+    - Using with Scikit Learn / Statsmodels / etc: guides/integration.md
+  - Developer Guides:
+    - Introduction: dev/index.md
+    - API: dev/api.md
+    - Recommendations: dev/recommendations.md
 theme:
   name: material
   font:
@@ -34,3 +39,5 @@ markdown_extensions:
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+plugins:
+  - mkdocs-jupyter

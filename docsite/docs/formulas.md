@@ -1,6 +1,6 @@
 This section introduces the basic notions and origins of formulas. If you are
 already familiar with formulas from another context, you might want to skip
-forward to the [Formula Grammer](grammar.md) or [User Guides](../guides/).
+forward to the [Formula Grammar](grammar.md) or [User Guides](../guides/).
 
 ## Origins
 
