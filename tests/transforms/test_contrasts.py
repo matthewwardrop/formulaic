@@ -1,4 +1,5 @@
-from functools import reduce
+import re
+
 import numpy
 import pandas
 import pytest
@@ -561,8 +562,8 @@ class TestHelmertContrasts:
 
         reference_reduced = pandas.DataFrame(
             {
-                "a": [-1, 1, 0],
-                "b": [-1, -1, 2],
+                "b": [-1, 1, 0],
+                "c": [-1, -1, 2],
             },
             index=["a", "b", "c"],
         )
@@ -577,6 +578,30 @@ class TestHelmertContrasts:
         assert numpy.all(
             coding_matrix_reduced_sparse.toarray() == reference_reduced.values
         )
+
+        reference_forward = pandas.DataFrame(
+            {
+                "a": [2, -1, -1],
+                "b": [0, 1, -1],
+            },
+            index=["a", "b", "c"],
+        )
+        coding_matrix_forward = contr.helmert(reverse=False).get_coding_matrix(
+            ["a", "b", "c"], reduced_rank=True
+        )
+        assert numpy.all(coding_matrix_forward == reference_forward)
+
+        reference_scaled = pandas.DataFrame(
+            {
+                "b": [-0.5, 0.5, 0],
+                "c": [-1 / 3, -1 / 3, 2 / 3],
+            },
+            index=["a", "b", "c"],
+        )
+        coding_matrix_scaled = contr.helmert(scale=True).get_coding_matrix(
+            ["a", "b", "c"], reduced_rank=True
+        )
+        assert numpy.all(coding_matrix_scaled == reference_scaled)
 
     def test_coefficient_matrix(self):
         reference = pandas.DataFrame(
@@ -639,6 +664,18 @@ class TestDiffContrasts:
         assert numpy.allclose(
             coding_matrix_reduced_sparse.toarray(), reference_reduced.values
         )
+
+        reference_forward = pandas.DataFrame(
+            {
+                "a": [2.0 / 3, -1.0 / 3, -1.0 / 3],
+                "b": [1.0 / 3, 1.0 / 3, -2.0 / 3],
+            },
+            index=["a", "b", "c"],
+        )
+        coding_matrix_forward = contr.diff(backward=False).get_coding_matrix(
+            ["a", "b", "c"], reduced_rank=True
+        )
+        assert numpy.allclose(coding_matrix_forward, reference_forward)
 
     def test_coefficient_matrix(self):
         reference = pandas.DataFrame(
@@ -713,6 +750,14 @@ class TestPolyContrasts:
             ["a", "b", "c"], reduced_rank=True
         )
         assert numpy.allclose(coding_matrix_scores, reference_scores)
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "`PolyContrasts.scores` must have the same cardinality as the categories."
+            ),
+        ):
+            contr.poly(scores=[1, 2, 3]).get_coding_matrix(levels=["a", "b"])
 
     def test_coefficient_matrix(self):
         reference = pandas.DataFrame(
