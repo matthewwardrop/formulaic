@@ -196,18 +196,6 @@ class TestPandasMaterializer:
                 drop_rows=set(),
             )
 
-        # Test that invalid (kind == UNKNOWN) factors raise errors
-        materializer.factor_cache = {}
-        with pytest.raises(
-            FactorEvaluationError,
-            match=re.escape(
-                "The evaluation method `unknown` for factor `a` is not understood."
-            ),
-        ):
-            assert materializer._evaluate_factor(
-                Factor("a"), ModelSpec(formula=[]), drop_rows=set()
-            )
-
     def test__is_categorical(self, materializer):
         assert materializer._is_categorical([1, 2, 3]) is False
         assert materializer._is_categorical(pandas.Series(["a", "b", "c"])) is True

@@ -32,7 +32,6 @@ class Factor:
     """
 
     class EvalMethod(Enum):
-        UNKNOWN = "unknown"
         LITERAL = "literal"
         LOOKUP = "lookup"
         PYTHON = "python"
@@ -66,7 +65,7 @@ class Factor:
 
     @eval_method.setter
     def eval_method(self, eval_method):
-        self._eval_method = Factor.EvalMethod(eval_method or "unknown")
+        self._eval_method = Factor.EvalMethod(eval_method or "lookup")
 
     @property
     def kind(self) -> Kind:

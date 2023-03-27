@@ -20,8 +20,8 @@ class TestFactor:
         assert Factor("a").kind is Factor.Kind.UNKNOWN
         assert Factor("a", kind="constant").kind is Factor.Kind.CONSTANT
 
-        assert Factor("a").eval_method is Factor.EvalMethod.UNKNOWN
-        assert Factor("a", eval_method="lookup").eval_method is Factor.EvalMethod.LOOKUP
+        assert Factor("a").eval_method is Factor.EvalMethod.LOOKUP
+        assert Factor("a", eval_method="python").eval_method is Factor.EvalMethod.PYTHON
 
     def test_equality(self):
         assert Factor("a") == "a"
