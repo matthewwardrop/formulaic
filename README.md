@@ -4,6 +4,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/formulaic.svg)
 ![PyPI - Status](https://img.shields.io/pypi/status/formulaic.svg)
 [![build](https://img.shields.io/github/actions/workflow/status/matthewwardrop/formulaic/tests.yml?branch=main)](https://github.com/matthewwardrop/formulaic/actions?query=workflow%3A%22Run+Tox+Tests%22)
+[![docs](https://img.shields.io/github/actions/workflow/status/matthewwardrop/formulaic/publish_docs.yml?label=docs)](https://matthewwardrop.github.io/formulaic/)
 [![codecov](https://codecov.io/gh/matthewwardrop/formulaic/branch/main/graph/badge.svg)](https://codecov.io/gh/matthewwardrop/formulaic)
 [![Code Style](https://img.shields.io/badge/code%20style-black-black)](https://github.com/psf/black)
 
