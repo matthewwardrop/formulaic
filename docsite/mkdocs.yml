@@ -12,7 +12,7 @@ nav:
     - How it works: guides/formulae.ipynb
     - Formula Grammar: guides/grammar.md
     - Model Specs: guides/model_specs.ipynb
-    - Transforms: guides/transforms.md
+    - Transforms: guides/transforms.ipynb
     - Categorical Encoding: guides/contrasts.ipynb
     - Spline Encoding: guides/splines.md
     - Using with Scikit Learn / Statsmodels / etc: guides/integration.md
