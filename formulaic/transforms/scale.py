@@ -6,6 +6,16 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 @stateful_transform
 def scale(data, center=True, scale=True, ddof=1, _state=None):
+    """
+    Rescale `data` by centering and re-scaling it.
+
+    Args:
+        center: Whether to center the data (subtract the mean).
+        scale: Whether to rescale the data such that the standard deviation is
+            1.
+        ddof: The delta degrees of freedom (default=1, which is equivalent to
+            the Bessel correction).
+    """
 
     data = numpy.array(data)
 
@@ -49,4 +59,7 @@ def _(data, *args, **kwargs):
 
 @stateful_transform
 def center(data, _state=None):
+    """
+    Centers the data by subtracting the mean.
+    """
     return scale(data, scale=False, _state=_state)
