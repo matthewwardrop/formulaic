@@ -1,5 +1,7 @@
 import numpy
 
+from formulaic.utils.stateful_transforms import stateful_transform
+
 from .basis_spline import basis_spline
 from .identity import identity
 from .contrasts import C, encode_contrasts, ContrastsRegistry
@@ -15,6 +17,7 @@ __all__ = [
     "poly",
     "center",
     "scale",
+    "stateful_transform",
     "TRANSFORMS",
 ]
 
