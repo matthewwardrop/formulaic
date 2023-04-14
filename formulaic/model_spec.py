@@ -187,7 +187,7 @@ class ModelSpec:
         start = 0
         for row in self.structure:
             end = start + len(row[2])
-            slices[row[0]] = tuple(range(start, end))
+            slices[row[0]] = list(range(start, end))
             start = end
         return slices
 
