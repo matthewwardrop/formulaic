@@ -11,7 +11,7 @@ nav:
     - Quickstart: guides/quickstart.ipynb
     - How it works: guides/formulae.ipynb
     - Formula Grammar: guides/grammar.md
-    - Model Specs: guides/model_specs.md
+    - Model Specs: guides/model_specs.ipynb
     - Transforms: guides/transforms.md
     - Categorical Encoding: guides/contrasts.ipynb
     - Spline Encoding: guides/splines.md
