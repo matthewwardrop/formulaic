@@ -14,7 +14,7 @@ nav:
     - Model Specs: guides/model_specs.ipynb
     - Transforms: guides/transforms.ipynb
     - Categorical Encoding: guides/contrasts.ipynb
-    - Spline Encoding: guides/splines.md
+    - Spline Encoding: guides/splines.ipynb
     - Using with existing libraries: guides/integration.ipynb
   - Developer Guides:
     - Introduction: dev/index.md
