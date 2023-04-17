@@ -43,7 +43,6 @@ FORMULA_TO_TERMS = {
     # Check that "0" -> "-1" substitution works as expected
     "+0": [],
     "(+0)": ["1"],
-    "-0": ["1"],
     "0 + 0": [],
     "0 + 0 + 1": ["1"],
     "0 + 0 + 1 + 0": [],
@@ -68,12 +67,17 @@ FORMULA_TO_TERMS = {
     "a * b": ["1", "a", "a:b", "b"],
     "(a+b):(c+d)": ["1", "a:c", "a:d", "b:c", "b:d"],
     "(a+b)**2": ["1", "a", "a:b", "b"],
+    "(a+b)^2": ["1", "a", "a:b", "b"],
     "(a+b)**3": ["1", "a", "a:b", "b"],
     # Nested products
     "a/b": ["1", "a", "a:b"],
     "(a+b)/c": ["1", "a", "a:b:c", "b"],
     "a/(b+c)": ["1", "a", "a:b", "a:c"],
     "a/(b+c-b)": ["1", "a", "a:c"],
+    "b %in% a": ["1", "a", "a:b"],
+    "c %in% (a+b)": ["1", "a", "a:b:c", "b"],
+    "(b+c) %in% a": ["1", "a", "a:b", "a:c"],
+    "(b+c-b) %in% a": ["1", "a", "a:c"],
     # Unary operations
     "+1": ["1"],
     "-0": ["1"],

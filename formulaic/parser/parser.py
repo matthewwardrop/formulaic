@@ -243,6 +243,15 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=nested_product_expansion,
             ),
             Operator(
+                "in",
+                arity=2,
+                precedence=200,
+                associativity="left",
+                to_terms=lambda nested, parents: nested_product_expansion(
+                    parents, nested
+                ),
+            ),
+            Operator(
                 ":",
                 arity=2,
                 precedence=300,
@@ -254,6 +263,9 @@ class DefaultOperatorResolver(OperatorResolver):
             ),
             Operator(
                 "**", arity=2, precedence=500, associativity="right", to_terms=power
+            ),
+            Operator(
+                "^", arity=2, precedence=500, associativity="right", to_terms=power
             ),
         ]
 

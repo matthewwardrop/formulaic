@@ -57,6 +57,11 @@ TOKEN_TESTS = {
         "operator:+",
         "python:a(`a`, '{`', '}`')",
     ],
+    "a%in%%custom op%": [
+        "name:a",
+        "operator:in",
+        "operator:custom op",
+    ],
 }
 
 TOKEN_ERRORS = {

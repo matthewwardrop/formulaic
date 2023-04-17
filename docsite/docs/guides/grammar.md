@@ -3,8 +3,6 @@ Formulaic. It is almost identical that used by patsy and R, and so most formulas
 should work without modification. However, there are some differences, which are
 called out below.
 
-## Mention that multiple fields can be on LHS
-
 
 ## Operators
 
@@ -31,13 +29,13 @@ unless otherwise indicated.
 | `(...)` | 1 | Groups operations, overriding normal precedence rules. All operations with the parentheses are performed before the result of these operations is permitted to be operated upon by its peers. | ✓ | ✓ | ✓ |
 |-----|
 | ** | 2 | Includes all n-th order interactions of the terms in the left operand, where n is the (integral) value of the right operand, e.g. `(a+b+c)**2` is equivalent to `a + b + c + a:b + a:c + b:c`. | ✓ | ✓ | ✓ |
-| ^ | 2 | Alias for `**`. | ✗ | ✗[^3] | ✓ |
+| ^ | 2 | Alias for `**`. | ✓ | ✗[^3] | ✓ |
 |-----|
 | `:` | 2 | Adds a new term that corresponds to the interaction of its operands (i.e. their elementwise product). | ✓ | ✓ | ✓ |
 |-----|
 | `*` | 2 | Includes terms for each of the additive and interactive effects of the left and right operands, e.g. `a * b` is equivalent to `a + b + a:b`. | ✓ | ✓ | ✓ |
 | `/` | 2 | Adds terms describing nested effects. It expands to the addition of a new term for the left operand and the interaction of all left operand terms with the right operand, i.e `a / b` is equivalent to `a + a:b`, `(a + b) / c` is equivalent to `a + b + a:b:c`, and `a/(b+c)` is equivalent to `a + a:b + a:c`.[^4] | ✓ | ✓ | ✓ |
-| `%in%` | 2 | Alias for `/`. | ✗ | ✗ | ✓ |
+| `%in%` | 2 | As above, but with arguments inverted: e.g. `b %in% a` is equivalent to `a / b`. | ✓ | ✗ | ✓ |
 |-----|
 | `+` | 2 | Adds a new term to the set of features. | ✓ | ✓ | ✓ |
 | `-` | 2 | Removes a term from the set of features (if present). | ✓ | ✓ | ✓ |

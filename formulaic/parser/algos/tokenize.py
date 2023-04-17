@@ -32,7 +32,7 @@ def tokenize(
 
     The basic logic of this tokenizer is to loop over each character in the
     formula string and:
-      - ensure that portions quoted by one of : ', ", {}, and ` are correctly
+      - ensure that portions quoted by one of : ', ", {}, %, and ` are correctly
         grouped into a token of the appropriate kind.
       - ignore unquoted whitespace
       - correctly distinguish users of (, ), [, and ] as grouping operators vs. Python
@@ -67,7 +67,7 @@ def tokenize(
             token.update(char, i)
             take = 1
             continue
-        if quote_context and quote_context[-1] in "}`" and char == quote_context[-1]:
+        if quote_context and quote_context[-1] in "}`%" and char == quote_context[-1]:
             quote_context.pop(-1)
             if token:
                 if quote_context:
@@ -88,12 +88,20 @@ def tokenize(
                 yield token
                 token = Token(source=formula)
             continue
-        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "}"):
+        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "}", "%"):
             if char in "(`" and quote_context[-1] in "})":
                 quote_context.append(char.replace("(", ")"))
             token.update(char, i)
             continue
 
+        if char == "%":
+            print("HERE", token)
+            if token:
+                print("HERE2")
+                yield token
+            token = Token(source=formula, kind="operator", source_start=i)
+            quote_context.append("%")
+            continue
         if char == "{":
             if token:
                 yield token
