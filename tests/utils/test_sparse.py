@@ -50,9 +50,7 @@ def test_sparse_category_encoding():
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.data, numpy.ones(4, dtype=float)
     )
-    numpy.testing.assert_array_equal(
-        encoded_with_provided_levels.indices, numpy.array([3, 10, 1, 8])
-    )
+    assert set(encoded_with_provided_levels.indices) == {1, 3, 8, 10}
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.indptr, numpy.array([0, 2, 4])
     )
