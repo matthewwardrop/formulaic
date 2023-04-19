@@ -1,4 +1,6 @@
-from typing import Iterable, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Iterable, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .factor import Factor  # pragma: no cover
@@ -13,10 +15,13 @@ class Term:
 
     Attributes:
         factors: The set of factors to be multipled to form the term.
+        origin: If this `Term` has been derived from another `Term`, for example
+            in subformulae, a reference to the original term.
     """
 
-    def __init__(self, factors: Iterable["Factor"]):
+    def __init__(self, factors: Iterable["Factor"], origin: Optional[Term] = None):
         self.factors = tuple(sorted(set(factors)))
+        self.origin = origin
         self._factor_exprs = tuple(factor.expr for factor in self.factors)
         self._hash = hash(repr(self))
 

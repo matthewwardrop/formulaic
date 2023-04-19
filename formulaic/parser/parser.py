@@ -7,6 +7,7 @@ from typing import List, Iterable, Set, Tuple, Union
 
 from .algos.tokenize import tokenize
 from .types import (
+    Factor,
     FormulaParser,
     Operator,
     OperatorResolver,
@@ -162,6 +163,23 @@ class DefaultOperatorResolver(OperatorResolver):
                 for term in itertools.product(*[arg] * int(power_term.factors[0].expr))
             }
 
+        def sub_formula(lhs, rhs):
+            def get_terms(terms):
+                return [
+                    Term(
+                        factors=[Factor(str(t) + "_hat", eval_method="lookup")],
+                        origin=t,
+                    )
+                    for t in terms
+                ]
+
+            if isinstance(lhs, Structured):
+                lhs_hat = lhs._update(root=get_terms(lhs.root))
+            else:
+                lhs_hat = get_terms(lhs)
+
+            return Structured(lhs_hat, deps=(Structured(lhs=lhs, rhs=rhs),))
+
         return [
             Operator(
                 "~",
@@ -180,6 +198,15 @@ class DefaultOperatorResolver(OperatorResolver):
                 fixity="prefix",
                 to_terms=lambda terms: terms,
                 accepts_context=lambda context: len(context) == 0,
+                structural=True,
+            ),
+            Operator(
+                "~",
+                arity=2,
+                precedence=-100,
+                associativity=None,
+                to_terms=sub_formula,
+                accepts_context=lambda context: context and context[-1] == "[",
                 structural=True,
             ),
             Operator(
