@@ -13,10 +13,14 @@ class Term:
 
     Attributes:
         factors: The set of factors to be multipled to form the term.
+        preserve_rank: Whether to preserve the term structure even when
+            `ensure_full_rank` is specified. Other terms without this set may
+            still be affected by the presence of this term.
     """
 
-    def __init__(self, factors: Iterable["Factor"]):
+    def __init__(self, factors: Iterable["Factor"], preserve_rank: bool = False):
         self.factors = tuple(sorted(set(factors)))
+        self.preserve_rank = preserve_rank
         self._factor_exprs = tuple(factor.expr for factor in self.factors)
         self._hash = hash(repr(self))
 
@@ -48,3 +52,23 @@ class Term:
 
     def __repr__(self):
         return ":".join(self._factor_exprs)
+
+
+class TermGroup(Term):
+    """
+    Represents a group randomized term a formula.
+
+    Attributes:
+        term:
+        group:
+        joiner:
+    """
+
+    def __init__(self, term, group, joiner="|"):
+        self.term = term
+        self.group = group
+        self.joiner = joiner
+        super().__init__(factors=[*term.factors, *group.factors], preserve_rank=True)
+
+    def __repr__(self):
+        return repr(self.term) + self.joiner + repr(self.group)

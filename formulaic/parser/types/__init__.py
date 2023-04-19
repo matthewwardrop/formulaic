@@ -4,7 +4,7 @@ from .formula_parser import FormulaParser
 from .operator import Operator
 from .operator_resolver import OperatorResolver
 from .structured import Structured
-from .term import Term
+from .term import Term, TermGroup
 from .token import Token
 
 
@@ -16,5 +16,6 @@ __all__ = [
     "OperatorResolver",
     "Structured",
     "Term",
+    "TermGroup",
     "Token",
 ]

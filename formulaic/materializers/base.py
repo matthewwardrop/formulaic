@@ -352,29 +352,37 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 term_span = self._get_scoped_terms_spanned_by_evaled_factors(
                     evaled_factors
                 ).difference(spanned)
-                scoped_terms = self._simplify_scoped_terms(term_span)
                 spanned.update(term_span)
-            else:
-                scoped_terms = [
-                    ScopedTerm(
-                        factors=(
-                            ScopedFactor(evaled_factor, reduced=False)
-                            for evaled_factor in evaled_factors
-                            if evaled_factor.metadata.kind is not Factor.Kind.CONSTANT
-                        ),
-                        scale=functools.reduce(
-                            operator.mul,
-                            [
-                                evaled_factor.values
-                                for evaled_factor in evaled_factors
-                                if evaled_factor.metadata.kind.value
-                                is Factor.Kind.CONSTANT
-                            ],
-                            1,
-                        ),
-                    )
-                ]
-            yield term, scoped_terms
+
+                if not term.preserve_rank:
+                    yield term, self._simplify_scoped_terms(term_span)
+                    continue
+            yield term, [self._get_scoped_term_for_evaled_factors(evaled_factors)]
+
+    @classmethod
+    def _get_scoped_term_for_evaled_factors(
+        self, evaled_factors: List[EvaluatedFactor]
+    ) -> ScopedTerm:
+        """
+        Convert evaluated factors directly into a `ScopedTerm`. Useful for when
+        you want to preserve the factors of a evaluated factor.
+        """
+        return ScopedTerm(
+            factors=(
+                ScopedFactor(evaled_factor, reduced=False)
+                for evaled_factor in evaled_factors
+                if evaled_factor.metadata.kind is not Factor.Kind.CONSTANT
+            ),
+            scale=functools.reduce(
+                operator.mul,
+                [
+                    evaled_factor.values
+                    for evaled_factor in evaled_factors
+                    if evaled_factor.metadata.kind.value is Factor.Kind.CONSTANT
+                ],
+                1,
+            ),
+        )
 
     @classmethod
     def _get_scoped_terms_spanned_by_evaled_factors(
