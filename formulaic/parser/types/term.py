@@ -16,9 +16,9 @@ class Term:
     """
 
     def __init__(self, factors: Iterable["Factor"]):
-        self.factors = tuple(sorted(set(factors)))
-        self._factor_exprs = tuple(factor.expr for factor in self.factors)
-        self._hash = hash(repr(self))
+        self.factors = tuple(factors)
+        self._factor_key = tuple(factor.expr for factor in sorted(self.factors))
+        self._hash = hash(self._factor_key)
 
     # Transforms and comparisons
 
@@ -32,7 +32,7 @@ class Term:
 
     def __eq__(self, other):
         if isinstance(other, Term):
-            return self._factor_exprs == other._factor_exprs
+            return self._factor_key == other._factor_key
         if isinstance(other, str):
             return repr(self) == other
         return NotImplemented
@@ -40,11 +40,11 @@ class Term:
     def __lt__(self, other):
         if isinstance(other, Term):
             if len(self.factors) == len(other.factors):
-                return sorted(self.factors) < sorted(other.factors)
+                return False  # sorted(self.factors) < sorted(other.factors)
             if len(self.factors) < len(other.factors):
                 return True
             return False
         return NotImplemented
 
     def __repr__(self):
-        return ":".join(self._factor_exprs)
+        return ":".join(factor.expr for factor in self.factors)

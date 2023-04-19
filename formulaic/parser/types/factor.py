@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, Iterable, Optional, Union, TYPE_CHECKING
+from typing import Dict, Optional, Union, TYPE_CHECKING
 
+from .ordered_set import OrderedSet
 from .term import Term
 
 if TYPE_CHECKING:
@@ -90,12 +91,12 @@ class Factor:
             return self.expr < other.expr
         return NotImplemented
 
-    def to_terms(self) -> Iterable[Term]:
+    def to_terms(self) -> OrderedSet[Term]:
         """
         Convert this `Factor` instance into a `Term` instance, and expose it as
-        a single-element iterable.
+        a single-element ordered set.
         """
-        return {Term([self])}
+        return OrderedSet((Term([self]),))
 
     def __repr__(self):
         return self.expr
