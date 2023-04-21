@@ -95,9 +95,7 @@ def tokenize(
             continue
 
         if char == "%":
-            print("HERE", token)
             if token:
-                print("HERE2")
                 yield token
             token = Token(source=formula, kind="operator", source_start=i)
             quote_context.append("%")
