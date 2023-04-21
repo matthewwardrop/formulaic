@@ -40,7 +40,7 @@ class Term:
     def __lt__(self, other):
         if isinstance(other, Term):
             if len(self.factors) == len(other.factors):
-                return False  # sorted(self.factors) < sorted(other.factors)
+                return sorted(self.factors) < sorted(other.factors)
             if len(self.factors) < len(other.factors):
                 return True
             return False

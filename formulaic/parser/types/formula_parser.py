@@ -59,7 +59,7 @@ class FormulaParser:
             operator_resolver=self.operator_resolver,
         )
 
-    def get_terms(self, formula: str, *, sort: bool = True) -> Structured[List[Term]]:
+    def get_terms(self, formula: str) -> Structured[List[Term]]:
         """
         Assemble the `Term` instances for a formula string. Depending on the
         operators involved, this may be an iterable of `Term` instances, or
@@ -67,7 +67,6 @@ class FormulaParser:
 
         Args:
             formula: The formula for which an AST should be generated.
-            sort: Whether to sort the terms before returning them.
         """
         ast = self.get_ast(formula)
         if ast is None:
@@ -76,8 +75,5 @@ class FormulaParser:
         terms = ast.to_terms()
         if not isinstance(terms, Structured):
             terms = Structured(terms)
-
-        if sort:
-            terms = terms._map(sorted)
 
         return terms

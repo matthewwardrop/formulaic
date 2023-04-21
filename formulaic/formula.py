@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 from typing_extensions import TypeAlias
@@ -8,7 +9,7 @@ from typing_extensions import TypeAlias
 from .errors import FormulaInvalidError
 from .model_matrix import ModelMatrix
 from .parser import DefaultFormulaParser
-from .parser.types import FormulaParser, Structured, Term
+from .parser.types import FormulaParser, OrderedSet, Structured, Term
 from .utils.calculus import differentiate_term
 
 
@@ -21,6 +22,12 @@ FormulaSpec: TypeAlias = Union[
     Dict[str, "FormulaSpec"],
     Tuple["FormulaSpec", ...],  # Structured formulae
 ]
+
+
+class OrderingMethod(Enum):
+    NONE = "none"
+    DEGREE = "degree"
+    SORT = "sort"
 
 
 class Formula(Structured[List[Term]]):
@@ -71,19 +78,23 @@ class Formula(Structured[List[Term]]):
             list of string term identifiers). If not specified and `_parser` is
             specified, `_parser` is used; if `_parser` is not specified,
             `DefaultFormulaParser(include_intercept=False)` is used instead.
+        _ordering: The ordering method to apply to the terms implied by the
+            formula `spec`. Can be: "none", "degree" (default), or "sort".
     """
 
     DEFAULT_PARSER = DefaultFormulaParser()
     DEFAULT_NESTED_PARSER = DefaultFormulaParser(include_intercept=False)
 
-    __slots__ = ("_parser", "_nested_parser")
+    __slots__ = ("_parser", "_nested_parser", "_ordering")
 
     @classmethod
     def from_spec(
         cls,
         spec: FormulaSpec,
+        *,
         parser: Optional[FormulaParser] = None,
         nested_parser: Optional[FormulaParser] = None,
+        ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
     ) -> Formula:
         """
         Construct a `Formula` instance from a formula specification.
@@ -99,20 +110,26 @@ class Formula(Structured[List[Term]]):
                 `parser` is specified, `parser` is used; if `parser` is not
                 specified, `DefaultFormulaParser(include_intercept=False)` is
                 used instead.
+            ordering: The ordering method to apply to the terms implied by the
+                formula `spec`. Can be: "none", "degree" (default), or "sort".
         """
         if isinstance(spec, Formula):
             return spec
-        return Formula(spec, _parser=parser, _nested_parser=nested_parser)
+        return Formula(
+            spec, _parser=parser, _nested_parser=nested_parser, _ordering=ordering
+        )
 
     def __init__(
         self,
         *args,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
+        _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         **kwargs,
     ):
         self._parser = _parser or self.DEFAULT_PARSER
         self._nested_parser = _nested_parser or _parser or self.DEFAULT_NESTED_PARSER
+        self._ordering = OrderingMethod(_ordering)
         super().__init__(*args, **kwargs)
         self._simplify(unwrap=False, inplace=True)
 
@@ -132,7 +149,7 @@ class Formula(Structured[List[Term]]):
         if isinstance(item, str):
             item = (
                 (self._parser if key == "root" else self._nested_parser)
-                .get_terms(item, sort=True)
+                .get_terms(item)
                 ._simplify()
             )
 
@@ -140,7 +157,7 @@ class Formula(Structured[List[Term]]):
             formula_or_terms = Formula(
                 _parser=self._nested_parser, **item._structure
             )._simplify()
-        elif isinstance(item, (list, set)):
+        elif isinstance(item, (list, set, OrderedSet)):
             formula_or_terms = [
                 term
                 for value in item
@@ -151,11 +168,25 @@ class Formula(Structured[List[Term]]):
                 )
             ]
             self.__validate_terms(formula_or_terms)
-            formula_or_terms = sorted(formula_or_terms)
         else:
             raise FormulaInvalidError(
                 f"Unrecognized formula specification: {repr(item)}."
             )
+
+        # Order terms appropriately
+        orderer = None
+        if self._ordering is OrderingMethod.DEGREE:
+            orderer = lambda terms: sorted(terms, key=lambda term: len(term.factors))
+        elif self._ordering is OrderingMethod.SORT:
+
+            def orderer(terms):
+                return sorted([Term(factors=sorted(term.factors)) for term in terms])
+
+        if orderer is not None:
+            if isinstance(formula_or_terms, Structured):
+                formula_or_terms = formula_or_terms._map(orderer)
+            else:
+                formula_or_terms = orderer(formula_or_terms)
 
         return formula_or_terms
 
