@@ -27,6 +27,7 @@ from formulaic.errors import (
     FormulaMaterializerInvalidError,
     FormulaMaterializerNotFoundError,
 )
+from formulaic.materializers.types.enums import ClusterBy
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
@@ -197,9 +198,16 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _build_model_matrix(self, spec: ModelSpec, drop_rows):
 
+        # Step 0: Apply any requested column/term clustering
+        # This must happen before Step 1 otherwise the greedy rank reduction
+        # below would result in a different outcome than if the columns had
+        # always been in the generated order.
+        terms = self._cluster_terms(spec.formula, cluster_by=spec.cluster_by)
+
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         scoped_terms_for_terms = self._get_scoped_terms(
-            spec.formula, ensure_full_rank=spec.ensure_full_rank
+            terms,
+            ensure_full_rank=spec.ensure_full_rank,
         )
 
         # Step 2: Generate the columns which will be collated into the full matrix
@@ -320,6 +328,23 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             transform_state=transform_state,
         )
 
+    def _cluster_terms(self, terms, cluster_by: ClusterBy = ClusterBy.NONE):
+        if cluster_by is not ClusterBy.NUMERICAL_FACTORS:
+            return terms
+
+        term_clusters = defaultdict(list)
+        for term in terms:
+            numerical_factors = tuple(
+                factor
+                for factor in term.factors
+                if self.factor_cache[factor.expr].metadata.kind is Factor.Kind.NUMERICAL
+            )
+            term_clusters[numerical_factors].append(term)
+
+        return [
+            term for term_cluster in term_clusters.values() for term in term_cluster
+        ]
+
     # Methods related to ensuring out matrices are structurally full-rank
 
     def _get_scoped_terms(self, terms, ensure_full_rank=True):
@@ -337,8 +362,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             ensure_full_rank (bool): Whether evaluated terms should be scoped
                 to ensure that their combination will result in a full-rank
                 matrix.
-            transform_state (dict): The state of any stateful transforms
-                (will be populated if empty).
 
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.

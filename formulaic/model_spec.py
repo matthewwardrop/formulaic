@@ -20,7 +20,7 @@ from formulaic.parser.types import Structured, Term
 from formulaic.utils.constraints import LinearConstraintSpec, LinearConstraints
 
 from .formula import Formula, FormulaSpec
-from .materializers import FormulaMaterializer, NAAction
+from .materializers import FormulaMaterializer, NAAction, ClusterBy
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model_matrix import ModelMatrices, ModelMatrix
@@ -51,9 +51,13 @@ class ModelSpec:
                 "structurally" full-rank (features are not included which are
                 known to violate full-rankness).
             na_action: The action to be taken if NA values are found in the
-                data. Can be on of: "drop" (the default), "raise" or "ignore".
+                data. Can be one of: "drop" (the default), "raise" or "ignore".
             output: The desired output type (as interpreted by the materializer;
                 e.g. "pandas", "sparse", etc).
+            cluster_by: How to cluster terms/columns during materialization. Can
+                be one of: "none" (the default) or "numerical_factors" (in which
+                case terms are clustered based on their sharing of the same
+                numerical factors; like patsy).
 
         State (these attributes are only populated during materialization):
             structure: The model matrix structure resulting from materialization.
@@ -103,6 +107,7 @@ class ModelSpec:
     ensure_full_rank: bool = True
     na_action: NAAction = "drop"
     output: Optional[str] = None
+    cluster_by: ClusterBy = "none"
 
     # State attributes
     structure: Optional[List[EncodedTermStructure]] = None
@@ -124,6 +129,7 @@ class ModelSpec:
             ).REGISTER_NAME
 
         self.__dict__["na_action"] = NAAction(self.na_action)
+        self.__dict__["cluster_by"] = ClusterBy(self.cluster_by)
 
     # Derived features
 
