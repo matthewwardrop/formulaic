@@ -223,7 +223,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     drop_rows,
                                     reduced_rank=scoped_factor.reduced,
                                 )
-                                for scoped_factor in sorted(scoped_term.factors)
+                                for scoped_factor in scoped_term.factors
                             ],
                             spec=spec,
                             scale=scoped_term.scale,

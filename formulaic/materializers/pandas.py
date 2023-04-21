@@ -95,6 +95,8 @@ class PandasMaterializer(FormulaMaterializer):
     def _get_columns_for_term(self, factors, spec, scale=1):
         out = OrderedDict()
 
+        names = [":".join(product) for product in itertools.product(*factors)]
+
         # Pre-multiply factors with only one set of values (improves performance)
         solo_factors = {}
         indices = []
@@ -123,13 +125,15 @@ class PandasMaterializer(FormulaMaterializer):
                     }
                 )
 
-        for product in itertools.product(*(factor.items() for factor in factors)):
+        for i, product in enumerate(
+            itertools.product(*(factor.items() for factor in factors))
+        ):
             if spec.output == "sparse":
-                out[":".join(p[0] for p in product)] = scale * functools.reduce(
+                out[names[i]] = scale * functools.reduce(
                     spsparse.csc_matrix.multiply, (p[1] for p in product)
                 )
             else:
-                out[":".join(p[0] for p in product)] = scale * functools.reduce(
+                out[names[i]] = scale * functools.reduce(
                     numpy.multiply,
                     (numpy.array(p[1]) for p in product),
                 )
