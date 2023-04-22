@@ -36,11 +36,13 @@ functionality available in `patsy`.
     compatibility with `patsy`. Note that the `standardize` shim follows patsy
     argument kwarg naming conventions, but `scale` uses `scale` instead of
     `rescale`, following R.
-* The order of the model matrix columns will differ. Patsy groups columns by
-    the numerical features from which they derived, then sorts by interaction
-    order, and then by the order in which features were added into the formula.
-    Formulaic sorts by interaction order, and then lexically, meaning that
-    equivalent formula always output exactly the same model matrix structure.
+* The order of the model matrix columns will differ by default. Patsy groups
+    columns by the numerical features from which they derived, then sorts by
+    interaction order, and then by the order in which features were added into
+    the formula. Formulaic does not by default do the clustering by numerical
+    factors. This behaviour can be restored by passing
+    `cluster_by="numerical_factors"` to `model_matrix` or any of the
+    `.get_model_matrix(...)` methods.
 * Formulaic does not yet have implementations for natural and cyclic cubic basis
     splines (`cr` and `cc`) or tensor smoothing (`te`) stateful transforms.
 
@@ -93,11 +95,6 @@ worth calling out:
     the left hand side of formulae can have multiple terms; the only difference
     between the left- and right-hand sides being that an intercept is
     automatically added on the right.
-* Model matrices will have different column ordering. As with R, lower-order
-    interactions are sorted before higher-order interactions, but within each
-    interaction order terms are always sorted lexically rather than in the order
-    that they were specified. This results in all equivalent formula generating
-    exactly the same model matrix.
 * Exponentiation will not work using the `^` operator within an `I` transform;
     e.g. `I(x^2)`. This is because this is treated as Python code, and so you
     should use `I(x**2)` or `{x**2}` instead.
