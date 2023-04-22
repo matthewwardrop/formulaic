@@ -1,6 +1,7 @@
 from typing import Iterable, Set
 
 from formulaic.parser.types import Factor, Term
+from formulaic.parser.types.ordered_set import OrderedSet
 
 
 def differentiate_term(
@@ -28,7 +29,7 @@ def differentiate_term(
             the factors can be properly interpreted by `sympy`. For example, `I(x)`
             would not be understood.
     """
-    factors = set(term.factors)
+    factors = OrderedSet(term.factors)
 
     for var in vars:
         affected_factors = set(
@@ -38,7 +39,7 @@ def differentiate_term(
         )
         if not affected_factors:
             return Term({Factor("0", eval_method="literal")})
-        factors = factors.difference(affected_factors).union(
+        factors = (factors - affected_factors) | (
             _differentiate_factors(affected_factors, var, use_sympy=use_sympy)
         )
 

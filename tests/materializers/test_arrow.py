@@ -26,8 +26,8 @@ ARROW_TESTS = {
         ["Intercept", "C(A)[T.a]", "C(A)[T.b]", "C(A)[T.c]"],
     ),
     "a:A": (
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
+        ["Intercept", "a:A[T.a]", "a:A[T.b]", "a:A[T.c]"],
+        ["Intercept", "a:A[T.a]", "a:A[T.b]", "a:A[T.c]"],
     ),
 }
 

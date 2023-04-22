@@ -31,10 +31,10 @@ class TestFormula:
     def test_constructor(self):
         assert [str(t) for t in Formula(["a", "b", "c"])] == ["a", "b", "c"]
         assert [str(t) for t in Formula(["a", "c", "b", "1"])] == [
-            "1",
             "a",
-            "b",
             "c",
+            "b",
+            "1",
         ]
 
         f = Formula((["a", "b"], ["c", "d"]))
@@ -80,6 +80,36 @@ class TestFormula:
             "a:c",
             "b:c",
             "a:b:c",
+        ]
+
+    def test_ordering(self):
+        assert [str(t) for t in Formula("a+e:d+b:c+f").terms] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="degree").terms] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="none").terms] == [
+            "1",
+            "a",
+            "e:d",
+            "b:c",
+            "f",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="sort").terms] == [
+            "1",
+            "a",
+            "f",
+            "b:c",
+            "d:e",
         ]
 
     def test_get_model_matrix(self, formula_expr, formula_exprs, data):

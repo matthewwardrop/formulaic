@@ -20,4 +20,4 @@ def test_differentiate_term_with_sympy():
     assert (
         str(differentiate_term(t, ["log(b)"], use_sympy=True)) == "0"
     )  # 'log(b)' is not in the free symbol list.
-    assert str(differentiate_term(t, ["b"], use_sympy=True)) == "(1/b):a"
+    assert str(differentiate_term(t, ["b"], use_sympy=True)) == "a:(1/b)"

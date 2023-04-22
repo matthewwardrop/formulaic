@@ -34,7 +34,7 @@ class TestModelSpec:
 
     @pytest.fixture
     def formula(self):
-        return Formula("a + A + a:A")
+        return Formula("a + A + A:a")
 
     @pytest.fixture
     def model_spec(self, formula, data):
@@ -53,7 +53,7 @@ class TestModelSpec:
         r"ignore:`ModelSpec\.feature_.*` is deprecated.*:DeprecationWarning"
     )
     def test_attributes(self, model_spec):
-        assert model_spec.formula == Formula("a + A + a:A")
+        assert model_spec.formula == Formula("a + A + A:a")
         assert model_spec.ensure_full_rank is True
         assert model_spec.materializer == "pandas"
         assert (
@@ -61,9 +61,9 @@ class TestModelSpec:
             == model_spec.feature_names
             == (
                 "Intercept",
+                "a",
                 "A[T.b]",
                 "A[T.c]",
-                "a",
                 "A[T.b]:a",
                 "A[T.c]:a",
             )
@@ -74,9 +74,9 @@ class TestModelSpec:
             == OrderedDict(
                 [
                     ("Intercept", 0),
-                    ("A[T.b]", 1),
-                    ("A[T.c]", 2),
-                    ("a", 3),
+                    ("a", 1),
+                    ("A[T.b]", 2),
+                    ("A[T.c]", 3),
                     ("A[T.b]:a", 4),
                     ("A[T.c]:a", 5),
                 ]
@@ -85,12 +85,12 @@ class TestModelSpec:
         assert model_spec.term_slices == OrderedDict(
             [
                 ("1", slice(0, 1)),
-                ("A", slice(1, 3)),
-                ("a", slice(3, 4)),
+                ("a", slice(1, 2)),
+                ("A", slice(2, 4)),
                 ("A:a", slice(4, 6)),
             ]
         )
-        assert model_spec.terms == ["1", "A", "a", "A:a"]
+        assert model_spec.terms == ["1", "a", "A", "A:a"]
 
     @pytest.mark.filterwarnings(
         r"ignore:`ModelSpec\.feature_names` is deprecated.*:DeprecationWarning"
@@ -113,7 +113,7 @@ class TestModelSpec:
 
     def test_get_linear_constraints(self, model_spec):
         lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
-        assert numpy.allclose(lc.constraint_matrix, [[0.0, 1.0, 0.0, -1.0, 0.0, 0.0]])
+        assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])
         assert lc.constraint_values == [3]
         assert lc.variable_names == model_spec.column_names
 
@@ -124,9 +124,9 @@ class TestModelSpec:
         s = slice(0, 1)
         assert model_spec.get_slice(s) is s
         assert model_spec.get_slice(0) == s
-        assert model_spec.get_slice(model_spec.terms[1]) == slice(1, 3)
-        assert model_spec.get_slice("A") == slice(1, 3)
-        assert model_spec.get_slice("A[T.b]") == slice(1, 2)
+        assert model_spec.get_slice(model_spec.terms[1]) == slice(1, 2)
+        assert model_spec.get_slice("A") == slice(2, 4)
+        assert model_spec.get_slice("A[T.b]") == slice(2, 3)
 
         with pytest.raises(
             ValueError,

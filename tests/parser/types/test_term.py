@@ -17,7 +17,7 @@ class TestTerm:
         return Term([Factor("a"), Factor("b"), Factor("c")])
 
     def test_mul(self, term1, term2):
-        assert str(term1 * term2) == "b:c:d"
+        assert str(term1 * term2) == "c:b:d"
 
         with pytest.raises(TypeError):
             term1 * 1
@@ -41,4 +41,4 @@ class TestTerm:
             term1 < 1
 
     def test_repr(self, term1):
-        assert repr(term1) == "b:c"
+        assert repr(term1) == "c:b"

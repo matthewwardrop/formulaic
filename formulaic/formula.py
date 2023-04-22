@@ -178,9 +178,9 @@ class Formula(Structured[List[Term]]):
         if self._ordering is OrderingMethod.DEGREE:
             orderer = lambda terms: sorted(terms, key=lambda term: len(term.factors))
         elif self._ordering is OrderingMethod.SORT:
-
-            def orderer(terms):
-                return sorted([Term(factors=sorted(term.factors)) for term in terms])
+            orderer = lambda terms: sorted(
+                [Term(factors=sorted(term.factors)) for term in terms]
+            )
 
         if orderer is not None:
             if isinstance(formula_or_terms, Structured):
