@@ -125,7 +125,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         self._init()
 
         self.layered_context = LayeredMapping(
-            self.data_context, self.context, TRANSFORMS
+            LayeredMapping(self.data_context, name="data"),
+            LayeredMapping(self.context, name="context"),
+            LayeredMapping(TRANSFORMS, name="transforms"),
         )
 
         self.factor_cache = {}

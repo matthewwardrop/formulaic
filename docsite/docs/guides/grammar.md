@@ -57,6 +57,7 @@ that have *not* been implemented by `formulaic` are explicitly noted also.
 | Transform | Description | Formulaic | Patsy | R |
 |----------:|:------------|:---------:|:-----:|:-:|
 | `I(...)` | Identity transform, allowing arbitrary Python/R operations, e.g. `I(x+y)`. Note that in `formulaic`, it is more idiomatic to use `{x+y}`. | ✓ | ✓ | ✓ |
+| `Q('<column_name>')` | Look up feature by potentially exotic name, e.g. `Q('wacky name!')`. Note that in `formulaic`, it is more idiomatic to use ``` `wacky name!` ```. | ✓ | ✓ | ✗ |
 | `C(...)` | Categorically encode a column, e.g. `C(x)` | ✓ | ✓ | ✓ |
 | `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | ✗ |
 | `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^6] | ✓ |

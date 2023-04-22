@@ -21,3 +21,9 @@ def test_Treatment():
         ).values
         == numpy.array([[1, 0, 0], [1, 1, 0], [1, 0, 1]])
     )
+
+
+def test_Q():
+    assert model_matrix(
+        "Q('x')", pandas.DataFrame({"x": [1, 2, 3]})
+    ).model_spec.column_names == ("Intercept", "Q('x')")

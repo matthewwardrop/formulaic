@@ -23,6 +23,8 @@ def stateful_transform(func: Callable) -> Callable:
     - _state: The existing state or an empty dictionary.
     - _metadata: Any extra metadata passed about the factor being evaluated.
     - _spec: The `ModelSpec` instance being evaluated (or an empty `ModelSpec`).
+    - _context: A mapping of the name to value for all the variables available
+        in the formula evaluation context (including data column names).
     If the callable has any of these in its signature, these will be passed onto
     it; otherwise, they will be swallowed by the stateful transform wrapper.
 
@@ -37,10 +39,12 @@ def stateful_transform(func: Callable) -> Callable:
         The stateful transform callable.
     """
     func = functools.singledispatch(func)
-    params = inspect.signature(func).parameters.keys()
+    params = set(inspect.signature(func).parameters.keys())
 
     @functools.wraps(func)
-    def wrapper(data, *args, _metadata=None, _state=None, _spec=None, **kwargs):
+    def wrapper(
+        data, *args, _metadata=None, _state=None, _spec=None, _context=None, **kwargs
+    ):
         from formulaic.model_spec import ModelSpec
 
         _state = {} if _state is None else _state
@@ -49,6 +53,8 @@ def stateful_transform(func: Callable) -> Callable:
             extra_params["_metadata"] = _metadata
         if "_spec" in params:
             extra_params["_spec"] = _spec or ModelSpec(formula=[])
+        if "_context" in params:
+            extra_params["_context"] = _context
 
         if isinstance(data, dict):
             results = {}
@@ -63,7 +69,14 @@ def stateful_transform(func: Callable) -> Callable:
                     if statum:
                         _state[key] = statum
             return results
-        return func(data, *args, _state=_state, **extra_params, **kwargs)
+
+        return func(
+            data,
+            *args,
+            **({"_state": _state} if "_state" in params else {}),
+            **extra_params,
+            **kwargs,
+        )
 
     wrapper.__is_stateful_transform__ = True
     return wrapper
@@ -129,6 +142,12 @@ def stateful_eval(
             state[name] = {}
         node.keywords.append(
             ast.keyword(
+                "_context",
+                ast.parse("__FORMULAIC_CONTEXT__", mode="eval").body,
+            )
+        )
+        node.keywords.append(
+            ast.keyword(
                 "_metadata",
                 ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode="eval").body,
             )
@@ -145,6 +164,7 @@ def stateful_eval(
     # Compile mutated AST
     code = compile(ast.fix_missing_locations(code), "", "eval")
 
+    assert "__FORMULAIC_CONTEXT__" not in env
     assert "__FORMULAIC_METADATA__" not in env
     assert "__FORMULAIC_STATE__" not in env
     assert "__FORMULAIC_SPEC__" not in env
@@ -155,6 +175,7 @@ def stateful_eval(
         {},
         LayeredMapping(
             {
+                "__FORMULAIC_CONTEXT__": env,
                 "__FORMULAIC_METADATA__": metadata,
                 "__FORMULAIC_SPEC__": spec,
                 "__FORMULAIC_STATE__": state,

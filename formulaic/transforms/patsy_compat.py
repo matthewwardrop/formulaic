@@ -19,8 +19,14 @@ def Treatment(reference=TreatmentContrasts.MISSING):
     return TreatmentContrasts(base=reference)
 
 
+@stateful_transform
+def Q(variable, _context=None):
+    return _context.data[variable]
+
+
 PATSY_COMPAT_TRANSFORMS = {
     "standardize": standardize,
+    "Q": Q,
     "Treatment": Treatment,
     "Poly": PolyContrasts,
     "Sum": SumContrasts,
