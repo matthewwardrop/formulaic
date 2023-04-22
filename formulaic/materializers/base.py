@@ -780,7 +780,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         """
         Assemble the columns for a model matrix given factors and a scale.
 
-        This performs the row-wise Kronecker product of the factors.
+        This performs the row-wise Kronecker product of the factors. For greater
+        compatibility with R and patsy, we reverse this product so that we
+        iterate first over the latter terms.
 
         Args:
             factors
@@ -790,7 +792,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             dict
         """
         out = OrderedDict()
-        for product in itertools.product(*(factor.items() for factor in factors)):
+        for reverse_product in itertools.product(
+            *(factor.items() for factor in reversed(factors))
+        ):
+            product = reverse_product[::-1]
             out[":".join(p[0] for p in product)] = scale * functools.reduce(
                 operator.mul, (p[1] for p in product)
             )

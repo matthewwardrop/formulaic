@@ -95,7 +95,10 @@ class PandasMaterializer(FormulaMaterializer):
     def _get_columns_for_term(self, factors, spec, scale=1):
         out = OrderedDict()
 
-        names = [":".join(product) for product in itertools.product(*factors)]
+        names = [
+            ":".join(reversed(product))
+            for product in itertools.product(*reversed(factors))
+        ]
 
         # Pre-multiply factors with only one set of values (improves performance)
         solo_factors = {}
@@ -125,17 +128,18 @@ class PandasMaterializer(FormulaMaterializer):
                     }
                 )
 
-        for i, product in enumerate(
-            itertools.product(*(factor.items() for factor in factors))
+        for i, reversed_product in enumerate(
+            itertools.product(*(factor.items() for factor in reversed(factors)))
         ):
             if spec.output == "sparse":
                 out[names[i]] = scale * functools.reduce(
-                    spsparse.csc_matrix.multiply, (p[1] for p in product)
+                    spsparse.csc_matrix.multiply,
+                    (p[1] for p in reversed(reversed_product)),
                 )
             else:
                 out[names[i]] = scale * functools.reduce(
                     numpy.multiply,
-                    (numpy.array(p[1]) for p in product),
+                    (numpy.array(p[1]) for p in reversed(reversed_product)),
                 )
         return out
 
