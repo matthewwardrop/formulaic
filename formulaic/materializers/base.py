@@ -496,11 +496,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         self._evaluate(factor.expr, factor.metadata, spec),
                         kind=Factor.Kind.CONSTANT,
                     )
-                else:
+                else:  # pragma: no cover; future proofing against new eval methods
                     raise FactorEvaluationError(
                         f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
                     )
-            except FactorEvaluationError:
+            except FactorEvaluationError:  # pragma: no cover; future proofing against new eval methods
                 raise
             except Exception as e:
                 raise FactorEvaluationError(

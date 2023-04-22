@@ -74,7 +74,7 @@ class TestPandasMaterializer:
     @pytest.fixture
     def data(self):
         return pandas.DataFrame(
-            {"a": [1, 2, 3], "A": ["a", "b", "c"], "B": ["a", "b", "c"]}
+            {"a": [1, 2, 3], "b": [1, 2, 3], "A": ["a", "b", "c"], "B": ["a", "b", "c"]}
         )
 
     @pytest.fixture
@@ -372,6 +372,30 @@ class TestPandasMaterializer:
             "A[T.b]",
             "A[T.a]",
         ]
+
+    def test_term_clustering(self, materializer):
+        assert materializer.get_model_matrix(
+            "a + b + a:A + b:A"
+        ).model_spec.column_names == (
+            "Intercept",
+            "a",
+            "b",
+            "a:A[T.b]",
+            "a:A[T.c]",
+            "b:A[T.b]",
+            "b:A[T.c]",
+        )
+        assert materializer.get_model_matrix(
+            "a + b + a:A + b:A", cluster_by="numerical_factors"
+        ).model_spec.column_names == (
+            "Intercept",
+            "a",
+            "a:A[T.b]",
+            "a:A[T.c]",
+            "b",
+            "b:A[T.b]",
+            "b:A[T.c]",
+        )
 
     def test_model_spec_pickleable(self, materializer):
         o = BytesIO()
