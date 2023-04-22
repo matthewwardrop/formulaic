@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from formulaic.utils.layered_mapping import LayeredMapping
@@ -31,10 +33,34 @@ def test_layered_context():
 
     # Test mutations
     layered["f"] = 10
-    assert layered.mutations == {"f": 10}
+    assert layered._mutations == {"f": 10}
 
     del layered["f"]
-    assert layered.mutations == {}
+    assert layered._mutations == {}
 
     with pytest.raises(KeyError):
         del layered["a"]
+
+
+def test_named_layered_mappings():
+
+    data_layer = LayeredMapping({"data": 1}, name="data")
+    context_layer = LayeredMapping({"context": "context"}, name="context")
+    layers = LayeredMapping({"data": None, "context": None}, data_layer, context_layer)
+
+    assert sorted(layers.named_layers) == ["context", "data"]
+    assert layers["data"] is None
+    assert layers["context"] is None
+    assert layers.data["data"] == 1
+    assert layers.context["context"] == "context"
+
+    assert layers.with_layers({"data": 2}, inplace=True)["data"] == 2
+    assert sorted(
+        layers.with_layers({"data": 2}, inplace=True, name="toplevel").named_layers
+    ) == ["context", "data", "toplevel"]
+
+    with pytest.raises(
+        AttributeError,
+        match=re.escape("'missing' does not correspond to a named layer."),
+    ):
+        layers.missing
