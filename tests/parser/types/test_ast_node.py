@@ -1,4 +1,6 @@
 import functools
+from operator import or_
+
 import pytest
 
 from formulaic.parser.types import ASTNode, Operator, Token
@@ -12,7 +14,7 @@ class TestASTNode:
                 "+",
                 arity=2,
                 precedence=100,
-                to_terms=lambda *term_sets: functools.reduce(set.union, term_sets),
+                to_terms=lambda *term_sets: functools.reduce(or_, term_sets),
             ),
             (Token("a", kind="name"), Token("b", kind="name"), Token("c", kind="name")),
         )

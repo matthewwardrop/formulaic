@@ -34,10 +34,37 @@ PANDAS_TESTS = {
         ["Intercept", "C(A)[T.c]"],
         2,
     ),
-    "a:A": (
+    "A:a": (
         ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
         ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
         ["Intercept", "A[T.a]:a"],
+        1,
+    ),
+    "A:B": (
+        [
+            "Intercept",
+            "B[T.b]",
+            "B[T.c]",
+            "A[T.b]:B[T.a]",
+            "A[T.c]:B[T.a]",
+            "A[T.b]:B[T.b]",
+            "A[T.c]:B[T.b]",
+            "A[T.b]:B[T.c]",
+            "A[T.c]:B[T.c]",
+        ],
+        [
+            "Intercept",
+            "A[T.a]:B[T.a]",
+            "A[T.b]:B[T.a]",
+            "A[T.c]:B[T.a]",
+            "A[T.a]:B[T.b]",
+            "A[T.b]:B[T.b]",
+            "A[T.c]:B[T.b]",
+            "A[T.a]:B[T.c]",
+            "A[T.b]:B[T.c]",
+            "A[T.c]:B[T.c]",
+        ],
+        ["Intercept"],
         1,
     ),
 }
@@ -46,11 +73,15 @@ PANDAS_TESTS = {
 class TestPandasMaterializer:
     @pytest.fixture
     def data(self):
-        return pandas.DataFrame({"a": [1, 2, 3], "A": ["a", "b", "c"]})
+        return pandas.DataFrame(
+            {"a": [1, 2, 3], "b": [1, 2, 3], "A": ["a", "b", "c"], "B": ["a", "b", "c"]}
+        )
 
     @pytest.fixture
     def data_with_nulls(self):
-        return pandas.DataFrame({"a": [1, 2, None], "A": ["a", None, "c"]})
+        return pandas.DataFrame(
+            {"a": [1, 2, None], "A": ["a", None, "c"], "B": ["a", "b", None]}
+        )
 
     @pytest.fixture
     def materializer(self, data):
@@ -127,6 +158,9 @@ class TestPandasMaterializer:
         assert isinstance(mm, pandas.DataFrame)
         assert mm.shape == (tests[3], len(tests[2]))
         assert list(mm.columns) == tests[2]
+
+        if formula == "A:B":
+            return
 
         mm = PandasMaterializer(data_with_nulls).get_model_matrix(
             formula, na_action="ignore"
@@ -338,6 +372,30 @@ class TestPandasMaterializer:
             "A[T.b]",
             "A[T.a]",
         ]
+
+    def test_term_clustering(self, materializer):
+        assert materializer.get_model_matrix(
+            "a + b + a:A + b:A"
+        ).model_spec.column_names == (
+            "Intercept",
+            "a",
+            "b",
+            "a:A[T.b]",
+            "a:A[T.c]",
+            "b:A[T.b]",
+            "b:A[T.c]",
+        )
+        assert materializer.get_model_matrix(
+            "a + b + a:A + b:A", cluster_by="numerical_factors"
+        ).model_spec.column_names == (
+            "Intercept",
+            "a",
+            "a:A[T.b]",
+            "a:A[T.c]",
+            "b",
+            "b:A[T.b]",
+            "b:A[T.c]",
+        )
 
     def test_model_spec_pickleable(self, materializer):
         o = BytesIO()

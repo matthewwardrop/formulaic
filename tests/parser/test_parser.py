@@ -31,6 +31,7 @@ FORMULA_TO_TERMS = {
     "": ["1"],
     "a": ["1", "a"],
     "a + b": ["1", "a", "b"],
+    "b + a": ["1", "b", "a"],
     # Interpretation of set differences
     "a - 1": ["a"],
     "a + 0": ["a"],
@@ -40,6 +41,7 @@ FORMULA_TO_TERMS = {
     "(a - a) + b": ["1", "b"],
     "a + (b - a)": ["1", "a", "b"],
     "[a + b] - a": ["1", "b"],
+    "(b - a) + a": ["1", "b", "a"],
     # Check that "0" -> "-1" substitution works as expected
     "+0": [],
     "(+0)": ["1"],
@@ -64,18 +66,20 @@ FORMULA_TO_TERMS = {
     },
     # Products
     "a:b": ["1", "a:b"],
-    "a * b": ["1", "a", "a:b", "b"],
+    "b:a + a:b": ["1", "b:a"],
+    "a * b": ["1", "a", "b", "a:b"],
     "(a+b):(c+d)": ["1", "a:c", "a:d", "b:c", "b:d"],
+    "(c+d):(a+b)": ["1", "c:a", "c:b", "d:a", "d:b"],
     "(a+b)**2": ["1", "a", "a:b", "b"],
     "(a+b)^2": ["1", "a", "a:b", "b"],
     "(a+b)**3": ["1", "a", "a:b", "b"],
     # Nested products
     "a/b": ["1", "a", "a:b"],
-    "(a+b)/c": ["1", "a", "a:b:c", "b"],
+    "(b+a)/c": ["1", "b", "a", "b:a:c"],
     "a/(b+c)": ["1", "a", "a:b", "a:c"],
     "a/(b+c-b)": ["1", "a", "a:c"],
     "b %in% a": ["1", "a", "a:b"],
-    "c %in% (a+b)": ["1", "a", "a:b:c", "b"],
+    "c %in% (a+b)": ["1", "a", "b", "a:b:c"],
     "(b+c) %in% a": ["1", "a", "a:b", "a:c"],
     "(b+c-b) %in% a": ["1", "a", "a:c"],
     # Unary operations
@@ -101,13 +105,11 @@ class TestFormulaParser:
     def test_to_terms(self, formula, terms):
         generated_terms: Structured[List[Term]] = PARSER.get_terms(formula)
         if generated_terms._has_keys:
-            comp = generated_terms._map(sorted)._to_dict()
+            comp = generated_terms._map(list)._to_dict()
         elif generated_terms._has_root and isinstance(generated_terms.root, tuple):
-            comp = tuple(
-                sorted([str(term) for term in group]) for group in generated_terms
-            )
+            comp = tuple([str(term) for term in group] for group in generated_terms)
         else:
-            comp = sorted([str(term) for term in generated_terms])
+            comp = [str(term) for term in generated_terms]
         assert comp == terms
 
     def test_invalid_formula_separation(self):

@@ -4,6 +4,7 @@ from enum import Enum
 from numbers import Number
 from typing import Callable, List, Iterable, Union
 
+from .ordered_set import OrderedSet
 from .term import Term
 from .token import Token
 
@@ -86,7 +87,7 @@ class Operator:
     def fixity(self, fixity):
         self._fixity = Operator.Fixity(fixity)
 
-    def to_terms(self, *args):
+    def to_terms(self, *args) -> OrderedSet[Term]:
         if self._to_terms is None:
             raise RuntimeError(f"`to_terms` is not implemented for '{self.symbol}'.")
         return self._to_terms(*args)

@@ -12,7 +12,6 @@ from typing import (
     Generator,
     List,
     Iterable,
-    Set,
     Tuple,
     Union,
     TYPE_CHECKING,
@@ -27,9 +26,11 @@ from formulaic.errors import (
     FormulaMaterializerInvalidError,
     FormulaMaterializerNotFoundError,
 )
+from formulaic.materializers.types.enums import ClusterBy
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
+from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
@@ -197,9 +198,16 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _build_model_matrix(self, spec: ModelSpec, drop_rows):
 
+        # Step 0: Apply any requested column/term clustering
+        # This must happen before Step 1 otherwise the greedy rank reduction
+        # below would result in a different outcome than if the columns had
+        # always been in the generated order.
+        terms = self._cluster_terms(spec.formula, cluster_by=spec.cluster_by)
+
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         scoped_terms_for_terms = self._get_scoped_terms(
-            spec.formula, ensure_full_rank=spec.ensure_full_rank
+            terms,
+            ensure_full_rank=spec.ensure_full_rank,
         )
 
         # Step 2: Generate the columns which will be collated into the full matrix
@@ -223,7 +231,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                                     drop_rows,
                                     reduced_rank=scoped_factor.reduced,
                                 )
-                                for scoped_factor in sorted(scoped_term.factors)
+                                for scoped_factor in scoped_term.factors
                             ],
                             spec=spec,
                             scale=scoped_term.scale,
@@ -320,6 +328,23 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             transform_state=transform_state,
         )
 
+    def _cluster_terms(self, terms, cluster_by: ClusterBy = ClusterBy.NONE):
+        if cluster_by is not ClusterBy.NUMERICAL_FACTORS:
+            return terms
+
+        term_clusters = defaultdict(list)
+        for term in terms:
+            numerical_factors = tuple(
+                factor
+                for factor in term.factors
+                if self.factor_cache[factor.expr].metadata.kind is Factor.Kind.NUMERICAL
+            )
+            term_clusters[numerical_factors].append(term)
+
+        return [
+            term for term_cluster in term_clusters.values() for term in term_cluster
+        ]
+
     # Methods related to ensuring out matrices are structurally full-rank
 
     def _get_scoped_terms(self, terms, ensure_full_rank=True):
@@ -337,8 +362,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             ensure_full_rank (bool): Whether evaluated terms should be scoped
                 to ensure that their combination will result in a full-rank
                 matrix.
-            transform_state (dict): The state of any stateful transforms
-                (will be populated if empty).
 
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.
@@ -349,9 +372,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             evaled_factors = [self.factor_cache[factor.expr] for factor in term.factors]
 
             if ensure_full_rank:
-                term_span = self._get_scoped_terms_spanned_by_evaled_factors(
-                    evaled_factors
-                ).difference(spanned)
+                term_span = (
+                    self._get_scoped_terms_spanned_by_evaled_factors(evaled_factors)
+                    - spanned
+                )
                 scoped_terms = self._simplify_scoped_terms(term_span)
                 spanned.update(term_span)
             else:
@@ -379,7 +403,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     @classmethod
     def _get_scoped_terms_spanned_by_evaled_factors(
         cls, evaled_factors: Iterable[EvaluatedFactor]
-    ) -> Set[ScopedTerm]:
+    ) -> OrderedSet[ScopedTerm]:
         """
         Return the set of ScopedTerm instances which span the set of
         evaluated factors.
@@ -397,38 +421,63 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             if factor.metadata.kind is Factor.Kind.CONSTANT:
                 scale *= factor.values
             elif factor.metadata.spans_intercept:
-                factors.append((1, ScopedFactor(factor, reduced=True)))
+                factors.append((ScopedFactor(factor, reduced=True), 1))
             else:
                 factors.append((ScopedFactor(factor),))
-        return set(
+        return OrderedSet(
             ScopedTerm(factors=(p for p in prod if p != 1), scale=scale)
             for prod in itertools.product(*factors)
         )
 
     @classmethod
-    def _simplify_scoped_terms(cls, scoped_terms):
+    def _simplify_scoped_terms(
+        cls, scoped_terms: Iterable[ScopedTerm]
+    ) -> Iterable[ScopedTerm]:
         """
-        Return the minimal set of ScopedTerm instances that spans the same vectorspace.
+        Return the minimal set of ScopedTerm instances that spans the same
+        vectorspace, matching as closely as possible the intended order of the
+        terms.
+
+        This is an iterative algorithm that applies the rule:
+            (anything):(reduced rank) + (anything) |-> (anything):(full rank)
+        To be safe, we recurse whenever we apply the rule to make sure that
+        we have fully simplified the set of terms before adding new ones.
+
+        This is guaranteed to minimially span the vector space, keeping
+        everything full-rank by avoiding overlaps.
         """
-        terms = []
+        terms = OrderedSet()
         for scoped_term in sorted(scoped_terms, key=lambda x: len(x.factors)):
             factors = set(scoped_term.factors)
             combined = False
-            for co_scoped_term in terms:
-                cofactors = set(co_scoped_term.factors)
-                factors_diff = factors.difference(cofactors)
+            for existing_term in terms:
+                # Check whether existing term only differs by one factor
+                cofactors = set(existing_term.factors)
+                factors_diff = factors - cofactors
                 if len(factors) - 1 != len(cofactors) or len(factors_diff) != 1:
                     continue
+                # If the different factor is a reduced factor, we can apply the
+                # rule and recurse to see if there is anything else to pick up.
                 factor_new = next(iter(factors_diff))
                 if factor_new.reduced:
-                    co_scoped_term.factors += (
-                        ScopedFactor(factor_new.factor, reduced=False),
+                    terms = cls._simplify_scoped_terms(
+                        terms - (existing_term,)
+                        | (
+                            ScopedTerm(
+                                (
+                                    ScopedFactor(factor_new.factor, reduced=False)
+                                    if factor == factor_new
+                                    else factor
+                                    for factor in scoped_term.factors
+                                ),
+                                scale=existing_term.scale * scoped_term.scale,
+                            ),
+                        )
                     )
-                    terms = cls._simplify_scoped_terms(terms)
                     combined = True
                     break
             if not combined:
-                terms.append(scoped_term.copy())
+                terms = terms | (scoped_term,)
         return terms
 
     # Methods related to looking-up, evaluating and encoding terms and factors
@@ -447,11 +496,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         self._evaluate(factor.expr, factor.metadata, spec),
                         kind=Factor.Kind.CONSTANT,
                     )
-                else:
+                else:  # pragma: no cover; future proofing against new eval methods
                     raise FactorEvaluationError(
                         f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
                     )
-            except FactorEvaluationError:
+            except FactorEvaluationError:  # pragma: no cover; future proofing against new eval methods
                 raise
             except Exception as e:
                 raise FactorEvaluationError(
@@ -731,7 +780,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         """
         Assemble the columns for a model matrix given factors and a scale.
 
-        This performs the row-wise Kronecker product of the factors.
+        This performs the row-wise Kronecker product of the factors. For greater
+        compatibility with R and patsy, we reverse this product so that we
+        iterate first over the latter terms.
 
         Args:
             factors
@@ -741,7 +792,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             dict
         """
         out = OrderedDict()
-        for product in itertools.product(*(factor.items() for factor in factors)):
+        for reverse_product in itertools.product(
+            *(factor.items() for factor in reversed(factors))
+        ):
+            product = reverse_product[::-1]
             out[":".join(p[0] for p in product)] = scale * functools.reduce(
                 operator.mul, (p[1] for p in product)
             )

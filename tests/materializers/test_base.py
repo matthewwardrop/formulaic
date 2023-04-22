@@ -92,13 +92,15 @@ class TestFormulaMaterializer:
     def test__simplify_scoped_terms(self, evaled_factors):
         A, B, C = [ScopedFactor(l, reduced=False) for l in "ABC"]
         A_, B_, C_ = [ScopedFactor(l, reduced=True) for l in "ABC"]
-        assert FormulaMaterializer._simplify_scoped_terms(
-            [
-                ScopedTerm((C_,)),
-                ScopedTerm((A_, C_)),
-                ScopedTerm((B_, C_)),
-                ScopedTerm((A_, B_, C_)),
-            ]
+        assert list(
+            FormulaMaterializer._simplify_scoped_terms(
+                [
+                    ScopedTerm((C_,)),
+                    ScopedTerm((A_, C_)),
+                    ScopedTerm((B_, C_)),
+                    ScopedTerm((A_, B_, C_)),
+                ]
+            )
         ) == [ScopedTerm((A, B, C_))]
 
     def test__flatten_encoded_evaled_factor(self):

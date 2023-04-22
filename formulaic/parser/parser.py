@@ -10,6 +10,7 @@ from .types import (
     FormulaParser,
     Operator,
     OperatorResolver,
+    OrderedSet,
     Structured,
     Term,
     Token,
@@ -141,12 +142,12 @@ class DefaultOperatorResolver(OperatorResolver):
             return tuple(out)
 
         def nested_product_expansion(
-            parents: Set[Term], nested: Set[Term]
-        ) -> Set[Term]:
+            parents: OrderedSet[Term], nested: OrderedSet[Term]
+        ) -> OrderedSet[Term]:
             common = functools.reduce(lambda x, y: x * y, parents)
-            return parents.union({common * term for term in nested})
+            return parents | OrderedSet(common * term for term in nested)
 
-        def power(arg: Set[Term], power: Set[Term]) -> Set[Term]:
+        def power(arg: OrderedSet[Term], power: OrderedSet[Term]) -> OrderedSet[Term]:
             power_term = next(iter(power))
             if (
                 not len(power_term.factors) == 1
@@ -157,10 +158,10 @@ class DefaultOperatorResolver(OperatorResolver):
                     power_term.factors[0].token,
                     "The right-hand argument of `**` must be a positive integer.",
                 )
-            return {
+            return OrderedSet(
                 functools.reduce(lambda x, y: x * y, term)
                 for term in itertools.product(*[arg] * int(power_term.factors[0].expr))
-            }
+            )
 
         return [
             Operator(
@@ -198,14 +199,14 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda lhs, rhs: lhs.union(rhs),
+                to_terms=lambda lhs, rhs: lhs | rhs,
             ),
             Operator(
                 "-",
                 arity=2,
                 precedence=100,
                 associativity="left",
-                to_terms=lambda left, right: left.difference(right),
+                to_terms=lambda left, right: left - right,
             ),
             Operator(
                 "+",
@@ -221,7 +222,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=100,
                 associativity="right",
                 fixity="prefix",
-                to_terms=lambda terms: set(),
+                to_terms=lambda terms: OrderedSet(),
             ),
             Operator(
                 "*",
@@ -229,10 +230,11 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=200,
                 associativity="left",
                 to_terms=lambda *term_sets: (
-                    {
+                    OrderedSet(itertools.chain(*term_sets))
+                    | OrderedSet(
                         functools.reduce(lambda x, y: x * y, term)
                         for term in itertools.product(*term_sets)
-                    }.union(itertools.chain(*term_sets))
+                    )
                 ),
             ),
             Operator(
@@ -256,10 +258,10 @@ class DefaultOperatorResolver(OperatorResolver):
                 arity=2,
                 precedence=300,
                 associativity="left",
-                to_terms=lambda *term_sets: {
+                to_terms=lambda *term_sets: OrderedSet(
                     functools.reduce(lambda x, y: x * y, term)
                     for term in itertools.product(*term_sets)
-                },
+                ),
             ),
             Operator(
                 "**", arity=2, precedence=500, associativity="right", to_terms=power
