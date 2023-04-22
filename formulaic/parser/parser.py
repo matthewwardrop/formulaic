@@ -230,11 +230,11 @@ class DefaultOperatorResolver(OperatorResolver):
                 precedence=200,
                 associativity="left",
                 to_terms=lambda *term_sets: (
-                    OrderedSet(
+                    OrderedSet(itertools.chain(*term_sets))
+                    | OrderedSet(
                         functools.reduce(lambda x, y: x * y, term)
                         for term in itertools.product(*term_sets)
                     )
-                    | OrderedSet(itertools.chain(*term_sets))
                 ),
             ),
             Operator(

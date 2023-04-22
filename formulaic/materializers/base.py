@@ -12,7 +12,6 @@ from typing import (
     Generator,
     List,
     Iterable,
-    Set,
     Tuple,
     Union,
     TYPE_CHECKING,
@@ -31,6 +30,7 @@ from formulaic.materializers.types.enums import ClusterBy
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
+from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
@@ -372,9 +372,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             evaled_factors = [self.factor_cache[factor.expr] for factor in term.factors]
 
             if ensure_full_rank:
-                term_span = self._get_scoped_terms_spanned_by_evaled_factors(
-                    evaled_factors
-                ).difference(spanned)
+                term_span = (
+                    self._get_scoped_terms_spanned_by_evaled_factors(evaled_factors)
+                    - spanned
+                )
                 scoped_terms = self._simplify_scoped_terms(term_span)
                 spanned.update(term_span)
             else:
@@ -402,7 +403,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     @classmethod
     def _get_scoped_terms_spanned_by_evaled_factors(
         cls, evaled_factors: Iterable[EvaluatedFactor]
-    ) -> Set[ScopedTerm]:
+    ) -> OrderedSet[ScopedTerm]:
         """
         Return the set of ScopedTerm instances which span the set of
         evaluated factors.
@@ -420,38 +421,63 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             if factor.metadata.kind is Factor.Kind.CONSTANT:
                 scale *= factor.values
             elif factor.metadata.spans_intercept:
-                factors.append((1, ScopedFactor(factor, reduced=True)))
+                factors.append((ScopedFactor(factor, reduced=True), 1))
             else:
                 factors.append((ScopedFactor(factor),))
-        return set(
+        return OrderedSet(
             ScopedTerm(factors=(p for p in prod if p != 1), scale=scale)
             for prod in itertools.product(*factors)
         )
 
     @classmethod
-    def _simplify_scoped_terms(cls, scoped_terms):
+    def _simplify_scoped_terms(
+        cls, scoped_terms: Iterable[ScopedTerm]
+    ) -> Iterable[ScopedTerm]:
         """
-        Return the minimal set of ScopedTerm instances that spans the same vectorspace.
+        Return the minimal set of ScopedTerm instances that spans the same
+        vectorspace, matching as closely as possible the intended order of the
+        terms.
+
+        This is an iterative algorithm that applies the rule:
+            (anything):(reduced rank) + (anything) |-> (anything):(full rank)
+        To be safe, we recurse whenever we apply the rule to make sure that
+        we have fully simplified the set of terms before adding new ones.
+
+        This is guaranteed to minimially span the vector space, keeping
+        everything full-rank by avoiding overlaps.
         """
-        terms = []
+        terms = OrderedSet()
         for scoped_term in sorted(scoped_terms, key=lambda x: len(x.factors)):
             factors = set(scoped_term.factors)
             combined = False
-            for co_scoped_term in terms:
-                cofactors = set(co_scoped_term.factors)
-                factors_diff = factors.difference(cofactors)
+            for existing_term in terms:
+                # Check whether existing term only differs by one factor
+                cofactors = set(existing_term.factors)
+                factors_diff = factors - cofactors
                 if len(factors) - 1 != len(cofactors) or len(factors_diff) != 1:
                     continue
+                # If the different factor is a reduced factor, we can apply the
+                # rule and recurse to see if there is anything else to pick up.
                 factor_new = next(iter(factors_diff))
                 if factor_new.reduced:
-                    co_scoped_term.factors += (
-                        ScopedFactor(factor_new.factor, reduced=False),
+                    terms = cls._simplify_scoped_terms(
+                        terms - (existing_term,)
+                        | (
+                            ScopedTerm(
+                                (
+                                    ScopedFactor(factor_new.factor, reduced=False)
+                                    if factor == factor_new
+                                    else factor
+                                    for factor in scoped_term.factors
+                                ),
+                                scale=existing_term.scale * scoped_term.scale,
+                            ),
+                        )
                     )
-                    terms = cls._simplify_scoped_terms(terms)
                     combined = True
                     break
             if not combined:
-                terms.append(scoped_term.copy())
+                terms = terms | (scoped_term,)
         return terms
 
     # Methods related to looking-up, evaluating and encoding terms and factors

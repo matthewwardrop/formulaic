@@ -6,7 +6,7 @@ ItemType = TypeVar("ItemType")
 
 
 class OrderedSet(Set, Generic[ItemType]):
-    def __init__(self, values: Iterable[ItemType]):
+    def __init__(self, values: Iterable[ItemType] = ()):
         self.values = dict.fromkeys(values)
 
     def __contains__(self, item):

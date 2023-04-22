@@ -5,8 +5,8 @@ class ScopedTerm:
 
     __slots__ = ("factors", "scale")
 
-    def __init__(self, factors, scale=None):
-        self.factors = tuple(factors)
+    def __init__(self, factors, scale=1):
+        self.factors = tuple(dict.fromkeys(factors))
         self.scale = scale
 
     def __hash__(self):
