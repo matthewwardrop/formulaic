@@ -3,6 +3,57 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.0 (26 Apr 2023)
+
+This is a major release with some important consistency and completeness
+improvements. It should be treated as *almost* being the first release candidate
+of 1.0.0, which will land after some small amount of further feature extensions
+and documentation improvements. All users are recommended to upgrade.
+
+**Breaking changes:**
+
+Although there are some internal changes to API, as documented below, there are
+no breaking changes to user-facing APIs.
+
+**New features and enhancements:**
+
+* Formula terms are now consistently ordered regardless of providence (formulae or
+  manual term specification), and sorted according to R conventions by default
+  rather than lexically. This can be changed using the `_ordering` keyword to
+  the `Formula` constructor.
+* Greater compatibility with R and patsy formulae:
+  * for patsy: added `standardize`, `Q` and treatment contrasts shims.
+  * for patsy: added `cluster_by='numerical_factors` option to `ModelSpec` to enable
+    patsy style clustering of output columns by involved numerical factors.
+  * for R: added support for exponentiation with `^` and `%in%`.
+* Diff and Helmert contrast codings gained support for additional variants.
+* Greatly improved the performance of generating sparse dummy encodings when
+  there are many categories.
+* Context scoping operators (like paretheses) are now tokenized as their own special
+  type.
+* Add support for merging `Structured` instances, and use this functionality during
+  AST evaluation where relevant.
+* `ModelSpec.term_indices` is now a list rather than a tuple, to allow direct use when
+  indexing pandas and numpy model matrices.
+* Add official support for Python 3.11.
+
+**Bugfixes and cleanups:**
+
+* Fix parsing formulae starting with a parenthesis.
+* Fix iteration over root nodes of `Structured` instances for non-sequential iterable values.
+* Bump testing versions and fix `poly` unit tests.
+* Fix use of deprecated automatic casting of factors to numpy arrays during dense
+  column evaluation in `PandasMaterializer`.
+* `Factor.EvalMethod.UNKNOWN` was removed, defaulting instead to `LOOKUP`.
+* Remove `sympy` version constraint now that a bug has been fixed upstream.
+
+**Documentation:**
+
+* Substantial updates to documentation, which is now mostly complete for end-user
+  use-cases. Developer and API docs are still pending.
+
+---
+
 ## 0.5.2 (17 Sep 2022)
 
 This is a minor patch releases that fixes one bug.
