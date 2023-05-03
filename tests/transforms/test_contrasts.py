@@ -5,6 +5,7 @@ import pandas
 import pytest
 import scipy.sparse as spsparse
 
+from formulaic import model_matrix
 from formulaic.errors import DataMismatchWarning
 from formulaic.materializers import FactorValues
 from formulaic.model_spec import ModelSpec
@@ -849,3 +850,25 @@ class TestCustomContrasts:
             ["a", "b", "c"], reduced_rank=True
         )
         assert numpy.allclose(coefficient_matrix_reduced, reference_reduced)
+
+
+def test_full_rankness_opt_out():
+    data = pandas.DataFrame({"A": ["a", "b", "c"]})
+    assert model_matrix("A", data).model_spec.column_names == (
+        "Intercept",
+        "A[T.b]",
+        "A[T.c]",
+    )
+    assert model_matrix("C(A)", data).model_spec.column_names == (
+        "Intercept",
+        "C(A)[T.b]",
+        "C(A)[T.c]",
+    )
+    assert model_matrix(
+        "C(A, spans_intercept=False)", data
+    ).model_spec.column_names == (
+        "Intercept",
+        "C(A, spans_intercept=False)[T.a]",
+        "C(A, spans_intercept=False)[T.b]",
+        "C(A, spans_intercept=False)[T.c]",
+    )

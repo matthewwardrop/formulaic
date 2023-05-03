@@ -30,6 +30,7 @@ def C(
     ] = None,
     *,
     levels: Optional[Iterable[str]] = None,
+    spans_intercept: bool = True,
 ):
     """
     Mark data as being categorical, and optionally specify the contrasts to be
@@ -46,6 +47,10 @@ def C(
         levels: The categorical levels associated with `data`. If not present,
             levels are inferred from `data`. Note that extra levels in `data`
             will be treated as null data.
+        spans_intercept: Whether the categorical data being coded should be
+            treated as though it spans the intercept. This should nearly always
+            true, except when you are building a model that explicitly handles
+            this using regularization (or other modeling techniques).
     """
 
     def encoder(
@@ -69,7 +74,7 @@ def C(
     return FactorValues(
         data,
         kind="categorical",
-        spans_intercept=True,
+        spans_intercept=spans_intercept,
         encoder=encoder,
     )
 
