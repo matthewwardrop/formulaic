@@ -102,7 +102,7 @@ pygments==2.12.0
     #   mkdocs-jupyter
     #   mkdocs-material
     #   nbconvert
-pymdown-extensions==9.5
+pymdown-extensions==10.0
     # via
     #   -r requirements.in
     #   mkdocs-material
@@ -118,6 +118,7 @@ pyyaml==6.0
     # via
     #   jupytext
     #   mkdocs
+    #   pymdown-extensions
     #   pyyaml-env-tag
 pyyaml-env-tag==0.1
     # via mkdocs
