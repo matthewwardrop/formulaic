@@ -133,7 +133,7 @@ tinycss2==1.2.1
     # via nbconvert
 toml==0.10.2
     # via jupytext
-tornado==6.2
+tornado==6.3.2
     # via jupyter-client
 traitlets==5.9.0
     # via
