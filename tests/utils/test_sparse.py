@@ -1,5 +1,6 @@
 import numpy
 import pandas
+from scipy.sparse import csc_matrix
 
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 
@@ -54,3 +55,16 @@ def test_sparse_category_encoding():
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.indptr, numpy.array([0, 2, 4])
     )
+
+    empty_levels, empty_encoded = categorical_encode_series_to_sparse_csc_matrix(
+        [], drop_first=True
+    )
+    assert empty_levels == []
+    assert empty_encoded.shape == (0, 0)
+
+    (
+        explict_missing_levels,
+        explict_missing_encoded,
+    ) = categorical_encode_series_to_sparse_csc_matrix([1, 2, 3], levels=[])
+    assert explict_missing_levels == []
+    assert explict_missing_encoded.shape == (3, 0)

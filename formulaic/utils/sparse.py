@@ -27,6 +27,10 @@ def categorical_encode_series_to_sparse_csc_matrix(
 
     series = pandas.Categorical(series, levels)
     levels = list(levels or series.categories)
+
+    if not levels:
+        return levels, spsparse.csc_matrix((series.shape[0], 0))
+
     if drop_first:
         series = series.remove_categories(levels[0])
         levels = levels[1:]
