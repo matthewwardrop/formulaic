@@ -260,6 +260,30 @@ class TestContrastsTransform:
         with pytest.raises(ValueError, match=r"^Unknown output type"):
             encode_contrasts(data=["a", "b", "c", "a", "b", "c"], output="invalid")
 
+    def test_empty_levels(self):
+        empty_numpy = encode_contrasts(
+            data=["a", "b", "c", "a", "b", "c"], levels=[], output="numpy"
+        )
+        assert empty_numpy.shape == (6, 0)
+
+        empty_numpy_reduced = encode_contrasts(
+            data=["a", "b", "c", "a", "b", "c"],
+            levels=["a"],
+            output="numpy",
+            reduced_rank=True,
+        )
+        assert empty_numpy_reduced.shape == (6, 0)
+
+        empty_pandas = encode_contrasts(
+            data=["a", "b", "c", "a", "b", "c"], levels=[], output="pandas"
+        )
+        assert empty_pandas.shape == (0, 0)
+
+        empty_sparse = encode_contrasts(
+            data=["a", "b", "c", "a", "b", "c"], levels=[], output="sparse"
+        )
+        assert empty_sparse.shape == (6, 0)
+
 
 # Test specific contrasts
 

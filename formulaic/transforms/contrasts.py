@@ -112,8 +112,8 @@ def encode_contrasts(
     """
     # Prepare arguments
     output = output or _spec.output or "pandas"
-    levels = levels or _state.get(
-        "categories"
+    levels = (
+        levels if levels is not None else _state.get("categories")
     )  # TODO: Is this too early to provide useful feedback to users?
 
     if contrasts is None:
@@ -202,6 +202,15 @@ class Contrasts(metaclass=InterfaceMeta):
             raise ValueError(
                 "Output type for contrasts must be one of: 'pandas', 'numpy' or 'sparse'."
             )
+
+        # Short-circuit when we know the output encoding will be empty
+        if not levels or len(levels) == 1 and reduced_rank:
+            if output == "pandas":
+                return pandas.DataFrame()
+            elif output == "numpy":
+                return numpy.ones((dummies.shape[0], 0))
+            elif output == "sparse":
+                return spsparse.csc_matrix((dummies.shape[0], 0))
 
         sparse = output == "sparse"
         encoded = self._apply(
