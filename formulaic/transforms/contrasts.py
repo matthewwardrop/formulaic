@@ -207,9 +207,9 @@ class Contrasts(metaclass=InterfaceMeta):
         if not levels or len(levels) == 1 and reduced_rank:
             if output == "pandas":
                 return pandas.DataFrame()
-            elif output == "numpy":
+            if output == "numpy":
                 return numpy.ones((dummies.shape[0], 0))
-            elif output == "sparse":
+            if output == "sparse":
                 return spsparse.csc_matrix((dummies.shape[0], 0))
 
         sparse = output == "sparse"
