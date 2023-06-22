@@ -3,6 +3,24 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.2 (22 June 2023)
+
+This is a minor release with several bugfixes.
+
+**Bugfixes and cleanups:**
+
+* Fixed issues handling empty data sets in formulae that used categorical
+  encoding.
+* Added the MIT license to distribution classifiers.
+
+## 0.6.1 (2 May 2023)
+
+This is a minor release with one new feature.
+
+**New features and enhancements:**
+
+* Added support for treating individual categorical features as though they do not span the intercept (useful for intentionally generating over-specified model matrices in e.g. regularized models).
+
 ## 0.6.0 (26 Apr 2023)
 
 This is a major release with some important consistency and completeness
