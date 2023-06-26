@@ -277,7 +277,7 @@ class TestContrastsTransform:
         empty_pandas = encode_contrasts(
             data=["a", "b", "c", "a", "b", "c"], levels=[], output="pandas"
         )
-        assert empty_pandas.shape == (0, 0)
+        assert empty_pandas.shape == (6, 0)
 
         empty_sparse = encode_contrasts(
             data=["a", "b", "c", "a", "b", "c"], levels=[], output="sparse"

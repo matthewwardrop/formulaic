@@ -206,11 +206,27 @@ class Contrasts(metaclass=InterfaceMeta):
         # Short-circuit when we know the output encoding will be empty
         if not levels or len(levels) == 1 and reduced_rank:
             if output == "pandas":
-                return pandas.DataFrame()
-            if output == "numpy":
-                return numpy.ones((dummies.shape[0], 0))
-            if output == "sparse":
-                return spsparse.csc_matrix((dummies.shape[0], 0))
+                encoded = pandas.DataFrame(
+                    index=dummies.index
+                    if isinstance(dummies, pandas.DataFrame)
+                    else range(dummies.shape[0])
+                )
+            elif output == "numpy":
+                encoded = numpy.ones((dummies.shape[0], 0))
+            elif output == "sparse":
+                encoded = spsparse.csc_matrix((dummies.shape[0], 0))
+            else:  # pragma: no cover
+                raise ValueError(
+                    "Short-circuiting is only implemented for output types: 'pandas', 'numpy' or 'sparse'."
+                )
+            return FactorValues(
+                encoded,
+                kind="categorical",
+                column_names=[],
+                spans_intercept=False,
+                format=self.get_factor_format(levels, reduced_rank=reduced_rank),
+                encoded=True,
+            )
 
         sparse = output == "sparse"
         encoded = self._apply(
@@ -358,7 +374,7 @@ class Contrasts(metaclass=InterfaceMeta):
             levels: The names of the levels/categories in the data.
             reduced_rank: Whether the contrast encoding used had reduced rank.
         """
-        return not reduced_rank
+        return len(levels) > 0 and not reduced_rank
 
     def get_drop_field(self, levels, reduced_rank=True) -> Union[int, str]:
         """

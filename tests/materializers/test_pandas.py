@@ -74,7 +74,13 @@ class TestPandasMaterializer:
     @pytest.fixture
     def data(self):
         return pandas.DataFrame(
-            {"a": [1, 2, 3], "b": [1, 2, 3], "A": ["a", "b", "c"], "B": ["a", "b", "c"]}
+            {
+                "a": [1, 2, 3],
+                "b": [1, 2, 3],
+                "A": ["a", "b", "c"],
+                "B": ["a", "b", "c"],
+                "D": ["a", "a", "a"],
+            }
         )
 
     @pytest.fixture
@@ -405,3 +411,21 @@ class TestPandasMaterializer:
         ms2 = pickle.load(o)
         assert isinstance(ms, Structured)
         assert ms2.lhs.formula.root == ["a"]
+
+    def test_no_levels_encoding(self, data):
+        mm = PandasMaterializer(data, output="pandas").get_model_matrix("a + D")
+
+        assert mm.model_spec.column_names == ("Intercept", "a")
+        assert mm.shape == (3, 2)
+
+        print(mm)
+
+        mm = PandasMaterializer(data, output="sparse").get_model_matrix("a + D")
+
+        assert mm.model_spec.column_names == ("Intercept", "a")
+        assert mm.shape == (3, 2)
+
+        mm = PandasMaterializer(data, output="numpy").get_model_matrix("a + D")
+
+        assert mm.model_spec.column_names == ("Intercept", "a")
+        assert mm.shape == (3, 2)
