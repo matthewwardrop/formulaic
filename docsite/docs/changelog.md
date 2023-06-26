@@ -3,6 +3,15 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.3 (26 June 2023)
+
+This is a minor release with a bugfix.
+
+**Bugfixes and cleanups:**
+
+* Fixed a regression introduced in the previous release when materializing
+  categorical encodings of variables with no levels.
+
 ## 0.6.2 (22 June 2023)
 
 This is a minor release with several bugfixes.
