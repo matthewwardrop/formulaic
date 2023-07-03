@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import graphlib
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Generic, Iterable, List, Tuple, TypeVar, Union
 
 from .operator import Operator
 from .structured import Structured
 from .term import Term
 
 
-class ASTNode:
+ItemType = TypeVar("ItemType")
+
+
+class ASTNode(Generic[ItemType]):
     """
     Represents a node in an Abstract Syntax Tree (AST).
 
@@ -26,7 +29,7 @@ class ASTNode:
         self.operator = operator
         self.args = args
 
-    def to_terms(self) -> Iterable[Term]:
+    def to_terms(self) -> Union[List[Term], Structured[List[Term]], Tuple]:
         """
         Evaluate this AST node and return the resulting set of `Term` instances.
 
@@ -37,7 +40,7 @@ class ASTNode:
         g = graphlib.TopologicalSorter(self.__generate_evaluation_graph())
         g.prepare()
 
-        results = {}
+        results: Dict[ASTNode, Any] = {}
 
         while g.is_active():
             for node in g.get_ready():
@@ -56,7 +59,7 @@ class ASTNode:
 
         return results[self]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         try:
             return f"<ASTNode {self.operator}: {self.args}>"
         except RecursionError:

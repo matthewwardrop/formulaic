@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from numbers import Number
-from typing import Callable, List, Iterable, Union
+from typing import Any, Callable, List, Optional, Union
 
-from .ordered_set import OrderedSet
-from .term import Term
 from .token import Token
 
 
@@ -55,44 +52,46 @@ class Operator:
         symbol: str,
         *,
         arity: int,
-        precedence: Number,
-        associativity: Union[str, Associativity] = "none",
-        fixity: Union[str, Fixity] = "infix",
-        to_terms: Callable[..., Iterable[Term]] = None,
-        accepts_context: Callable[[List[Union[Token, Operator]]], bool] = None,
+        precedence: float,
+        associativity: Union[None, str, Associativity] = Associativity.NONE,
+        fixity: Union[str, Fixity] = Fixity.INFIX,
+        to_terms: Optional[Callable[..., Any]] = None,
+        accepts_context: Optional[
+            Callable[[List[Union[Token, Operator]]], bool]
+        ] = None,
         structural: bool = False,
     ):
         self.symbol = symbol
         self.arity = arity
         self.precedence = precedence
-        self.associativity = associativity
-        self.fixity = fixity
+        self.associativity = associativity  # type: ignore
+        self.fixity = fixity  # type: ignore
         self._to_terms = to_terms
         self._accepts_context = accepts_context
         self.structural = structural
 
     @property
-    def associativity(self):
+    def associativity(self) -> Operator.Associativity:
         return self._associativity
 
     @associativity.setter
-    def associativity(self, associativity):
+    def associativity(self, associativity: Union[str, Operator.Associativity]) -> None:
         self._associativity = Operator.Associativity(associativity or "none")
 
     @property
-    def fixity(self):
+    def fixity(self) -> Operator.Fixity:
         return self._fixity
 
     @fixity.setter
-    def fixity(self, fixity):
+    def fixity(self, fixity: Union[str, Operator.Fixity]) -> None:
         self._fixity = Operator.Fixity(fixity)
 
-    def to_terms(self, *args) -> OrderedSet[Term]:
+    def to_terms(self, *args: Any) -> Any:
         if self._to_terms is None:
             raise RuntimeError(f"`to_terms` is not implemented for '{self.symbol}'.")
         return self._to_terms(*args)
 
-    def accepts_context(self, context: List[Union[Token, Operator]]):
+    def accepts_context(self, context: List[Union[Token, Operator]]) -> bool:
         if self._accepts_context:
             # We only need to pass on tokens and operators with precedence less
             # than or equal to ourselves, since all other operators will be
@@ -106,5 +105,5 @@ class Operator:
             )
         return True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.symbol

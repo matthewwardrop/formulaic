@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 from .ordered_set import OrderedSet
 from .term import Term
@@ -55,8 +55,8 @@ class Factor:
         token: Optional[Token] = None,
     ):
         self.expr = expr
-        self.eval_method = eval_method
-        self.kind = kind
+        self.eval_method = eval_method  # type: ignore
+        self.kind = kind  # type: ignore
         self.metadata = metadata or {}
         self.token = token
 
@@ -65,7 +65,7 @@ class Factor:
         return self._eval_method
 
     @eval_method.setter
-    def eval_method(self, eval_method):
+    def eval_method(self, eval_method: Union[str, EvalMethod]) -> None:
         self._eval_method = Factor.EvalMethod(eval_method or "lookup")
 
     @property
@@ -73,20 +73,20 @@ class Factor:
         return self._kind
 
     @kind.setter
-    def kind(self, kind):
+    def kind(self, kind: Union[str, Factor.Kind]) -> None:
         self._kind = Factor.Kind(kind or "unknown")
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return self.expr == other
         if isinstance(other, Factor):
             return self.expr == other.expr
         return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.expr.__hash__()
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         if isinstance(other, Factor):
             return self.expr < other.expr
         return NotImplemented
@@ -98,5 +98,5 @@ class Factor:
         """
         return OrderedSet((Term([self]),))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.expr

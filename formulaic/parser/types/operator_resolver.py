@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import List, Union
+from typing import Dict, List, Sequence, Union
 
 from ..utils import exc_for_token
 from .operator import Operator
@@ -10,7 +10,7 @@ from .token import Token
 try:
     from functools import cached_property
 except ImportError:  # pragma: no cover
-    from cached_property import cached_property
+    from cached_property import cached_property  # type: ignore
 
 
 class OperatorResolver(metaclass=abc.ABCMeta):
@@ -40,7 +40,7 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         """
 
     @cached_property
-    def operator_table(self):
+    def operator_table(self) -> Dict[str, List[Operator]]:
         operator_table = defaultdict(list)
         for operator in self.operators:
             operator_table[operator.symbol].append(operator)
@@ -52,7 +52,7 @@ class OperatorResolver(metaclass=abc.ABCMeta):
 
     def resolve(
         self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> List[Operator]:
+    ) -> Sequence[Operator]:
         """
         Return a list of operators to apply for a given token in the AST
         generation.
@@ -101,5 +101,5 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         return candidates[0]
 
     # The operator table cache may not be pickleable, so let's drop it.
-    def __getstate__(self):
+    def __getstate__(self) -> Dict:
         return {}

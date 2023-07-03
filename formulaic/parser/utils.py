@@ -64,10 +64,10 @@ def __get_token_for_ast(ast: Union[Token, ASTNode]) -> Token:  # pragma: no cove
         return ast
     lhs_token = ast
     while isinstance(lhs_token, ASTNode):
-        lhs_token = lhs_token.args[0]
+        lhs_token = lhs_token.args[0]  # type: ignore
     rhs_token = ast
     while isinstance(rhs_token, ASTNode):
-        rhs_token = rhs_token.args[-1]
+        rhs_token = rhs_token.args[-1]  # type: ignore
     return Token(
         token=lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
         if lhs_token.source
@@ -91,16 +91,18 @@ def __get_tokens_for_gap(
     """
     lhs_token = lhs
     while isinstance(lhs_token, ASTNode):
-        lhs_token = lhs_token.args[-1]
+        lhs_token = lhs_token.args[-1]  # type: ignore
     rhs_token = rhs or lhs
     while isinstance(rhs_token, ASTNode):
-        rhs_token = rhs_token.args[0]
+        rhs_token = rhs_token.args[0]  # type: ignore
     return (
         lhs_token,
         rhs_token,
         Token(
             lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
             if lhs_token.source
+            and lhs_token.source_start is not None
+            and rhs_token.source_end is not None
             else "",
             source=lhs_token.source,
             source_start=lhs_token.source_start,
@@ -174,12 +176,10 @@ def insert_tokens_after(
             used to create a joining operator token. If not provided, not
             additional operators are added.
     """
+    tokens = list(tokens)
 
     if not isinstance(pattern, re.Pattern):
         pattern = re.compile(pattern)
-
-    if join_operator:
-        tokens = list(tokens)
 
     for i, token in enumerate(tokens):
         if (

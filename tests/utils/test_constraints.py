@@ -131,6 +131,13 @@ class TestLinearConstraints:
             ),
         ):
             LinearConstraints([[1, 2, 3]], [0], variable_names=["a"])
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "`variable_names` must be provided when parsing constraints from a formula."
+            ),
+        ):
+            LinearConstraints.from_spec("a + b")
 
     def test_n_constraints(self):
         assert (

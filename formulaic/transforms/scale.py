@@ -1,3 +1,4 @@
+from typing import Any
 import numpy
 import scipy.sparse as spsparse
 
@@ -5,7 +6,13 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 
 @stateful_transform
-def scale(data, center=True, scale=True, ddof=1, _state=None):
+def scale(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
+    data: Any,
+    center: bool = True,
+    scale: bool = True,
+    ddof: float = 1,
+    _state: dict = {},
+) -> numpy.ndarray:
     """
     Rescale `data` by centering and re-scaling it.
 
@@ -51,14 +58,16 @@ def scale(data, center=True, scale=True, ddof=1, _state=None):
     return data
 
 
-@scale.register(spsparse.spmatrix)
-def _(data, *args, **kwargs):
+@scale.register  # type: ignore[attr-defined]
+def _(data: spsparse.spmatrix, *args: Any, **kwargs: Any) -> numpy.ndarray:
     assert data.shape[1] == 1
     return scale(data.toarray()[:, 0], *args, **kwargs)
 
 
 @stateful_transform
-def center(data, _state=None):
+def center(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
+    data: Any, _state: dict = {}
+) -> numpy.ndarray:
     """
     Centers the data by subtracting the mean.
     """

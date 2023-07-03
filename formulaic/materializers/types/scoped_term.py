@@ -1,23 +1,36 @@
+from __future__ import annotations
+
+from typing import Any, Iterable
 from .scoped_factor import ScopedFactor
 
 
 class ScopedTerm:
+    """
+    A representation of a `Term` where scopes have been applied to the factors.
+    Recall that "scopes" in this context refer to whether or not the factor
+    values have been reduced in rank or not.
+
+    Attributes:
+        factors: The `ScopedFactor` instances.
+        scale: The global factor associated with the term that should be applied
+            during column materialization.
+    """
 
     __slots__ = ("factors", "scale")
 
-    def __init__(self, factors, scale=1):
+    def __init__(self, factors: Iterable[ScopedFactor], scale: float = 1):
         self.factors = tuple(dict.fromkeys(factors))
         self.scale = scale
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(tuple(sorted(self.factors)))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, ScopedTerm):
             return sorted(self.factors) == sorted(other.factors)
         return NotImplemented
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         factor_repr = (
             ":".join(f.__repr__() for f in self.factors) if self.factors else "1"
         )
@@ -25,8 +38,17 @@ class ScopedTerm:
             return f"{self.scale}*{factor_repr}"
         return factor_repr
 
-    def copy(self, *, without_values=False):
-        factors = self.factors
+    def copy(self, *, without_values: bool = False) -> ScopedTerm:
+        """
+        Return a copy of this `ScopedTerm` instance, potentially without the
+        materialized values attached. This is used during the generation of
+        model specs in order to reduce the size of the serialized specs.
+
+        Args:
+            without_values: Whether the materialized values should be omitted
+                from the copy.
+        """
+        factors: Iterable[ScopedFactor] = self.factors
         if without_values:
             factors = [
                 ScopedFactor(

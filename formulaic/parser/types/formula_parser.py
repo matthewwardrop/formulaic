@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable, List
+from typing import Iterable, List, Union
 
 from .ast_node import ASTNode
 from .operator_resolver import OperatorResolver
@@ -45,7 +45,7 @@ class FormulaParser:
 
         return tokenize(formula)
 
-    def get_ast(self, formula: str) -> ASTNode:
+    def get_ast(self, formula: str) -> Union[None, Token, ASTNode]:
         """
         Assemble an abstract syntax tree for the nominated `formula` string.
 
@@ -74,6 +74,6 @@ class FormulaParser:
 
         terms = ast.to_terms()
         if not isinstance(terms, Structured):
-            terms = Structured(terms)
+            terms = Structured[List[Term]](terms)
 
         return terms

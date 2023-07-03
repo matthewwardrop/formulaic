@@ -4,7 +4,19 @@ from abc import abstractmethod
 import inspect
 import warnings
 from numbers import Number
-from typing import Any, Union, Dict, Iterable, List, Optional, TYPE_CHECKING
+from typing import (
+    Any,
+    Hashable,
+    Sequence,
+    Tuple,
+    Union,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy
 import pandas
@@ -31,7 +43,7 @@ def C(
     *,
     levels: Optional[Iterable[str]] = None,
     spans_intercept: bool = True,
-):
+) -> FactorValues:
     """
     Mark data as being categorical, and optionally specify the contrasts to be
     used during encoding.
@@ -59,7 +71,7 @@ def C(
         drop_rows: List[int],
         encoder_state: Dict[str, Any],
         model_spec: ModelSpec,
-    ):
+    ) -> FactorValues:
         values = pandas.Series(values)
         values = values.drop(index=values.index[drop_rows])
         return encode_contrasts(
@@ -80,17 +92,21 @@ def C(
 
 
 @stateful_transform
-def encode_contrasts(
-    data,
+def encode_contrasts(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
+    data: Any,
     contrasts: Union[
-        Contrasts, Dict[str, Iterable[Number]], numpy.ndarray, None
+        Contrasts,
+        Dict[Hashable, Sequence[float]],
+        Sequence[Sequence[float]],
+        numpy.ndarray,
+        None,
     ] = None,
     *,
     levels: Optional[Iterable[str]] = None,
     reduced_rank: bool = False,
     output: Optional[str] = None,
-    _state=None,
-    _spec=None,
+    _state: Dict[str, Any] = {},
+    _spec: Optional[ModelSpec] = None,
 ) -> FactorValues[Union[pandas.DataFrame, spsparse.spmatrix]]:
     """
     Encode a categorical dataset into one or more "contrasts".
@@ -111,6 +127,7 @@ def encode_contrasts(
             "sparse".
     """
     # Prepare arguments
+    _spec = cast("ModelSpec", _spec)
     output = output or _spec.output or "pandas"
     levels = (
         levels if levels is not None else _state.get("categories")
@@ -119,9 +136,18 @@ def encode_contrasts(
     if contrasts is None:
         contrasts = TreatmentContrasts()
     elif inspect.isclass(contrasts) and issubclass(contrasts, Contrasts):
-        contrasts = contrasts()
+        contrasts = contrasts()  # type: ignore[misc]
     if not isinstance(contrasts, Contrasts):
-        contrasts = CustomContrasts(contrasts)
+        contrasts = CustomContrasts(
+            cast(
+                Union[
+                    Dict[Hashable, Sequence[float]],
+                    Sequence[Sequence[float]],
+                    numpy.ndarray,
+                ],
+                contrasts,
+            )
+        )
 
     if levels is not None:
         extra_categories = set(pandas.unique(data)).difference(levels)
@@ -167,11 +193,11 @@ class Contrasts(metaclass=InterfaceMeta):
 
     def apply(
         self,
-        dummies,
-        levels,
-        reduced_rank=True,
+        dummies: Union[pandas.DataFrame, numpy.ndarray, spsparse.spmatrix],
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
         output: Optional[str] = None,
-    ):
+    ) -> FactorValues[Union[pandas.DataFrame, numpy.ndarray, spsparse.spmatrix]]:
         """
         Apply the contrasts defined by this `Contrasts` instance to `dummies`
         (the dummy encoding of the values of interest).
@@ -222,7 +248,7 @@ class Contrasts(metaclass=InterfaceMeta):
             return FactorValues(
                 encoded,
                 kind="categorical",
-                column_names=[],
+                column_names=cast(Tuple[Hashable], ()),
                 spans_intercept=False,
                 format=self.get_factor_format(levels, reduced_rank=reduced_rank),
                 encoded=True,
@@ -247,20 +273,31 @@ class Contrasts(metaclass=InterfaceMeta):
         return FactorValues(
             encoded,
             kind="categorical",
-            column_names=coding_column_names,
+            column_names=tuple(coding_column_names),
             spans_intercept=self.get_spans_intercept(levels, reduced_rank=reduced_rank),
             drop_field=self.get_drop_field(levels, reduced_rank=reduced_rank),
             format=self.get_factor_format(levels, reduced_rank=reduced_rank),
             encoded=True,
         )
 
-    def _apply(self, dummies, levels, reduced_rank=True, sparse=False):
+    def _apply(
+        self,
+        dummies: Union[pandas.DataFrame, spsparse.spmatrix],
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[pandas.DataFrame, numpy.ndarray, spsparse.spmatrix]:
         coding_matrix = self.get_coding_matrix(levels, reduced_rank, sparse=sparse)
         return (dummies if sparse else dummies.values) @ coding_matrix
 
     # Coding matrix methods
 
-    def get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[pandas.DataFrame, spsparse.spmatrix]:
         """
         Generate the coding matrix; i.e. the matrix with column vectors
         representing the encoding to use for the corresponding level.
@@ -286,7 +323,12 @@ class Contrasts(metaclass=InterfaceMeta):
         )
 
     @abstractmethod
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         """
         Subclasses must override this method to implement the generation of the
         coding matrix.
@@ -298,7 +340,9 @@ class Contrasts(metaclass=InterfaceMeta):
         """
 
     @abstractmethod
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         """
         Generate the names for the columns of the coding matrix (the encoded
         features to be added to the model matrix).
@@ -311,7 +355,12 @@ class Contrasts(metaclass=InterfaceMeta):
 
     # Coefficient matrix methods
 
-    def get_coefficient_matrix(self, levels, reduced_rank=True, sparse=False):
+    def get_coefficient_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[pandas.DataFrame, spsparse.spmatrix]:
         """
         Generate the coefficient matrix; i.e. the matrix with rows representing
         the contrasts effectively computed during a regression, with columns
@@ -335,7 +384,12 @@ class Contrasts(metaclass=InterfaceMeta):
             index=self.get_coefficient_row_names(levels, reduced_rank=reduced_rank),
         )
 
-    def _get_coefficient_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coefficient_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         coding_matrix = self.get_coding_matrix(
             levels, reduced_rank=reduced_rank, sparse=sparse
         )
@@ -353,7 +407,9 @@ class Contrasts(metaclass=InterfaceMeta):
         return numpy.linalg.inv(coding_matrix)
 
     @abstractmethod
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[str]:
         """
         Generate the names for the rows of the coefficient matrix (the
         interpretation of the contrasts generated by the coding matrix).
@@ -366,7 +422,9 @@ class Contrasts(metaclass=InterfaceMeta):
 
     # Additional metadata
 
-    def get_spans_intercept(self, levels, reduced_rank=True) -> bool:
+    def get_spans_intercept(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> bool:
         """
         Determine whether the encoded contrasts span the intercept.
 
@@ -376,7 +434,9 @@ class Contrasts(metaclass=InterfaceMeta):
         """
         return len(levels) > 0 and not reduced_rank
 
-    def get_drop_field(self, levels, reduced_rank=True) -> Union[int, str]:
+    def get_drop_field(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Hashable:
         """
         Determine which column to drop to be full rank after this encoding.
         If this contrast encoding is already reduced in rank, then this method
@@ -390,7 +450,9 @@ class Contrasts(metaclass=InterfaceMeta):
             return None
         return self.get_coding_column_names(levels, reduced_rank=reduced_rank)[0]
 
-    def get_factor_format(self, levels, reduced_rank=True):
+    def get_factor_format(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> str:
         """
         The format to use when assigning feature names to each encoded feature.
         Formats can use two named substitutions: `name` and `field`; for
@@ -416,11 +478,17 @@ class TreatmentContrasts(Contrasts):
 
     MISSING = object()
 
-    def __init__(self, base=MISSING):
+    def __init__(self, base: Hashable = MISSING):
         self.base = base
 
     @Contrasts.override
-    def _apply(self, dummies, levels, reduced_rank=True, sparse=False):
+    def _apply(
+        self,
+        dummies: Union[pandas.DataFrame, spsparse.spmatrix],
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[pandas.DataFrame, numpy.ndarray, spsparse.spmatrix]:
         if reduced_rank:
             drop_index = self._find_base_index(levels)
             mask = numpy.ones(len(levels), dtype=bool)
@@ -432,7 +500,7 @@ class TreatmentContrasts(Contrasts):
             )[:, mask]
         return dummies
 
-    def _find_base_index(self, levels):
+    def _find_base_index(self, levels: Sequence[Hashable]) -> int:
         if self.base is self.MISSING:
             return 0
         try:
@@ -443,7 +511,12 @@ class TreatmentContrasts(Contrasts):
             ) from e
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         n = len(levels)
         if sparse:
             matrix = spsparse.eye(n).tocsc()
@@ -455,21 +528,27 @@ class TreatmentContrasts(Contrasts):
         return matrix
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         base_index = self._find_base_index(levels)
         if reduced_rank:
             return [level for i, level in enumerate(levels) if i != base_index]
         return levels
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         base = levels[self._find_base_index(levels)]
         if reduced_rank:
             return [base, *(f"{level}-{base}" for level in levels if level != base)]
         return levels
 
     @Contrasts.override
-    def get_drop_field(self, levels, reduced_rank=True) -> Union[int, str]:
+    def get_drop_field(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Hashable:
         if reduced_rank:
             return None
         return self.base if self.base is not self.MISSING else levels[0]
@@ -484,8 +563,8 @@ class SASContrasts(TreatmentContrasts):
     level (the default in SAS).
     """
 
-    @TreatmentContrasts.override
-    def _find_base_index(self, levels):
+    @TreatmentContrasts.override  # type: ignore[attr-defined]
+    def _find_base_index(self, levels: Sequence[Hashable]) -> int:
         if self.base is self.MISSING:
             return len(levels) - 1
         try:
@@ -495,8 +574,10 @@ class SASContrasts(TreatmentContrasts):
                 f"Value `{repr(self.base)}` for `SASContrasts.base` is not among the provided levels."
             ) from e
 
-    @TreatmentContrasts.override
-    def get_drop_field(self, levels, reduced_rank=True) -> Union[int, str]:
+    @TreatmentContrasts.override  # type: ignore[attr-defined]
+    def get_drop_field(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Hashable:
         if reduced_rank:
             return None
         return self.base if self.base is not self.MISSING else levels[-1]
@@ -513,7 +594,12 @@ class SumContrasts(Contrasts):
     FACTOR_FORMAT = "{name}[S.{field}]"
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         n = len(levels)
         if not reduced_rank:
             return spsparse.eye(n).tocsc() if sparse else numpy.eye(n)
@@ -522,13 +608,17 @@ class SumContrasts(Contrasts):
         return contr.tocsc() if sparse else contr
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return levels[:-1]
         return levels
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return ["avg", *(f"{level} - avg" for level in levels[:-1])]
         return levels
@@ -557,7 +647,12 @@ class HelmertContrasts(Contrasts):
         self.scale = scale
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         n = len(levels)
         if not reduced_rank:
             return spsparse.eye(n).tocsc() if sparse else numpy.eye(n)
@@ -579,13 +674,17 @@ class HelmertContrasts(Contrasts):
         return contr
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return levels[1:] if self.reverse else levels[:-1]
         return levels
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return [
                 "avg",
@@ -617,7 +716,12 @@ class DiffContrasts(Contrasts):
         self.backward = backward
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         n = len(levels)
         if not reduced_rank:
             return spsparse.eye(n).tocsc() if sparse else numpy.eye(n)
@@ -630,13 +734,17 @@ class DiffContrasts(Contrasts):
         return contr
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return levels[1:] if self.backward else levels[:-1]
         return levels
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return [
                 "avg",
@@ -672,11 +780,16 @@ class PolyContrasts(Contrasts):
         3: ".C",
     }
 
-    def __init__(self, scores=None):
+    def __init__(self, scores: Optional[Sequence[float]] = None):
         self.scores = scores
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         n = len(levels)
         if not reduced_rank:
             return spsparse.eye(n).tocsc() if sparse else numpy.eye(n)
@@ -691,7 +804,9 @@ class PolyContrasts(Contrasts):
         return coding_matrix
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return [
                 self.NAME_ALIASES[d] if d in self.NAME_ALIASES else f"^{d}"
@@ -700,7 +815,9 @@ class PolyContrasts(Contrasts):
         return levels
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if reduced_rank:
             return ["avg", *self.get_coding_column_names(levels, reduced_rank=True)]
         return levels
@@ -712,7 +829,13 @@ class CustomContrasts(Contrasts):
     matrices.
     """
 
-    def __init__(self, contrasts, names=None):
+    def __init__(
+        self,
+        contrasts: Union[
+            Dict[Hashable, Sequence[float]], Sequence[Sequence[float]], numpy.ndarray
+        ],
+        names: Optional[Sequence[Hashable]] = None,
+    ):
         if isinstance(contrasts, dict):
             if names is None:
                 names = list(contrasts)
@@ -729,27 +852,40 @@ class CustomContrasts(Contrasts):
         self.contrast_names = names
 
     @Contrasts.override
-    def _get_coding_matrix(self, levels, reduced_rank=True, sparse=False):
+    def _get_coding_matrix(
+        self,
+        levels: Sequence[Hashable],
+        reduced_rank: bool = True,
+        sparse: bool = False,
+    ) -> Union[numpy.ndarray, spsparse.spmatrix]:
         if sparse:
             return spsparse.csc_matrix(self.contrasts)
         return self.contrasts
 
     @Contrasts.override
-    def get_coding_column_names(self, levels, reduced_rank=True):
+    def get_coding_column_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         if self.contrast_names:
             return self.contrast_names
         return list(range(1, self.contrasts.shape[1] + 1))
 
     @Contrasts.override
-    def get_coefficient_row_names(self, levels, reduced_rank=True):
+    def get_coefficient_row_names(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Sequence[Hashable]:
         return list(range(1, len(levels) + (0 if not reduced_rank else 1)))
 
     @Contrasts.override
-    def get_spans_intercept(self, levels, reduced_rank=True) -> bool:
+    def get_spans_intercept(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> bool:
         return False
 
     @Contrasts.override
-    def get_drop_field(self, levels, reduced_rank=True) -> Union[int, str]:
+    def get_drop_field(
+        self, levels: Sequence[Hashable], reduced_rank: bool = True
+    ) -> Hashable:
         return None
 
 

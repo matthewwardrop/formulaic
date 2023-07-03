@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import functools
 import itertools
 from collections import OrderedDict
+from typing import Any, Dict, List, Sequence, Set, Tuple, cast, TYPE_CHECKING
 
 import numpy
 import pandas
@@ -11,6 +14,9 @@ from formulaic.utils.cast import as_columns
 from .base import FormulaMaterializer
 from .types import NAAction
 
+if TYPE_CHECKING:  # pragma: no cover
+    from formulaic.model_spec import ModelSpec
+
 
 class PandasMaterializer(FormulaMaterializer):
 
@@ -19,7 +25,7 @@ class PandasMaterializer(FormulaMaterializer):
     REGISTER_OUTPUTS = ("pandas", "numpy", "sparse")
 
     @override
-    def _is_categorical(self, values):
+    def _is_categorical(self, values: Any) -> bool:
         if isinstance(values, (pandas.Series, pandas.Categorical)):
             return values.dtype == object or isinstance(
                 values.dtype, pandas.CategoricalDtype
@@ -27,7 +33,9 @@ class PandasMaterializer(FormulaMaterializer):
         return super()._is_categorical(values)
 
     @override
-    def _check_for_nulls(self, name, values, na_action, drop_rows):
+    def _check_for_nulls(
+        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
+    ) -> None:
 
         if na_action is NAAction.IGNORE:
             return
@@ -52,7 +60,14 @@ class PandasMaterializer(FormulaMaterializer):
             )  # pragma: no cover; this is currently impossible to reach
 
     @override
-    def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
+    def _encode_constant(
+        self,
+        value: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+    ) -> Any:
         if spec.output == "sparse":
             return spsparse.csc_matrix(
                 numpy.array([value] * self.nrows).reshape(
@@ -63,7 +78,14 @@ class PandasMaterializer(FormulaMaterializer):
         return series
 
     @override
-    def _encode_numerical(self, values, metadata, encoder_state, spec, drop_rows):
+    def _encode_numerical(
+        self,
+        values: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+    ) -> Any:
         if drop_rows:
             values = values.drop(index=values.index[drop_rows])
         if spec.output == "sparse":
@@ -72,8 +94,14 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _encode_categorical(
-        self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False
-    ):
+        self,
+        values: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+        reduced_rank: bool = False,
+    ) -> Any:
         # Even though we could reduce rank here, we do not, so that the same
         # encoding can be cached for both reduced and unreduced rank. The
         # rank will be reduced in the _encode_evaled_factor method.
@@ -92,7 +120,9 @@ class PandasMaterializer(FormulaMaterializer):
         )
 
     @override
-    def _get_columns_for_term(self, factors, spec, scale=1):
+    def _get_columns_for_term(
+        self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1
+    ) -> Dict[str, Any]:
         out = OrderedDict()
 
         names = [
@@ -144,13 +174,17 @@ class PandasMaterializer(FormulaMaterializer):
         return out
 
     @override
-    def _combine_columns(self, cols, spec, drop_rows):
+    def _combine_columns(
+        self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
+    ) -> pandas.DataFrame:
         # If we are outputing a pandas DataFrame, explicitly override index
         # in case transforms/etc have lost track of it.
         if spec.output == "pandas":
-            pandas_index = self.data_context.index
+            pandas_index = cast(pandas.DataFrame, self.data_context).index
             if drop_rows:
-                pandas_index = pandas_index.drop(self.data_context.index[drop_rows])
+                pandas_index = pandas_index.drop(
+                    cast(pandas.DataFrame, self.data_context).index[drop_rows]
+                )
 
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:

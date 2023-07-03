@@ -10,9 +10,9 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
-    Tuple,
     Union,
     TYPE_CHECKING,
+    cast,
 )
 
 from formulaic.materializers.base import EncodedTermStructure
@@ -29,7 +29,7 @@ if TYPE_CHECKING:  # pragma: no cover
 try:
     from functools import cached_property
 except ImportError:  # pragma: no cover
-    from cached_property import cached_property
+    from cached_property import cached_property  # type: ignore
 
 
 @dataclass(frozen=True)
@@ -65,13 +65,17 @@ class ModelSpec:
                 place during factor evaluation.
             encoder_state: The state of any stateful transformations that took
                 place during encoding.
+
+    Class attributes:
+        SENTINEL: Can be used as a default fallback in signatures (e.g. stateful
+            transforms) to aid in typing. Must not be modified.
     """
 
     @classmethod
     def from_spec(
         cls,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
-        **attrs,
+        **attrs: Any,
     ) -> Union[ModelSpec, ModelSpecs]:
         """
         Construct a `ModelSpec` (or `Structured[ModelSpec]`) instance for the
@@ -86,35 +90,37 @@ class ModelSpec:
         """
         from .model_matrix import ModelMatrix
 
-        def prepare_model_spec(obj):
+        def prepare_model_spec(obj: Any) -> ModelSpec:
             if isinstance(obj, ModelMatrix):
                 obj = obj.model_spec
             if isinstance(obj, ModelSpec):
                 return obj.update(**attrs)
             formula = Formula.from_spec(obj)
             if not formula._has_root or formula._has_structure:
-                return formula._map(prepare_model_spec, as_type=ModelSpecs)
+                return cast(
+                    ModelSpec, formula._map(prepare_model_spec, as_type=ModelSpecs)
+                )
             return ModelSpec(formula=formula, **attrs)
 
         if isinstance(spec, Formula) or not isinstance(spec, Structured):
             return prepare_model_spec(spec)
-        return spec._map(prepare_model_spec, as_type=ModelSpecs)
+        return cast(ModelSpecs, spec._map(prepare_model_spec, as_type=ModelSpecs))
 
     # Configuration attributes
     formula: Formula
     materializer: Optional[str] = None
     materializer_params: Optional[Dict[str, Any]] = None
     ensure_full_rank: bool = True
-    na_action: NAAction = "drop"
+    na_action: NAAction = NAAction.DROP
     output: Optional[str] = None
-    cluster_by: ClusterBy = "none"
+    cluster_by: ClusterBy = ClusterBy.NONE
 
     # State attributes
     structure: Optional[List[EncodedTermStructure]] = None
     transform_state: Dict = field(default_factory=dict)
     encoder_state: Dict = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.__dict__["formula"] = Formula.from_spec(self.formula)
 
         if not self.formula._has_root or self.formula._has_structure:
@@ -128,6 +134,7 @@ class ModelSpec:
                 self.materializer
             ).REGISTER_NAME
 
+        # Handle string to enum mapping for values passed in during instantiation
         self.__dict__["na_action"] = NAAction(self.na_action)
         self.__dict__["cluster_by"] = ClusterBy(self.cluster_by)
 
@@ -138,6 +145,12 @@ class ModelSpec:
         """
         The names associated with the columns of the generated model matrix.
         """
+        if self.structure is None:
+            raise RuntimeError(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            )
         return tuple(feature for row in self.structure for feature in row.columns)
 
     @property
@@ -161,7 +174,7 @@ class ModelSpec:
         return OrderedDict([(name, i) for i, name in enumerate(self.column_names)])
 
     @property
-    def feature_indices(self) -> Sequence[str]:
+    def feature_indices(self) -> OrderedDict[str, int]:
         """
         A deprecated reference to `ModelSpec.column_indices`. Will be removed in
         v1.0.0.
@@ -181,7 +194,7 @@ class ModelSpec:
         return self.formula.root
 
     @cached_property
-    def term_indices(self) -> OrderedDict[Term, Tuple[int, ...]]:
+    def term_indices(self) -> OrderedDict[Term, List[int]]:
         """
         An ordered mapping of `Term` instances to the generated column indices.
 
@@ -189,6 +202,12 @@ class ModelSpec:
         up elements of this mapping using the string representation of the
         `Term`.
         """
+        if self.structure is None:
+            raise RuntimeError(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            )
         slices = OrderedDict()
         start = 0
         for row in self.structure:
@@ -214,16 +233,14 @@ class ModelSpec:
 
     # Transforms
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: Any) -> ModelSpec:
         """
         Create a copy of this `ModelSpec` instance with the nominated attributes
         mutated.
         """
         return replace(self, **kwargs)
 
-    def differentiate(
-        self, *vars, use_sympy=False  # pylint: disable=redefined-builtin
-    ):
+    def differentiate(self, *wrt: str, use_sympy: bool = False) -> ModelSpec:
         """
         EXPERIMENTAL: Take the gradient of this model spec. When used a linear
         regression, evaluating a trained model on model matrices generated by
@@ -231,7 +248,7 @@ class ModelSpec:
         form with respect to `vars`.
 
         Args:
-            vars: The variables with respect to which the gradient should be
+            wrt: The variables with respect to which the gradient should be
                 taken.
             use_sympy: Whether to use sympy to perform symbolic differentiation.
 
@@ -240,13 +257,16 @@ class ModelSpec:
             version.
         """
         return self.update(
-            formula=self.formula.differentiate(*vars, use_sympy=use_sympy),
+            formula=self.formula.differentiate(*wrt, use_sympy=use_sympy),
         )
 
     # Utility methods
 
     def get_model_matrix(
-        self, data: Any, context: Optional[Mapping[str, Any]] = None, **attr_overrides
+        self,
+        data: Any,
+        context: Optional[Mapping[str, Any]] = None,
+        **attr_overrides: Any,
     ) -> ModelMatrix:
         """
         Build the model matrix (or matrices) realisation of this model spec for
@@ -307,7 +327,7 @@ class ModelSpec:
                 )
             return term_slices[columns_identifier]
         if columns_identifier in term_slices:
-            return term_slices[columns_identifier]
+            return term_slices[columns_identifier]  # type: ignore # Terms hash equivalent to their string repr
 
         column_indices = self.column_indices
         if columns_identifier in column_indices:
@@ -319,7 +339,7 @@ class ModelSpec:
         )
 
     # Only include dataclass fields when pickling.
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         return {
             k: v for k, v in self.__dict__.items() if k in self.__dataclass_fields__
         }
@@ -342,7 +362,10 @@ class ModelSpecs(Structured[ModelSpec]):
         return item
 
     def get_model_matrix(
-        self, data: Any, context: Optional[Mapping[str, Any]] = None, **attr_overrides
+        self,
+        data: Any,
+        context: Optional[Mapping[str, Any]] = None,
+        **attr_overrides: Any,
     ) -> ModelMatrices:
         """
         This method proxies the `ModelSpec.get_model_matrix(...)` API and allows
@@ -394,23 +417,27 @@ class ModelSpecs(Structured[ModelSpec]):
                 materializer = FormulaMaterializer.for_data(data)
             else:
                 materializer = FormulaMaterializer.for_materializer(materializer)
-            return materializer(
+            return materializer(  # type: ignore
                 data, context=context, **(materializer_params or {})
             ).get_model_matrix(self)
 
-        return self._map(
-            lambda model_spec: model_spec.get_model_matrix(data, context=context),
-            as_type=ModelMatrices,
+        return cast(
+            ModelMatrices,
+            self._map(
+                lambda model_spec: model_spec.get_model_matrix(data, context=context),
+                as_type=ModelMatrices,
+            ),
         )
 
-    def differentiate(
-        self, *vars, use_sympy=False  # pylint: disable=redefined-builtin
-    ) -> ModelSpecs:
+    def differentiate(self, *wrt: str, use_sympy: Any = False) -> ModelSpecs:
         """
         This method proxies the experimental `ModelSpec.differentiate(...)` API.
         See `ModelSpec.differentiate` for more details.
         """
-        return self._map(
-            lambda model_spec: model_spec.differentiate(*vars, use_sympy=use_sympy),
-            as_type=ModelSpecs,
+        return cast(
+            ModelSpecs,
+            self._map(
+                lambda model_spec: model_spec.differentiate(*wrt, use_sympy=use_sympy),
+                as_type=ModelSpecs,
+            ),
         )

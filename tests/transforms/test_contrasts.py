@@ -47,7 +47,7 @@ class TestContrastsTransform:
                 ),
                 kind="categorical",
                 spans_intercept=True,
-                column_names=["a", "b", "c"],
+                column_names=("a", "b", "c"),
                 drop_field="a",
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -70,7 +70,7 @@ class TestContrastsTransform:
                     ),
                     kind="categorical",
                     spans_intercept=True,
-                    column_names=["a", "b", "c"],
+                    column_names=("a", "b", "c"),
                     drop_field="a",
                     format="{name}[T.{field}]",
                     encoded=True,
@@ -94,7 +94,7 @@ class TestContrastsTransform:
                 ),
                 kind="categorical",
                 spans_intercept=False,
-                column_names=["b", "c"],
+                column_names=("b", "c"),
                 drop_field=None,
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -119,7 +119,7 @@ class TestContrastsTransform:
                 ).values,
                 kind="categorical",
                 spans_intercept=True,
-                column_names=["a", "b", "c"],
+                column_names=("a", "b", "c"),
                 drop_field="a",
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -143,7 +143,7 @@ class TestContrastsTransform:
                 ).values,
                 kind="categorical",
                 spans_intercept=False,
-                column_names=["b", "c"],
+                column_names=("b", "c"),
                 drop_field=None,
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -166,7 +166,7 @@ class TestContrastsTransform:
                     ).values,
                     kind="categorical",
                     spans_intercept=True,
-                    column_names=["a", "b", "c"],
+                    column_names=("a", "b", "c"),
                     drop_field="a",
                     format="{name}[T.{field}]",
                     encoded=True,
@@ -198,7 +198,7 @@ class TestContrastsTransform:
                 ),
                 kind="categorical",
                 spans_intercept=True,
-                column_names=["a", "b", "c"],
+                column_names=("a", "b", "c"),
                 drop_field="c",
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -224,7 +224,7 @@ class TestContrastsTransform:
                 ),
                 kind="categorical",
                 spans_intercept=True,
-                column_names=["a", "b", "c"],
+                column_names=("a", "b", "c"),
                 drop_field="a",
                 format="{name}[T.{field}]",
                 encoded=True,
@@ -248,7 +248,7 @@ class TestContrastsTransform:
                 ),
                 kind="categorical",
                 spans_intercept=False,
-                column_names=["ordinal"],
+                column_names=("ordinal",),
                 drop_field=None,
                 format="{name}[{field}]",
                 encoded=True,
@@ -360,7 +360,7 @@ class TestTreatmentContrasts:
         contrasts = contr.treatment()
 
         encoded = contrasts.apply(*category_dummies_sparse)
-        assert encoded.__formulaic_metadata__.column_names == ["b", "c"]
+        assert encoded.__formulaic_metadata__.column_names == ("b", "c")
         assert encoded.__formulaic_metadata__.drop_field is None
         assert numpy.all(
             encoded.toarray()
@@ -373,7 +373,7 @@ class TestTreatmentContrasts:
         )
 
         encoded_spanning = contrasts.apply(*category_dummies_sparse, reduced_rank=False)
-        assert encoded_spanning.__formulaic_metadata__.column_names == ["a", "b", "c"]
+        assert encoded_spanning.__formulaic_metadata__.column_names == ("a", "b", "c")
         assert encoded_spanning.__formulaic_metadata__.drop_field == "a"
         assert numpy.all(
             encoded_spanning.toarray()
@@ -387,7 +387,7 @@ class TestTreatmentContrasts:
         )
 
         encoded_base = contr.treatment("b").apply(*category_dummies_sparse)
-        assert encoded_base.__formulaic_metadata__.column_names == ["a", "c"]
+        assert encoded_base.__formulaic_metadata__.column_names == ("a", "c")
         assert encoded_base.__formulaic_metadata__.drop_field is None
         assert numpy.all(
             encoded_base.toarray()

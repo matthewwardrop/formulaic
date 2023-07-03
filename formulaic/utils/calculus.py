@@ -1,4 +1,4 @@
-from typing import Iterable, Set
+from typing import Iterable, Set, cast
 
 from formulaic.parser.types import Factor, Term
 from formulaic.parser.types.ordered_set import OrderedSet
@@ -6,15 +6,15 @@ from formulaic.parser.types.ordered_set import OrderedSet
 
 def differentiate_term(
     term: Term,
-    vars: Iterable[str],  # pylint: disable=redefined-builtin
+    wrt: Iterable[str],  # pylint: disable=redefined-builtin
     use_sympy: bool = False,
 ) -> Term:
     """
-    Symbolically differentiate a `Term` instance with respect to one or more `vars`.
+    Symbolically differentiate a `Term` instance with respect to one or more `wrt`.
 
     Args:
         term: The `Term` instance to differentiate.
-        vars: The variables by which to differentiate.
+        wrt: The variables by which to differentiate.
         use_sympy: Whether to interpret factor token strings using sympy. If
             `True`, symbolic factors like `log(x)` can be differentiated with
             respect to `x`. If `False`, factor token strings must match the
@@ -31,7 +31,7 @@ def differentiate_term(
     """
     factors = OrderedSet(term.factors)
 
-    for var in vars:
+    for var in wrt:
         affected_factors = set(
             factor
             for factor in factors
@@ -39,8 +39,10 @@ def differentiate_term(
         )
         if not affected_factors:
             return Term({Factor("0", eval_method="literal")})
-        factors = (factors - affected_factors) | (
-            _differentiate_factors(affected_factors, var, use_sympy=use_sympy)
+        factors = cast(
+            OrderedSet,
+            (factors - affected_factors)
+            | (_differentiate_factors(affected_factors, var, use_sympy=use_sympy)),
         )
 
     return Term(factors or {Factor("1", eval_method="literal")})
@@ -94,7 +96,7 @@ def _differentiate_factors(
             expr = sympy.S(
                 "(" + ") * (".join(factor.expr for factor in factors) + ")"
             ).diff(var)
-            eval_method = "python"
+            eval_method = Factor.EvalMethod.PYTHON
         except ImportError as e:  # pragma: no cover
             raise ImportError(
                 "`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`."

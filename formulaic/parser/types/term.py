@@ -1,4 +1,6 @@
-from typing import Iterable, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Any, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .factor import Factor  # pragma: no cover
@@ -22,22 +24,22 @@ class Term:
 
     # Transforms and comparisons
 
-    def __mul__(self, other):
+    def __mul__(self, other: Any) -> Term:
         if isinstance(other, Term):
             return Term([*self.factors, *other.factors])
         return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self._hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Term):
             return self._factor_key == other._factor_key
         if isinstance(other, str):
             return self._factor_key == tuple(sorted(other.split(":")))
         return NotImplemented
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         if isinstance(other, Term):
             if len(self.factors) == len(other.factors):
                 return sorted(self.factors) < sorted(other.factors)
@@ -46,5 +48,5 @@ class Term:
             return False
         return NotImplemented
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ":".join(factor.expr for factor in self.factors)

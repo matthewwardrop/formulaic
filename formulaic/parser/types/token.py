@@ -59,21 +59,21 @@ class Token:
         source_end: Optional[int] = None,
     ):
         self.token = token
-        self.kind = kind
+        self.kind = kind  # type: ignore
         self.source = source
         self.source_start = source_start
         self.source_end = source_end or source_start
 
     @property
     def kind(self) -> Optional[Kind]:
-        return self._kind
+        return self._kind  # type: ignore
 
     @kind.setter
-    def kind(self, kind: Optional[Union[str, Kind]]):
+    def kind(self, kind: Optional[Union[str, Kind]]) -> None:
         self._kind = self.Kind(kind) if kind else kind
 
     def update(
-        self, char: str, source_index: int, kind: Optional[Kind] = None
+        self, char: str, source_index: int, kind: Union[None, str, Kind] = None
     ) -> "Token":
         """
         Add a character to the token string, keeping track of the source
@@ -93,29 +93,29 @@ class Token:
             self.source_start = source_index
         self.source_end = source_index
         if kind is not None:
-            self.kind = kind
+            self.kind = Token.Kind(kind)
         return self
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.token)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return self.token == other
         if isinstance(other, Token):
             return self.token == other.token and self.kind == other.kind
         return NotImplemented
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return self.token.__hash__()
 
-    def __lt__(self, other):
+    def __lt__(self, other: Any) -> bool:
         if isinstance(other, Token):
             return self.token < other.token
         return NotImplemented
 
     @property
-    def source_loc(self) -> Tuple[int, int]:
+    def source_loc(self) -> Tuple[Optional[int], Optional[int]]:
         """
         The indices of the first and last character represented by this token in
         the source string.
@@ -127,6 +127,8 @@ class Token:
         A `Factor` instance corresponding to this token. Note that operator
         tokens cannot be converted to tokens.
         """
+        if self.kind is None:  # pragma: no cover
+            raise RuntimeError("`Token.kind` has not been set.")
         kind_to_eval_method = {
             Token.Kind.NAME: "lookup",
             Token.Kind.PYTHON: "python",
@@ -147,7 +149,7 @@ class Token:
         """
         return OrderedSet((Term([self.to_factor()]),))
 
-    def flatten(self, str_args=False) -> Any:
+    def flatten(self, str_args: bool = False) -> Any:
         """
         Return this token (or if `str_args` is `True`, a string representation
         of this token).
@@ -158,7 +160,7 @@ class Token:
         """
         return str(self) if str_args else self
 
-    def get_source_context(self, colorize: bool = False) -> str:
+    def get_source_context(self, colorize: bool = False) -> Optional[str]:
         """
         Render a string that highlights the location of this token in the source
         string.
@@ -175,12 +177,12 @@ class Token:
             return f"{self.source[:self.source_start]}⧛{RED_BOLD}{self.source[self.source_start:self.source_end+1]}{RESET}⧚{self.source[self.source_end+1:]}"
         return f"{self.source[:self.source_start]}⧛{self.source[self.source_start:self.source_end+1]}⧚{self.source[self.source_end+1:]}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.token
 
     # Additional methods for later mutation
 
-    def copy_with_attrs(self, **attrs) -> Token:
+    def copy_with_attrs(self, **attrs: Any) -> Token:
         """
         Return a copy of this `Token` instance with attributes set from attrs.
 
@@ -194,7 +196,7 @@ class Token:
         return new_token
 
     def split(
-        self, pattern: Union[str, re.Pattern], after=False, before=False
+        self, pattern: Union[str, re.Pattern], after: bool = False, before: bool = False
     ) -> Iterable[Token]:
         """
         Split this instance into multple tokens around all non-overlapping
@@ -215,7 +217,7 @@ class Token:
         last_index = 0
         separators = pattern.finditer(self.token)
 
-        def get_next_token(next_index):
+        def get_next_token(next_index: int) -> Tuple[int, Token]:
             return next_index, self.copy_with_attrs(
                 token=self.token[last_index:next_index]
             )

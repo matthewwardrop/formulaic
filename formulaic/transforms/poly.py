@@ -15,8 +15,8 @@ except ImportError as e:  # pragma: no cover
 
 
 @stateful_transform
-def poly(
-    x: numpy.typing.ArrayLike, degree: int = 1, raw: bool = False, _state=None
+def poly(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
+    x: numpy.typing.ArrayLike, degree: int = 1, raw: bool = False, _state: dict = {}
 ) -> numpy.ndarray:
     """
     Generate a basis for a polynomial vector-space representation of `x`.
@@ -89,17 +89,17 @@ def poly(
     P = numpy.empty((x.shape[0], degree + 1))
     P[:, 0] = 1
 
-    def get_alpha(k):
+    def get_alpha(k: int) -> float:
         if training and k not in alpha:
-            alpha[k] = numpy.sum(x * P[:, k] ** 2) / numpy.sum(P[:, k] ** 2)
+            alpha[k] = numpy.sum(x * P[:, k] ** 2) / numpy.sum(P[:, k] ** 2)  # type: ignore[operator]
         return alpha[k]
 
-    def get_norm(k):
-        if training and k not in norms2:
-            norms2[k] = numpy.sum(P[:, k] ** 2)
-        return norms2[k]
+    def get_norm(k: int) -> float:
+        if training and k not in norms2:  # type: ignore[operator]
+            norms2[k] = numpy.sum(P[:, k] ** 2)  # type: ignore[index]
+        return norms2[k]  # type: ignore[index]
 
-    def get_beta(k):
+    def get_beta(k: int) -> float:
         return get_norm(k) / get_norm(k - 1)
 
     for i in range(1, degree + 1):

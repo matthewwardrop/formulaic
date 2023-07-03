@@ -11,7 +11,7 @@ def model_matrix(
     data: Any,
     *,
     context: Union[int, Mapping[str, Any]] = 0,
-    **spec_overrides,
+    **spec_overrides: Any,
 ) -> Union[ModelMatrix, ModelMatrices]:
     """
     Generate a model matrix directly from a formula or model spec.
@@ -47,8 +47,7 @@ def model_matrix(
         The data transformed in to the model matrix with the requested
         nominated structure.
     """
-    if isinstance(context, int):
-        context = capture_context(context + 1)
+    _context = capture_context(context + 1) if isinstance(context, int) else context
     return ModelSpec.from_spec(spec, **spec_overrides).get_model_matrix(
-        data, context=context
+        data, context=_context
     )

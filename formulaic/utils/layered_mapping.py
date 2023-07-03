@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import itertools
 from collections.abc import MutableMapping
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional
 
 # Cached property was introduced in Python 3.8 (we currently support 3.7)
 try:
     from functools import cached_property
 except ImportError:  # pragma: no cover
-    from cached_property import cached_property
+    from cached_property import cached_property  # type: ignore
 
 
 class LayeredMapping(MutableMapping):
@@ -21,7 +23,7 @@ class LayeredMapping(MutableMapping):
     `.named_layers`.
     """
 
-    def __init__(self, *layers: Tuple[Optional[Mapping]], name: Optional[str] = None):
+    def __init__(self, *layers: Optional[Mapping], name: Optional[str] = None):
         """
         Crepare a `LayeredMapping` instance, populating it with the nominated
         layers.
@@ -31,7 +33,7 @@ class LayeredMapping(MutableMapping):
         self._layers: List[Mapping] = self.__filter_layers(layers)
 
     @staticmethod
-    def __filter_layers(layers: Iterable[Mapping]) -> List[Mapping]:
+    def __filter_layers(layers: Iterable[Optional[Mapping]]) -> List[Mapping]:
         """
         Filter incoming `layers` down to those which are not null.
         """
@@ -43,16 +45,16 @@ class LayeredMapping(MutableMapping):
                 return layer[key]
         raise KeyError(key)
 
-    def __setitem__(self, key: Any, value: Any):
+    def __setitem__(self, key: Any, value: Any) -> None:
         self._mutations[key] = value
 
-    def __delitem__(self, key: Any):
+    def __delitem__(self, key: Any) -> None:
         if key in self._mutations:
             del self._mutations[key]
         else:
             raise KeyError(f"Key '{key}' not found in mutable layer.")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         keys = set()
         for layer in [self._mutations, *self._layers]:
             for key in layer:
@@ -60,16 +62,16 @@ class LayeredMapping(MutableMapping):
                     keys.add(key)
                     yield key
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(set(itertools.chain(self._mutations, *self._layers)))
 
     def with_layers(
         self,
-        *layers: Tuple[Optional[Mapping]],
+        *layers: Optional[Mapping],
         prepend: bool = True,
         inplace: bool = False,
         name: Optional[str] = None,
-    ) -> "LayeredMapping":
+    ) -> LayeredMapping:
         """
         Return a copy of this `LayeredMapping` instance with additional layers
         added.
@@ -103,7 +105,7 @@ class LayeredMapping(MutableMapping):
     # Named layer lookups and caching
 
     @cached_property
-    def named_layers(self):
+    def named_layers(self) -> Dict[str, LayeredMapping]:
         named_layers = {}
         local = {}
         for layer in reversed(self._layers):
@@ -116,7 +118,7 @@ class LayeredMapping(MutableMapping):
             named_layers[self.name] = self
         return named_layers
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> LayeredMapping:
         if attr not in self.named_layers:
             raise AttributeError(f"{repr(attr)} does not correspond to a named layer.")
         return self.named_layers[attr]
