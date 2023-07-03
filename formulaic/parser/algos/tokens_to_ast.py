@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Iterable, Optional
+from typing import Iterable, List, Union
 
 from ..types import ASTNode, Operator, OperatorResolver, Token
 from ..utils import exc_for_token, exc_for_missing_operator
@@ -15,7 +15,7 @@ CONTEXT_CLOSERS = {
 
 def tokens_to_ast(
     tokens: Iterable[Token], operator_resolver: OperatorResolver
-) -> Optional[ASTNode]:
+) -> Union[None, Token, ASTNode]:
     """
     Convert a iterable of `Token` instances into an abstract syntax tree.
 
@@ -41,13 +41,15 @@ def tokens_to_ast(
     Returns:
         The generated abstract syntax tree as a nested `ASTNode` instance.
     """
-    output_queue = []
-    operator_stack = []
+    output_queue: List[Union[Token, ASTNode]] = []
+    operator_stack: List[OrderedOperator] = []
 
-    def stack_operator(operator, token):
+    def stack_operator(operator: Union[Token, Operator], token: Token) -> None:
         operator_stack.append(OrderedOperator(operator, token, len(output_queue)))
 
-    def operate(ordered_operator, output_queue):
+    def operate(
+        ordered_operator: OrderedOperator, output_queue: List[Union[Token, ASTNode]]
+    ) -> List[Union[Token, ASTNode]]:
         operator, token, index = ordered_operator
 
         if operator.fixity is Operator.Fixity.INFIX:
@@ -132,3 +134,5 @@ def tokens_to_ast(
         if len(output_queue) > 1:
             raise exc_for_missing_operator(output_queue[0], output_queue[1])
         return output_queue[0]
+
+    return None

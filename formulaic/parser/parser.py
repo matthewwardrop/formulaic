@@ -3,7 +3,7 @@ import itertools
 import functools
 import re
 from dataclasses import dataclass, field
-from typing import List, Iterable, Set, Tuple, Union
+from typing import List, Iterable, Sequence, Tuple, Union, cast
 
 from .algos.tokenize import tokenize
 from .types import (
@@ -127,10 +127,10 @@ class DefaultOperatorResolver(OperatorResolver):
     """
 
     @property
-    def operators(self):
+    def operators(self) -> List[Operator]:
         def formula_part_expansion(
-            lhs: Set[Term], rhs: Set[Term]
-        ) -> Tuple[Set[Term], Set[Term]]:
+            lhs: OrderedSet[Term], rhs: OrderedSet[Term]
+        ) -> Tuple[OrderedSet[Term], ...]:
             terms = (lhs, rhs)
 
             out = []
@@ -145,17 +145,20 @@ class DefaultOperatorResolver(OperatorResolver):
             parents: OrderedSet[Term], nested: OrderedSet[Term]
         ) -> OrderedSet[Term]:
             common = functools.reduce(lambda x, y: x * y, parents)
-            return parents | OrderedSet(common * term for term in nested)
+            return cast(
+                OrderedSet, parents | OrderedSet(common * term for term in nested)
+            )
 
         def power(arg: OrderedSet[Term], power: OrderedSet[Term]) -> OrderedSet[Term]:
             power_term = next(iter(power))
             if (
                 not len(power_term.factors) == 1
+                or not power_term.factors[0].token
                 or power_term.factors[0].token.kind is not Token.Kind.VALUE
                 or not isinstance(ast.literal_eval(power_term.factors[0].expr), int)
             ):
                 raise exc_for_token(
-                    power_term.factors[0].token,
+                    power_term.factors[0].token or Token(),
                     "The right-hand argument of `**` must be a positive integer.",
                 )
             return OrderedSet(
@@ -273,7 +276,7 @@ class DefaultOperatorResolver(OperatorResolver):
 
     def resolve(
         self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> Iterable[Operator]:
+    ) -> Sequence[Operator]:
         if token.token in self.operator_table:
             return super().resolve(token, max_prefix_arity, context)
 

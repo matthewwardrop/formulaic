@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Optional
+from typing import Any
 
 from formulaic.parser.types import Factor
 
@@ -21,8 +21,8 @@ class EvaluatedFactor:
         values: The evaluated values for the factor.
     """
 
-    factor: Optional[Factor] = None
-    values: Optional[FactorValues[Any]] = None
+    factor: Factor
+    values: FactorValues[Any]
 
     @property
     def expr(self) -> str:
@@ -41,17 +41,17 @@ class EvaluatedFactor:
     def __repr__(self) -> str:
         return repr(self.factor)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, EvaluatedFactor):
             return self.factor == other.factor
         return NotImplemented
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: Any) -> bool:
         if isinstance(other, EvaluatedFactor):
             return self.factor < other.factor
         return NotImplemented
 
-    def replace(self, **changes) -> EvaluatedFactor:
+    def replace(self, **changes: Any) -> EvaluatedFactor:
         """
         Return a copy of this `EvaluatedFactor` instance with the nominated
         attributes mutated.

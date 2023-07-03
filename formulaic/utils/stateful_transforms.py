@@ -3,7 +3,16 @@ import functools
 import inspect
 import keyword
 import re
-from typing import Any, Callable, Mapping, MutableMapping, Optional, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Mapping,
+    MutableMapping,
+    Optional,
+    TYPE_CHECKING,
+    cast,
+)
 
 import astor
 import numpy
@@ -42,7 +51,7 @@ def stateful_transform(func: Callable) -> Callable:
     params = set(inspect.signature(func).parameters.keys())
 
     @functools.wraps(func)
-    def wrapper(
+    def wrapper(  # type: ignore[no-untyped-def]
         data, *args, _metadata=None, _state=None, _spec=None, _context=None, **kwargs
     ):
         from formulaic.model_spec import ModelSpec
@@ -78,7 +87,7 @@ def stateful_transform(func: Callable) -> Callable:
             **kwargs,
         )
 
-    wrapper.__is_stateful_transform__ = True
+    wrapper.__is_stateful_transform__ = True  # type: ignore[attr-defined]
     return wrapper
 
 
@@ -86,7 +95,7 @@ def stateful_eval(
     expr: str,
     env: Optional[Mapping],
     metadata: Optional[Mapping],
-    state: Optional[Mapping],
+    state: Optional[MutableMapping],
     spec: Optional["ModelSpec"],
 ) -> Any:
     """
@@ -130,10 +139,12 @@ def stateful_eval(
     code = ast.parse(expr, mode="eval")
 
     # Extract the nodes of the graph that correspond to stateful transforms
-    stateful_nodes = {}
+    stateful_nodes: Dict[str, ast.Call] = {}
     for node in ast.walk(code):
         if _is_stateful_transform(node, env):
-            stateful_nodes[astor.to_source(node).strip().replace("\n    ", "")] = node
+            stateful_nodes[astor.to_source(node).strip().replace("\n    ", "")] = cast(
+                ast.Call, node
+            )
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
     for name, node in stateful_nodes.items():
@@ -219,7 +230,7 @@ UNQUOTED_BACKTICK_MATCHER = re.compile(
 )
 
 
-def sanitize_variable_names(expr: str, env: Mapping) -> str:
+def sanitize_variable_names(expr: str, env: MutableMapping) -> str:
     """
     Sanitize any variables names in the expression that are not valid Python
     identifiers and are surrounded by backticks (`). This allows use of field

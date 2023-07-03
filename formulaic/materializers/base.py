@@ -10,11 +10,18 @@ from typing import (
     Any,
     Dict,
     Generator,
+    Hashable,
     List,
     Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
     Tuple,
+    Type,
     Union,
     TYPE_CHECKING,
+    cast,
 )
 
 from interface_meta import InterfaceMeta, inherit_docs
@@ -26,7 +33,7 @@ from formulaic.errors import (
     FormulaMaterializerInvalidError,
     FormulaMaterializerNotFoundError,
 )
-from formulaic.materializers.types.enums import ClusterBy
+from formulaic.materializers.types.enums import ClusterBy, NAAction
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
@@ -51,10 +58,10 @@ class FormulaMaterializerMeta(InterfaceMeta):
 
     INTERFACE_RAISE_ON_VIOLATION = True
 
-    REGISTERED_NAMES = {}
-    REGISTERED_INPUTS = defaultdict(list)
+    REGISTERED_NAMES: Dict[str, Type[FormulaMaterializer]] = {}
+    REGISTERED_INPUTS: Dict[str, List[Type[FormulaMaterializer]]] = defaultdict(list)
 
-    def __register_implementation__(cls):
+    def __register_implementation__(cls) -> None:
         if "REGISTER_NAME" in cls.__dict__ and cls.REGISTER_NAME:
             cls.REGISTERED_NAMES[cls.REGISTER_NAME] = cls
 
@@ -66,7 +73,9 @@ class FormulaMaterializerMeta(InterfaceMeta):
                         reverse=True,
                     )
 
-    def for_materializer(cls, materializer):
+    def for_materializer(
+        cls, materializer: Union[str, FormulaMaterializer, Type[FormulaMaterializer]]
+    ) -> Type[FormulaMaterializer]:
         if isinstance(materializer, str):
             if materializer not in cls.REGISTERED_NAMES:
                 raise FormulaMaterializerNotFoundError(materializer)
@@ -81,7 +90,7 @@ class FormulaMaterializerMeta(InterfaceMeta):
             )
         return materializer
 
-    def for_data(cls, data, output=None):
+    def for_data(cls, data: Any, output: Hashable = None) -> Type[FormulaMaterializer]:
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
@@ -97,7 +106,7 @@ class FormulaMaterializerMeta(InterfaceMeta):
             if output in materializer.REGISTER_OUTPUTS:
                 return materializer
 
-        output_types = set(
+        output_types: Set[Hashable] = set(
             *itertools.chain(
                 materializer.REGISTER_OUTPUTS
                 for materializer in cls.REGISTERED_INPUTS[input_type]
@@ -110,15 +119,17 @@ class FormulaMaterializerMeta(InterfaceMeta):
 
 class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
-    REGISTER_NAME = None
-    REGISTER_INPUTS = set()
-    REGISTER_OUTPUTS = set()
-    REGISTER_PRECEDENCE = 100
+    REGISTER_NAME: Optional[str] = None
+    REGISTER_INPUTS: Sequence[str] = ()
+    REGISTER_OUTPUTS: Sequence[Hashable] = ()
+    REGISTER_PRECEDENCE: float = 100
 
     # Public API
 
     @inherit_docs(method="_init")
-    def __init__(self, data, context=None, **params):
+    def __init__(
+        self, data: Any, context: Optional[Mapping[str, Any]] = None, **params: Any
+    ):
         self.data = data
         self.context = context or {}
         self.params = params
@@ -130,25 +141,25 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             LayeredMapping(TRANSFORMS, name="transforms"),
         )
 
-        self.factor_cache = {}
-        self.encoded_cache = {}
+        self.factor_cache: Dict[str, EvaluatedFactor] = {}
+        self.encoded_cache: Dict[Union[str, Tuple[str, bool]], Any] = {}
 
-    def _init(self):
+    def _init(self) -> None:
         pass  # pragma: no cover
 
     @property
-    def data_context(self):
+    def data_context(self) -> Mapping[str, Any]:
         return self.data
 
     @property
-    def nrows(self):
+    def nrows(self) -> int:
         return len(self.data)
 
     def get_model_matrix(
         self,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
-        **spec_overrides,
-    ):
+        **spec_overrides: Any,
+    ) -> Union[ModelMatrix, ModelMatrices]:
         from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
@@ -165,10 +176,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
-        drop_rows = set()
+        drop_rows: Set[int] = set()
         for factor in factors:
             self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
-        drop_rows = sorted(drop_rows)
+        drop_rows: Sequence[int] = sorted(drop_rows)
 
         # Step 2: Update the structured model specs with the information from
         # the shared transform state pool.
@@ -187,24 +198,29 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 3: Build the model matrices using the shared factor cache, and
         # by recursing over the structured model matrices.
-        model_matrices = model_specs._map(
-            lambda model_spec: self._build_model_matrix(
-                model_spec, drop_rows=drop_rows
+        model_matrices = cast(
+            ModelMatrices,
+            model_specs._map(
+                lambda model_spec: self._build_model_matrix(
+                    model_spec, drop_rows=drop_rows
+                ),
+                as_type=ModelMatrices,
             ),
-            as_type=ModelMatrices,
         )
 
         if should_simplify:
-            return model_matrices._simplify()
+            return cast(Union[ModelMatrix, ModelMatrices], model_matrices._simplify())
         return model_matrices
 
-    def _build_model_matrix(self, spec: ModelSpec, drop_rows):
+    def _build_model_matrix(
+        self, spec: ModelSpec, drop_rows: Sequence[int]
+    ) -> ModelMatrix:
 
         # Step 0: Apply any requested column/term clustering
         # This must happen before Step 1 otherwise the greedy rank reduction
         # below would result in a different outcome than if the columns had
         # always been in the generated order.
-        terms = self._cluster_terms(spec.formula, cluster_by=spec.cluster_by)
+        terms = self._cluster_terms(spec.formula.root, cluster_by=spec.cluster_by)
 
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         scoped_terms_for_terms = self._get_scoped_terms(
@@ -243,7 +259,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 3: Populate remaining model spec fields
         if spec.structure:
-            cols = self._enforce_structure(cols, spec, drop_rows)
+            cols = self._enforce_structure(cols, spec, drop_rows)  # type: ignore
         else:
             spec = spec.update(
                 structure=[
@@ -278,8 +294,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         if not isinstance(spec, ModelSpecs):
             spec = ModelSpecs(spec)
 
-        def prepare_model_spec(model_spec: ModelSpec):
-            overrides = {
+        def prepare_model_spec(model_spec: ModelSpec) -> ModelSpec:
+            overrides: Dict[str, Any] = {
                 "materializer": self.REGISTER_NAME,
                 "materializer_params": self.params,
             }
@@ -293,18 +309,20 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
             return model_spec.update(**overrides)
 
-        return spec._map(prepare_model_spec, as_type=ModelSpecs)
+        return cast(ModelSpecs, spec._map(prepare_model_spec, as_type=ModelSpecs))
 
-    def _prepare_factor_evaluation_model_spec(self, model_specs: ModelSpecs):
+    def _prepare_factor_evaluation_model_spec(
+        self, model_specs: ModelSpecs
+    ) -> Tuple[Set[Factor], ModelSpec]:
         from formulaic.model_spec import ModelSpec
 
         output = set()
         na_action = set()
         ensure_full_rank = set()
-        factors = set()
+        factors: Set[Factor] = set()
         transform_state = {}
 
-        def update_pooled_spec(model_spec: ModelSpec):
+        def update_pooled_spec(model_spec: ModelSpec) -> None:
             output.add(model_spec.output)
             na_action.add(model_spec.na_action)
             ensure_full_rank.add(model_spec.ensure_full_rank)
@@ -322,15 +340,20 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 "Provided `ModelSpec` instances are not consistent."
             )  # pragma: no cover; will only occur if users manually construct a structured model spec.
 
-        return factors, ModelSpec(
-            formula=[],
-            ensure_full_rank=next(iter(ensure_full_rank)),
-            na_action=next(iter(na_action)),
-            output=next(iter(output)),
-            transform_state=transform_state,
+        return factors, cast(
+            ModelSpec,
+            ModelSpec.from_spec(
+                [],
+                ensure_full_rank=next(iter(ensure_full_rank)),
+                na_action=next(iter(na_action)),
+                output=next(iter(output)),
+                transform_state=transform_state,
+            ),
         )
 
-    def _cluster_terms(self, terms, cluster_by: ClusterBy = ClusterBy.NONE):
+    def _cluster_terms(
+        self, terms: Sequence[Term], cluster_by: ClusterBy = ClusterBy.NONE
+    ) -> Sequence[Term]:
         if cluster_by is not ClusterBy.NUMERICAL_FACTORS:
             return terms
 
@@ -349,7 +372,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     # Methods related to ensuring out matrices are structurally full-rank
 
-    def _get_scoped_terms(self, terms, ensure_full_rank=True):
+    def _get_scoped_terms(
+        self, terms: Iterable[Term], ensure_full_rank: bool = True
+    ) -> Generator[Tuple[Term, Iterable[ScopedTerm]], None, None]:
         """
         Generate the terms to be used in the model matrix.
 
@@ -368,7 +393,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.
         """
-        spanned = set()
+        spanned: Set[ScopedTerm] = set()
 
         for term in terms:
             evaled_factors = [self.factor_cache[factor.expr] for factor in term.factors]
@@ -378,7 +403,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     self._get_scoped_terms_spanned_by_evaled_factors(evaled_factors)
                     - spanned
                 )
-                scoped_terms = self._simplify_scoped_terms(term_span)
+                scoped_terms: Iterable[ScopedTerm] = self._simplify_scoped_terms(
+                    term_span
+                )
                 spanned.update(term_span)
             else:
                 scoped_terms = [
@@ -400,6 +427,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         ),
                     )
                 ]
+            print(term, scoped_terms)
             yield term, scoped_terms
 
     @classmethod
@@ -418,7 +446,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             The scoped terms for the nominated `evaled_factors`.
         """
         scale = 1
-        factors = []
+        factors: List[Tuple[Union[ScopedFactor, int], ...]] = []
         for factor in evaled_factors:
             if factor.metadata.kind is Factor.Kind.CONSTANT:
                 scale *= factor.values
@@ -434,7 +462,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     @classmethod
     def _simplify_scoped_terms(
         cls, scoped_terms: Iterable[ScopedTerm]
-    ) -> Iterable[ScopedTerm]:
+    ) -> OrderedSet[ScopedTerm]:
         """
         Return the minimal set of ScopedTerm instances that spans the same
         vectorspace, matching as closely as possible the intended order of the
@@ -448,7 +476,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         This is guaranteed to minimially span the vector space, keeping
         everything full-rank by avoiding overlaps.
         """
-        terms = OrderedSet()
+        terms: OrderedSet[ScopedTerm] = OrderedSet()
         for scoped_term in sorted(scoped_terms, key=lambda x: len(x.factors)):
             factors = set(scoped_term.factors)
             combined = False
@@ -463,8 +491,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 factor_new = next(iter(factors_diff))
                 if factor_new.reduced:
                     terms = cls._simplify_scoped_terms(
-                        terms - (existing_term,)
-                        | (
+                        terms - (existing_term,)  # type: ignore
+                        | (  # type: ignore
                             ScopedTerm(
                                 (
                                     ScopedFactor(factor_new.factor, reduced=False)
@@ -479,13 +507,13 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     combined = True
                     break
             if not combined:
-                terms = terms | (scoped_term,)
+                terms = terms | (scoped_term,)  # type: ignore
         return terms
 
     # Methods related to looking-up, evaluating and encoding terms and factors
 
     def _evaluate_factor(
-        self, factor: Factor, spec: ModelSpec, drop_rows: set
+        self, factor: Factor, spec: ModelSpec, drop_rows: Set[int]
     ) -> EvaluatedFactor:
         if factor.expr not in self.factor_cache:
             try:
@@ -549,27 +577,29 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             )
         return self.factor_cache[factor.expr]
 
-    def _lookup(self, name):
+    def _lookup(self, name: str) -> Any:
         return self.layered_context[name]
 
-    def _evaluate(self, expr, metadata, spec):
+    def _evaluate(self, expr: str, metadata: Any, spec: ModelSpec) -> Any:
         return stateful_eval(
             expr, self.layered_context, {expr: metadata}, spec.transform_state, spec
         )
 
-    def _is_categorical(self, values):
+    def _is_categorical(self, values: Any) -> bool:
         if hasattr(values, "__formulaic_metadata__"):
             return values.__formulaic_metadata__.kind is Factor.Kind.CATEGORICAL
         return False
 
-    def _check_for_nulls(self, name, values, na_action, drop_rows):
+    def _check_for_nulls(
+        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
+    ) -> None:
         pass  # pragma: no cover
 
     def _encode_evaled_factor(
         self,
         factor: EvaluatedFactor,
         spec: ModelSpec,
-        drop_rows: set,
+        drop_rows: Sequence[int],
         reduced_rank: bool = False,
     ) -> Dict[str, Any]:
         if not factor.metadata.encoded:
@@ -579,7 +609,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 encoded = self.encoded_cache[(factor.expr, reduced_rank)]
             else:
 
-                def map_dict(f):
+                def map_dict(f: Any) -> Any:
                     """
                     This decorator allows an encoding function to operator on
                     dictionaries (which should be mapped over). This allows
@@ -588,7 +618,13 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     """
 
                     @functools.wraps(f)
-                    def wrapped(values, metadata, state, *args, **kwargs):
+                    def wrapped(
+                        values: Any,
+                        metadata: Any,
+                        state: Dict[str, Any],
+                        *args: Any,
+                        **kwargs: Any,
+                    ) -> Any:
                         if isinstance(values, dict):
                             encoded = {}
                             for k, v in values.items():
@@ -610,11 +646,13 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                     return wrapped
 
-                encoder_state = spec.encoder_state.get(factor.expr, [None, {}])[1]
+                encoder_state: Dict[str, Any] = spec.encoder_state.get(
+                    factor.expr, [None, {}]
+                )[1]
 
                 if factor.metadata.encoder is not None:
                     encoded = as_columns(
-                        factor.metadata.encoder(
+                        factor.metadata.encoder(  # type: ignore
                             factor.values,
                             reduced_rank=reduced_rank,
                             drop_rows=drop_rows,
@@ -625,7 +663,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 else:
                     # If we need to unpack values into columns, we do this here.
                     # Otherwise, we pass through the original values.
-                    factor_values = FactorValues(
+                    factor_values: FactorValues = FactorValues(
                         self._extract_columns_for_encoding(factor),
                         metadata=factor.metadata,
                     )
@@ -663,11 +701,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                 # Only encode once for encodings where we can just drop a field
                 # later on below.
-                if isinstance(encoded, dict) and factor.metadata.drop_field:
-                    cache_key = factor.expr
-                else:
-                    cache_key = (factor.expr, reduced_rank)
-
+                cache_key: Union[str, Tuple[str, bool]] = (
+                    factor.expr
+                    if isinstance(encoded, dict) and factor.metadata.drop_field
+                    else (factor.expr, reduced_rank)
+                )
                 self.encoded_cache[cache_key] = encoded
         else:
             encoded = as_columns(
@@ -683,11 +721,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Encoded factors will now all be dicts
         if (
             isinstance(encoded, dict)
-            and encoded.__formulaic_metadata__.spans_intercept
+            and encoded.__formulaic_metadata__.spans_intercept  # type: ignore
             and reduced_rank
         ):
             encoded = FactorValues(
-                encoded.copy(), metadata=encoded.__formulaic_metadata__
+                encoded.copy(), metadata=encoded.__formulaic_metadata__  # type: ignore
             )
             del encoded[encoded.__formulaic_metadata__.drop_field]
 
@@ -722,24 +760,44 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 continue
             subname = name_format.format(name=name, field=subfield)
             if isinstance(value, dict):
-                flattened.update(self._flatten_encoded_evaled_factor(subname, value))
+                flattened.update(self._flatten_encoded_evaled_factor(subname, value))  # type: ignore
             else:
                 flattened[subname] = value
 
         return flattened
 
     @abstractmethod
-    def _encode_constant(self, value, metadata, encoder_state, spec, drop_rows):
+    def _encode_constant(
+        self,
+        value: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+    ) -> Any:
         pass  # pragma: no cover
 
     @abstractmethod
     def _encode_categorical(
-        self, values, metadata, encoder_state, spec, drop_rows, reduced_rank=False
-    ):
+        self,
+        values: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+        reduced_rank: bool = False,
+    ) -> None:
         pass  # pragma: no cover
 
     @abstractmethod
-    def _encode_numerical(self, values, metadata, encoder_state, spec, drop_rows):
+    def _encode_numerical(
+        self,
+        values: Any,
+        metadata: Any,
+        encoder_state: Dict[str, Any],
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+    ) -> Any:
         pass  # pragma: no cover
 
     # Methods related to ModelMatrix output
@@ -747,21 +805,22 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _enforce_structure(
         self,
         cols: List[Tuple[Term, List[ScopedTerm], Dict[str, Any]]],
-        spec,
-        drop_rows: set,
-    ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]]]:
+        spec: ModelSpec,
+        drop_rows: Sequence[int],
+    ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]], None, None]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
-        assert len(cols) == len(spec.structure)
+        structure = cast(List[EncodedTermStructure], spec.structure)
+        assert len(cols) == len(structure)
         for i, col_spec in enumerate(cols):
             scoped_cols = col_spec[2]
-            target_cols = spec.structure[i][2]
+            target_cols = structure[i][2]
             if len(scoped_cols) > len(target_cols):
                 raise FactorEncodingError(
                     f"Term `{col_spec[0]}` has generated too many columns compared to specification: generated {list(scoped_cols)}, expecting {target_cols}."
                 )
             if len(scoped_cols) < len(target_cols):
                 if len(scoped_cols) == 0:
-                    col = self._encode_constant(0, None, None, spec, drop_rows)
+                    col = self._encode_constant(0, None, {}, spec, drop_rows)
                 elif len(scoped_cols) == 1:
                     col = tuple(scoped_cols.values())[0]
                 else:
@@ -778,7 +837,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 col: scoped_cols[col] for col in target_cols
             }
 
-    def _get_columns_for_term(self, factors, spec, scale=1):
+    def _get_columns_for_term(
+        self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1
+    ) -> Dict[str, Any]:
         """
         Assemble the columns for a model matrix given factors and a scale.
 
@@ -804,5 +865,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return out
 
     @abstractmethod
-    def _combine_columns(self, cols, spec, drop_rows):
+    def _combine_columns(
+        self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
+    ) -> Any:
         pass  # pragma: no cover

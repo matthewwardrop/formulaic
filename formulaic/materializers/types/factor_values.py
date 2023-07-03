@@ -2,12 +2,27 @@ from __future__ import annotations
 import copy
 
 from dataclasses import dataclass, replace
-from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Hashable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    TYPE_CHECKING,
+)
 
 import wrapt
 
 from formulaic.parser.types import Factor
-from formulaic.utils.sentinels import MISSING
+from formulaic.utils.sentinels import MISSING, _MissingType
+
+if TYPE_CHECKING:  # pragma: no cover
+    from formulaic.model_spec import ModelSpec
 
 
 T = TypeVar("T")
@@ -43,9 +58,11 @@ class FactorValuesMetadata:
     drop_field: Optional[str] = None
     format: str = "{name}[{field}]"
     encoded: bool = False
-    encoder: Optional[Callable[[Any, bool, List[int], Dict[str, Any]], Any]] = None
+    encoder: Optional[
+        Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any]
+    ] = None
 
-    def replace(self, **kwargs) -> FactorValuesMetadata:
+    def replace(self, **kwargs: Any) -> FactorValuesMetadata:
         """
         Return a copy of this `FactorValuesMetadata` instance with the nominated
         attributes replaced.
@@ -66,18 +83,20 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         self,
         values: Any,
         *,
-        metadata: FactorValuesMetadata = MISSING,
-        kind: Union[str, Factor.Kind] = MISSING,
-        column_names: Tuple[str] = MISSING,
-        spans_intercept: bool = MISSING,
-        drop_field: Optional[str] = MISSING,
-        format: str = MISSING,  # pylint: disable=redefined-builtin
-        encoded: bool = MISSING,
-        encoder: Optional[
-            Callable[[Any, bool, List[int], Dict[str, Any]], Any]
+        metadata: Union[FactorValuesMetadata, _MissingType] = MISSING,
+        kind: Union[str, Factor.Kind, _MissingType] = MISSING,
+        column_names: Union[Tuple[Hashable, ...], _MissingType] = MISSING,
+        spans_intercept: Union[bool, _MissingType] = MISSING,
+        drop_field: Union[None, Hashable, _MissingType] = MISSING,
+        format: Union[str, _MissingType] = MISSING,  # pylint: disable=redefined-builtin
+        encoded: Union[bool, _MissingType] = MISSING,
+        encoder: Union[
+            None,
+            Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any],
+            _MissingType,
         ] = MISSING,
     ):
-        metadata_constructor = FactorValuesMetadata
+        metadata_constructor: Callable = FactorValuesMetadata
         metadata_kwargs = dict(
             kind=Factor.Kind(kind) if kind is not MISSING else kind,
             column_names=column_names,
@@ -96,7 +115,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             if isinstance(values, FactorValues):
                 values = values.__wrapped__
 
-        if metadata:
+        if metadata and not isinstance(metadata, _MissingType):
             metadata_constructor = metadata.replace
 
         wrapt.ObjectProxy.__init__(self, values)
@@ -111,10 +130,10 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
 
     # Handle copying behaviour
 
-    def __copy__(self):
+    def __copy__(self) -> FactorValues[T]:
         return type(self)(copy.copy(self.__wrapped__), metadata=self._self_metadata)
 
-    def __deepcopy__(self, memo=None):
+    def __deepcopy__(self, memo: Any = None) -> FactorValues[T]:
         return type(self)(
             copy.deepcopy(self.__wrapped__, memo),
             metadata=copy.deepcopy(self._self_metadata),

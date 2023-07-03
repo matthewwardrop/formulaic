@@ -4,7 +4,19 @@ import ast
 import functools
 import itertools
 from numbers import Number
-from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
+from typing_extensions import Literal
 
 import numpy
 
@@ -15,7 +27,6 @@ from formulaic.parser.types import (
     Factor,
     OperatorResolver,
     Operator,
-    Term,
     Token,
 )
 from formulaic.parser.utils import exc_for_token
@@ -49,7 +60,7 @@ class LinearConstraints:
 
     @classmethod
     def from_spec(
-        cls, spec: LinearConstraintSpec, variable_names: Sequence[str] = None
+        cls, spec: LinearConstraintSpec, variable_names: Optional[Sequence[str]] = None
     ) -> LinearConstraints:
         """
         Construct a `LinearConstraints` instance from a specification.
@@ -72,12 +83,16 @@ class LinearConstraints:
         """
         if isinstance(spec, LinearConstraints):
             return spec
-        if isinstance(spec, str):
-            matrix, values = LinearConstraintParser(
-                variable_names=variable_names
-            ).get_matrix(spec)
-            return cls(matrix, values, variable_names)
-        if isinstance(spec, dict):
+        if isinstance(spec, (str, dict)):
+            if variable_names is None:
+                raise ValueError(
+                    "`variable_names` must be provided when parsing constraints from a formula."
+                )
+            if isinstance(spec, str):
+                matrix, values = LinearConstraintParser(
+                    variable_names=variable_names
+                ).get_matrix(spec)
+                return cls(matrix, values, variable_names)
             matrices, constants = [], []
             for key, constant in spec.items():
                 matrix, values = LinearConstraintParser(
@@ -91,11 +106,14 @@ class LinearConstraints:
                 variable_names=variable_names,
             )
         if isinstance(spec, tuple) and len(spec) == 2:
-            return cls(*spec, variable_names=variable_names)
-        return cls(spec, 0, variable_names=variable_names)
+            return cls(*spec, variable_names=variable_names)  # type: ignore
+        return cls(spec, 0, variable_names=variable_names)  # type: ignore
 
     def __init__(
-        self, constraint_matrix, constraint_values, variable_names: Sequence[str] = None
+        self,
+        constraint_matrix: "numpy.typing.ArrayLike",
+        constraint_values: "numpy.typing.ArrayLike",
+        variable_names: Optional[Sequence[str]] = None,
     ):
         """
         Attributes:
@@ -139,7 +157,7 @@ class LinearConstraints:
             f"x{i}" for i in range(len(constraint_matrix))
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         out = []
         for i in range(self.constraint_matrix.shape[0]):
             out_one = []
@@ -150,21 +168,21 @@ class LinearConstraints:
             out.append(" + ".join(out_one) + f" = {self.constraint_values[i]}")
         return "\n".join(out)
 
-    def show(self):
+    def show(self) -> None:
         """
         Pretty-print the constraints.
         """
         print(str(self))
 
     @property
-    def n_constraints(self):
+    def n_constraints(self) -> int:
         """
         The number of constraints represented by this `LinearConstraints`
         instance.
         """
         return self.constraint_matrix.shape[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<LinearConstraints: {self.n_constraints} constraints>"
 
 
@@ -201,7 +219,7 @@ class LinearConstraintParser:
         """
         return [ConstraintToken.for_token(token) for token in tokenize(formula)]
 
-    def get_ast(self, formula: str) -> ASTNode:
+    def get_ast(self, formula: str) -> Optional[ASTNode]:
         """
         Assemble an abstract syntax tree for the nominated `formula` string.
 
@@ -209,14 +227,19 @@ class LinearConstraintParser:
             formula: The constraint formula for which an AST should be
                 generated.
         """
-        return tokens_to_ast(
-            self.get_tokens(formula),
-            operator_resolver=self.operator_resolver,
+        return cast(
+            Optional[ASTNode],
+            tokens_to_ast(
+                self.get_tokens(formula),
+                operator_resolver=self.operator_resolver,
+            ),
         )
 
-    def get_terms(self, formula: str) -> Union[Sequence[Term], Tuple[Sequence[Term]]]:
+    def get_terms(
+        self, formula: str
+    ) -> Union[None, List[ScaledFactor], Tuple[List[ScaledFactor], ...]]:
         """
-        Build the `Term` instances for a constraint formula string.
+        Build the `ScaledFactor` instances for a constraint formula string.
 
         Args:
             formula: The constraint formula for which to build terms.
@@ -224,7 +247,10 @@ class LinearConstraintParser:
         ast = self.get_ast(formula)
         if not ast:
             return None
-        return ast.to_terms()
+        return cast(
+            Union[None, List[ScaledFactor], Tuple[List[ScaledFactor], ...]],
+            ast.to_terms(),
+        )
 
     def get_matrix(
         self, formula: str
@@ -256,12 +282,15 @@ class LinearConstraintParser:
 
         for constraint in constraints:
             vector = numpy.zeros(len(self.variable_names))
-            constant = 0
-            for term in constraint:
-                if term.factor == 1:
-                    constant += term.scale
+            constant: float = 0
+            for scaled_factor in constraint:
+                if scaled_factor.factor == 1:
+                    constant += scaled_factor.scale
                 else:
-                    vector += term.scale * col_vectors[term.factor.expr]
+                    vector += (
+                        scaled_factor.scale
+                        * col_vectors[cast(Factor, scaled_factor.factor).expr]
+                    )
             matrix.append(vector)
             constants.append(-constant)
 
@@ -275,7 +304,7 @@ class ConstraintToken(Token):
     """
 
     @classmethod
-    def for_token(cls, token: Token):
+    def for_token(cls, token: Token) -> ConstraintToken:
         return cls(
             **{
                 attr: getattr(token, attr)
@@ -283,10 +312,10 @@ class ConstraintToken(Token):
             }
         )
 
-    def to_terms(self):
+    def to_terms(self) -> Set[ScaledFactor]:  # type: ignore[override]
         if self.kind is Token.Kind.VALUE:
             factor = ast.literal_eval(self.token)
-            if isinstance(factor, Number):
+            if isinstance(factor, (int, float)):
                 return {ScaledFactor(1, scale=factor)}
             raise exc_for_token(
                 self,
@@ -306,32 +335,32 @@ class ScaledFactor:
         scale: The scalar value to be used as the coefficient of this factor.
     """
 
-    def __init__(self, factor: Factor, *, scale: Number = 1):
+    def __init__(self, factor: Union[Factor, Literal[1]], *, scale: float = 1):
         self.factor = factor
         self.scale = scale
 
-    def __add__(self, other):
+    def __add__(self, other: Any) -> ScaledFactor:
         if isinstance(other, ScaledFactor):
             return ScaledFactor(self.factor, scale=self.scale + other.scale)
         return NotImplemented  # pragma: no cover
 
-    def __sub__(self, other):
+    def __sub__(self, other: Any) -> ScaledFactor:
         if isinstance(other, ScaledFactor):
             return ScaledFactor(self.factor, scale=self.scale - other.scale)
         return NotImplemented  # pragma: no cover
 
-    def __neg__(self):
+    def __neg__(self) -> ScaledFactor:
         return ScaledFactor(self.factor, scale=-self.scale)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.factor)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, ScaledFactor):
             return self.factor == other.factor
         return NotImplemented  # pragma: no cover
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.scale}*{self.factor}"  # pragma: no cover
 
 
@@ -346,15 +375,17 @@ class ConstraintOperatorResolver(
     """
 
     @property
-    def operators(self):
-        def join_tuples(lhs, rhs):
+    def operators(self) -> List[Operator]:
+        def join_tuples(lhs: Any, rhs: Any) -> Tuple:
             if not isinstance(lhs, tuple):
                 lhs = (lhs,)
             if not isinstance(rhs, tuple):
                 rhs = (rhs,)
             return lhs + rhs
 
-        def add_terms(terms_left, terms_right):
+        def add_terms(
+            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
+        ) -> Set[ScaledFactor]:
 
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
@@ -369,7 +400,9 @@ class ConstraintOperatorResolver(
 
             return added
 
-        def sub_terms(terms_left, terms_right):
+        def sub_terms(
+            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
+        ) -> Set[ScaledFactor]:
 
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
@@ -386,21 +419,23 @@ class ConstraintOperatorResolver(
 
             return added
 
-        def negate_terms(terms):
+        def negate_terms(terms: Set[ScaledFactor]) -> Set[ScaledFactor]:
             return {-term for term in terms}
 
-        def mul_terms(terms_left, terms_right):
+        def mul_terms(
+            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
+        ) -> Set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
-            terms = set()
+            terms: Set[ScaledFactor] = set()
 
             for term_left, term_right in itertools.product(terms_left, terms_right):
                 terms = add_terms(terms, {mul_term(term_left, term_right)})
 
             return terms
 
-        def mul_term(term_left, term_right):
+        def mul_term(term_left: ScaledFactor, term_right: ScaledFactor) -> ScaledFactor:
             if term_left.factor == 1:
                 return ScaledFactor(
                     term_right.factor, scale=term_left.scale * term_right.scale
@@ -413,18 +448,20 @@ class ConstraintOperatorResolver(
                 "Only one non-scalar factor can be involved in a linear constraint multiplication."
             )
 
-        def div_terms(terms_left, terms_right):
+        def div_terms(
+            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
+        ) -> Set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
-            terms = set()
+            terms: Set[ScaledFactor] = set()
 
             for term_left, term_right in itertools.product(terms_left, terms_right):
                 terms = add_terms(terms, {div_term(term_left, term_right)})
 
             return terms
 
-        def div_term(term_left, term_right):
+        def div_term(term_left: ScaledFactor, term_right: ScaledFactor) -> ScaledFactor:
             if term_right.factor == 1:
                 return ScaledFactor(
                     term_left.factor, scale=term_left.scale / term_right.scale
@@ -440,7 +477,9 @@ class ConstraintOperatorResolver(
                 precedence=-200,
                 associativity=None,
                 to_terms=join_tuples,
-                accepts_context=lambda context: all(c.symbol == "," for c in context),
+                accepts_context=lambda context: all(
+                    c.symbol == "," for c in context if isinstance(c, Operator)
+                ),
                 structural=True,
             ),
             Operator(

@@ -1,4 +1,4 @@
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator, List
 
 from .sentinels import MISSING
 
@@ -10,12 +10,12 @@ class peekable_iter:
 
     def __init__(self, it: Iterable):
         self._it = iter(it)
-        self._next = []
+        self._next: List[Any] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         if self._next:
             return self._next.pop(0)
         return next(self._it)

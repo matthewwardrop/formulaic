@@ -9,6 +9,7 @@ from typing import (
     Generator,
     Generic,
     Iterable,
+    List,
     Optional,
     Tuple,
     Type,
@@ -88,8 +89,8 @@ class Structured(Generic[ItemType]):
         self,
         root: Any = _MISSING,
         *,
-        _metadata: Dict[str, Any] = None,
-        **structure,
+        _metadata: Optional[Dict[str, Any]] = None,
+        **structure: Any,
     ):
         if any(key.startswith("_") for key in structure):
             raise ValueError(
@@ -104,7 +105,7 @@ class Structured(Generic[ItemType]):
             key: self.__prepare_item(key, item) for key, item in structure.items()
         }
 
-    def __prepare_item(self, key: str, item: Any) -> ItemType:
+    def __prepare_item(self, key: str, item: Any) -> Any:
         if isinstance(item, Structured):
             return item._map(
                 lambda x: self._prepare_item(key, x), as_type=self.__class__
@@ -167,7 +168,7 @@ class Structured(Generic[ItemType]):
             but with all objects transformed under `func`.
         """
 
-        def apply_func(obj):
+        def apply_func(obj: Any) -> Any:
             if recurse and isinstance(obj, Structured):
                 return obj._map(func, recurse=True, as_type=as_type)
             if isinstance(obj, tuple):
@@ -178,7 +179,7 @@ class Structured(Generic[ItemType]):
             **{key: apply_func(obj) for key, obj in self._structure.items()}
         )
 
-    def _flatten(self) -> Generator[ItemType]:
+    def _flatten(self) -> Generator[ItemType, None, None]:
         """
         Flatten any nested structure into a sequence of all values stored in
         this `Structured` instance. The order is currently that yielded by a
@@ -211,7 +212,7 @@ class Structured(Generic[ItemType]):
             The dictionary representation of this `Structured` instance.
         """
 
-        def do_recursion(obj):
+        def do_recursion(obj: Any) -> Any:
             if recurse and isinstance(obj, Structured):
                 return obj._to_dict()
             if isinstance(obj, tuple):
@@ -262,7 +263,7 @@ class Structured(Generic[ItemType]):
 
         if recurse:
 
-            def simplify_obj(obj):
+            def simplify_obj(obj: Any) -> Any:
                 if isinstance(obj, Structured):
                     return obj._simplify(recurse=True)
                 if isinstance(obj, tuple):
@@ -281,7 +282,7 @@ class Structured(Generic[ItemType]):
             **structure,
         )
 
-    def _update(self, root=_MISSING, **structure) -> Structured[ItemType]:
+    def _update(self, root: Any = _MISSING, **structure: Any) -> Structured[ItemType]:
         """
         Return a new `Structured` instance that is identical to this one but
         the root and/or keys replaced with the nominated values.
@@ -307,9 +308,9 @@ class Structured(Generic[ItemType]):
     def _merge(
         cls,
         *objects: Any,
-        merger: Callable[..., ItemType] = None,
+        merger: Optional[Callable] = None,
         _context: Tuple[str, ...] = (),
-    ) -> Union[ItemType, Structured[ItemType]]:
+    ) -> Union[ItemType, Structured[ItemType], Tuple]:
         """
         Merge arbitrarily many objects into a single `Structured` instance.
 
@@ -358,7 +359,7 @@ class Structured(Generic[ItemType]):
         # already excluded by above). If so, just call `merger` on them
         # directly.
         if all(not isinstance(obj, Structured) for obj in objects):
-            return merger(*objects)
+            return merger(*objects)  # type: ignore
 
         # Otherwise,iterate over objects, upcasting to `Structured` as necessary
         # and recursively merge them by merging their structure dictionaries.
@@ -383,7 +384,7 @@ class Structured(Generic[ItemType]):
         )
 
     @staticmethod
-    def __merger_default(*items):
+    def __merger_default(*items: Any) -> Union[list, set, dict]:
         if all(isinstance(item, list) for item in items):
             return list(itertools.chain(*items))
         if all(isinstance(item, set) for item in items):
@@ -396,10 +397,10 @@ class Structured(Generic[ItemType]):
             "Please specify `merger` explicitly."
         )
 
-    def __dir__(self):
-        return super().__dir__() + list(self._structure)
+    def __dir__(self) -> List[str]:
+        return [*super().__dir__(), *self._structure]
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         if attr.startswith("_"):
             raise AttributeError(attr)
         if attr in self._structure:
@@ -408,13 +409,13 @@ class Structured(Generic[ItemType]):
             f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(attr)}`."
         )
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr: str, value: Any) -> None:
         if attr.startswith("_"):
             super().__setattr__(attr, value)
             return
         self._structure[attr] = self.__prepare_item(attr, value)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any) -> Any:
         if self._has_root and not self._has_keys:
             return self.root[key]
         if key in (None, "root") and self._has_root:
@@ -425,7 +426,7 @@ class Structured(Generic[ItemType]):
             f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(key)}`."
         )
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> Any:
         if not isinstance(key, str) or not key.isidentifier():
             raise KeyError(key)
         if key.startswith("_"):
@@ -435,8 +436,10 @@ class Structured(Generic[ItemType]):
             )
         self._structure[key] = self.__prepare_item(key, value)
 
-    def __iter__(self) -> Generator[Union[ItemType, Structured[ItemType]]]:
-        if self._has_root and not self._has_keys and isinstance(self.root, Iterable):
+    def __iter__(self) -> Generator[Any, None, None]:
+        if (
+            self._has_root and not self._has_keys and isinstance(self.root, Iterable)
+        ):  # pylint: disable=isinstance-second-argument-not-valid-type
             yield from self.root
         else:
             if self._has_root:  # Always yield root first.
@@ -445,21 +448,21 @@ class Structured(Generic[ItemType]):
                 if key != "root":
                     yield value
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Structured):
             return self._structure == other._structure
         return False
 
-    def __contains__(self, key):
+    def __contains__(self, key: Any) -> bool:
         return key in self._structure
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
 
-    def __str__(self):
-        return self.__repr__(to_str=str)
+    def __str__(self) -> str:
+        return self.__repr__(to_str=str)  # type: ignore
 
-    def __repr__(self, to_str=repr):
+    def __repr__(self, to_str: Callable[..., str] = repr) -> str:
         import textwrap
 
         d = self._to_dict(recurse=False)

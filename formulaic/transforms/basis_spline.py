@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Iterable, Optional, Union
+from typing import Dict, Iterable, Optional, Union, cast
 
 import numpy
 import pandas
@@ -23,7 +23,7 @@ class SplineExtrapolation(Enum):
 
 
 @stateful_transform
-def basis_spline(
+def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
     x: Union[pandas.Series, numpy.ndarray],
     df: Optional[int] = None,
     knots: Optional[Iterable[float]] = None,
@@ -32,7 +32,7 @@ def basis_spline(
     lower_bound: Optional[float] = None,
     upper_bound: Optional[float] = None,
     extrapolation: Union[str, SplineExtrapolation] = "raise",
-    _state: dict = None,
+    _state: dict = {},
 ) -> FactorValues[dict]:
     """
     Evaluates the B-Spline basis vectors for given inputs `x`.
@@ -139,8 +139,8 @@ def basis_spline(
             knots = list(
                 numpy.quantile(x, numpy.linspace(0, 1, nknots + 2))[1:-1].ravel()
             )
-        knots.insert(0, lower_bound)
-        knots.append(upper_bound)
+        knots.insert(0, cast(float, lower_bound))
+        knots.append(cast(float, upper_bound))
         knots = list(numpy.pad(knots, degree, mode="edge"))
         _state["knots"] = knots
     knots = _state["knots"]
@@ -149,7 +149,7 @@ def basis_spline(
     # The following code is equivalent to [B(i, j=degree) for in range(len(knots)-d-1)], with B(i, j) as defined below.
     # B = lambda i, j: ((x >= knots[i]) & (x < knots[i+1])).astype(float) if j == 0 else alpha(i, j, x) * B(i, j-1, x) + (1 - alpha(i+1, j, x)) * B(i+1, j-1, x)
     # We don't directly use this recurrence relation so that we can memoise the B(i, j).
-    cache = defaultdict(dict)
+    cache: Dict[int, Dict[int, float]] = defaultdict(dict)
     alpha = (
         lambda i, j: (x - knots[i]) / (knots[i + j] - knots[i])
         if knots[i + j] != knots[i]

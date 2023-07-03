@@ -1,5 +1,5 @@
 from functools import singledispatch, wraps
-from typing import Any
+from typing import Any, Callable, Dict, Hashable, Union
 
 import numpy
 import pandas
@@ -8,9 +8,9 @@ import scipy.sparse
 from formulaic.materializers.types.factor_values import FactorValues
 
 
-def propagate_metadata(func):
+def propagate_metadata(func: Callable) -> Callable:
     @wraps(func)
-    def wrapper(data, *args, **kwargs):
+    def wrapper(data, *args, **kwargs):  # type: ignore[no-untyped-def]
         evaluated = func(data, *args, **kwargs)
         if isinstance(data, FactorValues):
             return FactorValues(
@@ -34,13 +34,13 @@ def as_columns(data: Any) -> Any:
 
 @as_columns.register
 @propagate_metadata
-def _(data: pandas.DataFrame):
+def _(data: pandas.DataFrame) -> Dict[Hashable, pandas.Series]:
     return dict(data.items())
 
 
 @as_columns.register
 @propagate_metadata
-def _(data: numpy.ndarray):
+def _(data: numpy.ndarray) -> Union[numpy.ndarray, Dict[Hashable, numpy.ndarray]]:
     if len(data.shape) == 1:
         return data
     if len(data.shape) > 2:
@@ -60,7 +60,7 @@ def _(data: numpy.ndarray):
 
 @as_columns.register
 @propagate_metadata
-def _(data: scipy.sparse.csc_matrix):
+def _(data: scipy.sparse.csc_matrix) -> Dict[Hashable, scipy.sparse.spmatrix]:
     if (
         hasattr(data, "__formulaic_metadata__")
         and data.__formulaic_metadata__.column_names

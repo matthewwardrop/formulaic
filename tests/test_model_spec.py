@@ -185,3 +185,26 @@ class TestModelSpec:
         # Validate invalid type checking
         with pytest.raises(TypeError, match="`ModelSpecs` instances expect all.*"):
             ModelSpecs("invalid type!")
+
+    def test_empty(self):
+        model_spec = ModelSpec([])
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.column_names
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.term_indices

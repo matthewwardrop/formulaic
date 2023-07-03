@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Generic, Optional, TypeVar, TYPE_CHECKING
+from typing import Any, Generic, Optional, TypeVar, TYPE_CHECKING, cast
 
 import wrapt
 
@@ -41,15 +41,15 @@ class ModelMatrix(Generic[MatrixType], wrapt.ObjectProxy):
         """
         return self._self_model_spec
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__wrapped__.__repr__()  # pragma: no cover
 
     # Handle copying behaviour
 
-    def __copy__(self):
+    def __copy__(self) -> ModelMatrix[MatrixType]:
         return type(self)(copy.copy(self.__wrapped__), spec=self._self_model_spec)
 
-    def __deepcopy__(self, memo=None):
+    def __deepcopy__(self, memo: Any = None) -> ModelMatrix[MatrixType]:
         return type(self)(
             copy.deepcopy(self.__wrapped__, memo),
             spec=copy.deepcopy(self._self_model_spec),
@@ -85,6 +85,7 @@ class ModelMatrices(Structured[ModelMatrix]):
         """
         from .model_spec import ModelSpecs
 
-        return self._map(
-            lambda model_matrix: model_matrix.model_spec, as_type=ModelSpecs
+        return cast(
+            ModelSpecs,
+            self._map(lambda model_matrix: model_matrix.model_spec, as_type=ModelSpecs),
         )
