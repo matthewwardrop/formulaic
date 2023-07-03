@@ -396,7 +396,14 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         spanned: Set[ScopedTerm] = set()
 
         for term in terms:
-            evaled_factors = [self.factor_cache[factor.expr] for factor in term.factors]
+            evaled_factors = [
+                self.factor_cache[factor.expr]
+                for factor in term.factors
+                if self.factor_cache[factor.expr].values.__wrapped__ is not None
+            ]
+            if not evaled_factors:
+                yield term, []
+                continue
 
             if ensure_full_rank:
                 term_span = (

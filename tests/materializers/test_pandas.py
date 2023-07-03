@@ -14,6 +14,7 @@ from formulaic.errors import (
     FormulaMaterializationError,
 )
 from formulaic.materializers import PandasMaterializer
+from formulaic.materializers.base import EncodedTermStructure
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor, Structured
@@ -429,3 +430,11 @@ class TestPandasMaterializer:
 
         assert mm.model_spec.column_names == ("Intercept", "a")
         assert mm.shape == (3, 2)
+
+    def test_none_values(self, data):
+        mm = PandasMaterializer(data, output="pandas").get_model_matrix("{None} -1")
+        assert mm.shape == (3, 0)
+        assert len(mm.model_spec.structure) == 1
+        assert mm.model_spec.structure == [
+            EncodedTermStructure(term="None", scoped_terms=[], columns=[]),
+        ]
