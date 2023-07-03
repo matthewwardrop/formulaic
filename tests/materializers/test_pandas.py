@@ -419,8 +419,6 @@ class TestPandasMaterializer:
         assert mm.model_spec.column_names == ("Intercept", "a")
         assert mm.shape == (3, 2)
 
-        print(mm)
-
         mm = PandasMaterializer(data, output="sparse").get_model_matrix("a + D")
 
         assert mm.model_spec.column_names == ("Intercept", "a")

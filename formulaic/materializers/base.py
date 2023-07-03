@@ -434,7 +434,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         ),
                     )
                 ]
-            print(term, scoped_terms)
             yield term, scoped_terms
 
     @classmethod
