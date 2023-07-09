@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Set
+
+from formulaic.utils.variables import Variable
+
 from .scoped_factor import ScopedFactor
 
 
@@ -58,3 +61,13 @@ class ScopedTerm:
                 for factor in factors
             ]
         return ScopedTerm(factors, scale=self.scale)
+
+    @property
+    def variables(self) -> Set[Variable]:
+        return Variable.union(
+            *(
+                factor.factor.variables
+                for factor in self.factors
+                if factor.factor.variables is not None
+            )
+        )

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Optional, Set
 
 from formulaic.parser.types import Factor
+from formulaic.utils.variables import Variable
 
 from .factor_values import FactorValues, FactorValuesMetadata
 
@@ -19,10 +20,14 @@ class EvaluatedFactor:
     Attributes:
         factor: The `Factor` instance for which values have been computed.
         values: The evaluated values for the factor.
+        variables: A mapping from the names of variables used during evaluation
+            to the name of the `LayeredMapping` instance from which it was
+            drawn.
     """
 
     factor: Factor
     values: FactorValues[Any]
+    variables: Optional[Set[Variable]] = None
 
     @property
     def expr(self) -> str:

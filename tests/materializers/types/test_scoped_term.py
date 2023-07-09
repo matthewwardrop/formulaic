@@ -1,13 +1,23 @@
 import pytest
 
-from formulaic.materializers.types import ScopedFactor, ScopedTerm
+from formulaic.materializers.types import ScopedFactor, ScopedTerm, EvaluatedFactor
 from formulaic.parser.types import Factor
+from formulaic.utils.variables import Variable
 
 
 class TestScopedTerm:
     @pytest.fixture
     def scoped_term(self):
-        return ScopedTerm([ScopedFactor(Factor("a")), ScopedFactor(Factor("b"))])
+        return ScopedTerm(
+            [
+                ScopedFactor(
+                    EvaluatedFactor(Factor("a"), values=[1], variables={Variable("a")})
+                ),
+                ScopedFactor(
+                    EvaluatedFactor(Factor("b"), values=[1], variables={Variable("b")})
+                ),
+            ]
+        )
 
     @pytest.fixture
     def scoped_term_empty(self):
@@ -31,3 +41,6 @@ class TestScopedTerm:
         assert copied is not scoped_term
         assert copied.factors == scoped_term.factors
         assert copied.scale == scoped_term.scale
+
+    def test_variables(self, scoped_term):
+        assert scoped_term.variables == {"a", "b"}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field, replace
 from typing import (
     Any,
@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Union,
     TYPE_CHECKING,
     cast,
@@ -18,6 +19,7 @@ from typing import (
 from formulaic.materializers.base import EncodedTermStructure
 from formulaic.parser.types import Structured, Term
 from formulaic.utils.constraints import LinearConstraintSpec, LinearConstraints
+from formulaic.utils.variables import Variable
 
 from .formula import Formula, FormulaSpec
 from .materializers import FormulaMaterializer, NAAction, ClusterBy
@@ -230,6 +232,73 @@ class ModelSpec:
         return OrderedDict(
             {k: slice(v[0], v[-1] + 1) for k, v in self.term_indices.items()}
         )
+
+    @cached_property
+    def term_variables(self) -> Dict[Term, Set[Variable]]:
+        """
+        An ordered mapping of `Term` instances to the set of `Variable`
+        instances corresponding to the variables used in the evaluation of that
+        term. `Variable` instances are enriched strings, with the additional
+        attributes `.roles` and `.source`.
+        """
+        if self.structure is None:
+            raise RuntimeError(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            )
+        term_variables = OrderedDict()
+        start = 0
+        for row in self.structure:
+            end = start + len(row[2])
+            term_variables[row[0]] = Variable.union(
+                *(term.variables for term in row[1]),
+            )
+            start = end
+        return term_variables
+
+    @cached_property
+    def variable_terms(self) -> Dict[Variable, Set[Term]]:
+        """
+        A mapping from `Variable` instances to the terms which used it. This is
+        the reverse mapping of `.term_variables`.
+        """
+        variable_terms: Dict[Variable, Set[Term]] = defaultdict(set)
+        for term, variables in self.term_variables.items():
+            for variable in variables:
+                variable_terms[variable].add(term)
+        return dict(variable_terms)
+
+    @cached_property
+    def variable_indices(self) -> Dict[Variable, List[int]]:
+        """
+        A mapping from `Variable` instances to the indices in the model matrix
+        where they were used.
+        """
+        return {
+            variable: sorted(
+                {index for term in terms for index in self.term_indices[term]}
+            )
+            for variable, terms in self.variable_terms.items()
+        }
+
+    @cached_property
+    def variables(self) -> Set[Variable]:
+        return Variable.union(
+            *(variables for variables in self.term_variables.values())
+        )
+
+    @cached_property
+    def variables_by_source(self) -> Dict[Optional[str], Set[Variable]]:
+        """
+        A mapping of source name to the set of variables drawn from that source.
+        Formulaic, by default, has three top-level sources of variables:
+        'data', 'transforms', and 'context'.
+        """
+        variables_by_source: Dict[Optional[str], Set[Variable]] = defaultdict(set)
+        for variable in self.variables:
+            variables_by_source[variable.source].add(variable)
+        return dict(variables_by_source)
 
     # Transforms
 

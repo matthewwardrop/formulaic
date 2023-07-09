@@ -1,4 +1,5 @@
 from __future__ import annotations
+import ast
 
 import functools
 import inspect
@@ -42,6 +43,7 @@ from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
+from formulaic.utils.variables import Variable, get_expression_variables
 
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
@@ -524,14 +526,18 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         if factor.expr not in self.factor_cache:
             try:
                 if factor.eval_method.value == "lookup":
-                    value = self._lookup(factor.expr)
+                    value, variables = self._lookup(factor.expr)
                 elif factor.eval_method.value == "python":
-                    value = self._evaluate(factor.expr, factor.metadata, spec)
+                    value, variables = self._evaluate(
+                        factor.expr, factor.metadata, spec
+                    )
                 elif factor.eval_method.value == "literal":
                     value = FactorValues(
-                        self._evaluate(factor.expr, factor.metadata, spec),
+                        ast.literal_eval(factor.expr),
+                        # self._evaluate(factor.expr, factor.metadata, spec),
                         kind=Factor.Kind.CONSTANT,
                     )
+                    variables = None
                 else:  # pragma: no cover; future proofing against new eval methods
                     raise FactorEvaluationError(
                         f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
@@ -579,16 +585,26 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 )
             self._check_for_nulls(factor.expr, value, spec.na_action, drop_rows)
             self.factor_cache[factor.expr] = EvaluatedFactor(
-                factor=factor, values=value
+                factor=factor, values=value, variables=variables
             )
         return self.factor_cache[factor.expr]
 
-    def _lookup(self, name: str) -> Any:
-        return self.layered_context[name]
+    def _lookup(self, name: str) -> Tuple[Any, Set[Variable]]:
+        values, layer = self.layered_context.get_with_layer_name(name)
+        return values, {Variable(name, roles=("value",), source=layer)}
 
-    def _evaluate(self, expr: str, metadata: Any, spec: ModelSpec) -> Any:
-        return stateful_eval(
-            expr, self.layered_context, {expr: metadata}, spec.transform_state, spec
+    def _evaluate(
+        self, expr: str, metadata: Any, spec: ModelSpec
+    ) -> Tuple[Any, Set[Variable]]:
+        return (
+            stateful_eval(
+                expr,
+                self.layered_context,
+                {expr: metadata},
+                spec.transform_state,
+                spec,
+            ),
+            get_expression_variables(expr, self.layered_context),
         )
 
     def _is_categorical(self, values: Any) -> bool:
