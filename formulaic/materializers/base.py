@@ -6,7 +6,7 @@ import inspect
 import itertools
 import operator
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import defaultdict, namedtuple
 from typing import (
     Any,
     Dict,
@@ -233,7 +233,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Step 2: Generate the columns which will be collated into the full matrix
         cols = []
         for term, scoped_terms in scoped_terms_for_terms:
-            scoped_cols = OrderedDict()
+            scoped_cols = {}
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
                     scoped_cols[
@@ -876,7 +876,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         Returns:
             dict
         """
-        out = OrderedDict()
+        out = {}
         for reverse_product in itertools.product(
             *(factor.items() for factor in reversed(factors))
         ):

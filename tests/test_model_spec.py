@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from pyexpat import model
 import re
 
@@ -71,25 +70,21 @@ class TestModelSpec:
         assert (
             model_spec.column_indices
             == model_spec.feature_indices
-            == OrderedDict(
-                [
-                    ("Intercept", 0),
-                    ("a", 1),
-                    ("A[T.b]", 2),
-                    ("A[T.c]", 3),
-                    ("A[T.b]:a", 4),
-                    ("A[T.c]:a", 5),
-                ]
-            )
+            == {
+                "Intercept": 0,
+                "a": 1,
+                "A[T.b]": 2,
+                "A[T.c]": 3,
+                "A[T.b]:a": 4,
+                "A[T.c]:a": 5,
+            }
         )
-        assert model_spec.term_slices == OrderedDict(
-            [
-                ("1", slice(0, 1)),
-                ("a", slice(1, 2)),
-                ("A", slice(2, 4)),
-                ("A:a", slice(4, 6)),
-            ]
-        )
+        assert model_spec.term_slices == {
+            "1": slice(0, 1),
+            "a": slice(1, 2),
+            "A": slice(2, 4),
+            "A:a": slice(4, 6),
+        }
         assert model_spec.terms == ["1", "a", "A", "A:a"]
         assert model_spec.term_variables == {
             "1": set(),

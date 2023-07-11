@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import (
     Any,
@@ -168,15 +168,15 @@ class ModelSpec:
         return self.column_names
 
     @cached_property
-    def column_indices(self) -> OrderedDict[str, int]:
+    def column_indices(self) -> Dict[str, int]:
         """
         An ordered mapping from column names to the column index in generated
         model matrices.
         """
-        return OrderedDict([(name, i) for i, name in enumerate(self.column_names)])
+        return {name: i for i, name in enumerate(self.column_names)}
 
     @property
-    def feature_indices(self) -> OrderedDict[str, int]:
+    def feature_indices(self) -> Dict[str, int]:
         """
         A deprecated reference to `ModelSpec.column_indices`. Will be removed in
         v1.0.0.
@@ -196,7 +196,7 @@ class ModelSpec:
         return self.formula.root
 
     @cached_property
-    def term_indices(self) -> OrderedDict[Term, List[int]]:
+    def term_indices(self) -> Dict[Term, List[int]]:
         """
         An ordered mapping of `Term` instances to the generated column indices.
 
@@ -210,7 +210,7 @@ class ModelSpec:
                 "likely be resolved by using the `ModelSpec` instance attached "
                 "to the model matrix generated when calling `.get_model_matrix()`."
             )
-        slices = OrderedDict()
+        slices = {}
         start = 0
         for row in self.structure:
             end = start + len(row[2])
@@ -219,7 +219,7 @@ class ModelSpec:
         return slices
 
     @cached_property
-    def term_slices(self) -> OrderedDict[Term, slice]:
+    def term_slices(self) -> Dict[Term, slice]:
         """
         An ordered mapping of `Term` instances to a slice that when used on
         the columns of the model matrix will subsample the model matrix down to
@@ -229,9 +229,7 @@ class ModelSpec:
         up elements of this mapping using the string representation of the
         `Term`.
         """
-        return OrderedDict(
-            {k: slice(v[0], v[-1] + 1) for k, v in self.term_indices.items()}
-        )
+        return {k: slice(v[0], v[-1] + 1) for k, v in self.term_indices.items()}
 
     @cached_property
     def term_variables(self) -> Dict[Term, Set[Variable]]:
@@ -247,7 +245,7 @@ class ModelSpec:
                 "likely be resolved by using the `ModelSpec` instance attached "
                 "to the model matrix generated when calling `.get_model_matrix()`."
             )
-        term_variables = OrderedDict()
+        term_variables = {}
         start = 0
         for row in self.structure:
             end = start + len(row[2])

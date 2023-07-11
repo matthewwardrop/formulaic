@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import itertools
-from collections import OrderedDict
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast, TYPE_CHECKING
 
 import numpy
@@ -123,7 +122,7 @@ class PandasMaterializer(FormulaMaterializer):
     def _get_columns_for_term(
         self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1
     ) -> Dict[str, Any]:
-        out = OrderedDict()
+        out = {}
 
         names = [
             ":".join(reversed(product))
