@@ -3,6 +3,24 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.4 (10 July 2023)
+
+This is a minor release with several new features and cleanups.
+
+**New features and enhancements:**
+
+* Added support for keeping track of the source of variables being used to
+  evaluate a formula. Refer to the `ModelSpec` documentation for more details.
+
+**Bugfixes and cleanups:**
+
+* All functions and methods now have type signatures that are statically checked
+  during unit testing.
+* Removed `OrderedDict` usage, since Python guarantees the orderedness of
+  dictionaries in Python 3.7+.
+* Suppress terms/factors in model matrices for which the factors evaluate to
+  `None`.
+
 ## 0.6.3 (26 June 2023)
 
 This is a minor release with a bugfix.
