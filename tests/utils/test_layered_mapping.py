@@ -64,3 +64,10 @@ def test_named_layered_mappings():
         match=re.escape("'missing' does not correspond to a named layer."),
     ):
         layers.missing
+
+    full_layers = LayeredMapping(data_layer, context_layer, name="toplevel")
+    full_layers["local"] = True
+    assert full_layers.get_with_layer_name("local") == (True, "toplevel")
+    assert full_layers.get_with_layer_name("data") == (1, "toplevel:data")
+    assert full_layers.get_with_layer_name("missing") == (None, None)
+    assert full_layers.get_layer_name_for_key("data") == "toplevel:data"

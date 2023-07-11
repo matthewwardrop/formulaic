@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import MutableMapping
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 
 # Cached property was introduced in Python 3.8 (we currently support 3.7)
 try:
@@ -19,7 +19,7 @@ class LayeredMapping(MutableMapping):
     stored in an additional layer local only to the `LayeredMapping` instance,
     and the layers passed in are never mutated.
 
-    Nest named layers can be extracted via attribute lookups, or via
+    Nested named layers can be extracted via attribute lookups, or via
     `.named_layers`.
     """
 
@@ -106,6 +106,11 @@ class LayeredMapping(MutableMapping):
 
     @cached_property
     def named_layers(self) -> Dict[str, LayeredMapping]:
+        """
+        A mapping from string names to named `LayeredMapping` instances. If no
+        children mappings are named, this will be an empty dictionary. If more
+        than one layer shares the same name, only the first will be included.
+        """
         named_layers = {}
         local = {}
         for layer in reversed(self._layers):
@@ -117,6 +122,44 @@ class LayeredMapping(MutableMapping):
         if self.name:
             named_layers[self.name] = self
         return named_layers
+
+    def get_with_layer_name(
+        self, key: Any, default: Any = None, *, _path: Tuple[str, ...] = ()
+    ) -> Tuple[Any, Optional[str]]:
+        """
+        Return the value for the nominated `key` (or `default` if `key` is not
+        in this mapping); and the name of the layer from which the value is
+        sourced. If the layer is unnamed, the name of the closest parent is
+        used, or `None`.
+
+        Args:
+            key: The name of the key for which a value should be extracted.
+            default: The default value to use if `key` is not found in this
+                mapping.
+            _path: The current path through layers when resolving things
+                recursively. This is typically only used internally.
+        """
+        name = ":".join([*_path, self.name]) if self.name else (":".join(_path) or None)
+        if key in self._mutations:
+            return self._mutations[key], name
+        for layer in self._layers:
+            if key in layer:
+                if isinstance(layer, LayeredMapping):
+                    return layer.get_with_layer_name(
+                        key, _path=(*_path, self.name) if self.name else _path
+                    )
+                return layer[key], name
+        return default, None
+
+    def get_layer_name_for_key(self, key: str) -> Optional[str]:
+        """
+        Return the name of the layer from which `key` would be extracted.
+
+        Args:
+            key: The name of the key for which the name of the layer hosting the
+                value should be extracted.
+        """
+        return self.get_with_layer_name(key)[1]
 
     def __getattr__(self, attr: str) -> LayeredMapping:
         if attr not in self.named_layers:

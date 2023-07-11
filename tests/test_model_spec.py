@@ -91,6 +91,19 @@ class TestModelSpec:
             ]
         )
         assert model_spec.terms == ["1", "a", "A", "A:a"]
+        assert model_spec.term_variables == {
+            "1": set(),
+            "a": {"a"},
+            "A": {"A"},
+            "A:a": {"a", "A"},
+        }
+        assert model_spec.variable_terms == {"a": {"a", "A:a"}, "A": {"A", "A:a"}}
+        assert model_spec.variable_indices == {
+            "a": [1, 4, 5],
+            "A": [2, 3, 4, 5],
+        }
+        assert model_spec.variables == {"a", "A"}
+        assert model_spec.variables_by_source == {"data": {"a", "A"}}
 
     @pytest.mark.filterwarnings(
         r"ignore:`ModelSpec\.feature_names` is deprecated.*:DeprecationWarning"
@@ -208,3 +221,13 @@ class TestModelSpec:
             ),
         ):
             model_spec.term_indices
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.term_variables

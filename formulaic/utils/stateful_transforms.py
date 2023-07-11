@@ -173,7 +173,7 @@ def stateful_eval(
         )
 
     # Compile mutated AST
-    code = compile(ast.fix_missing_locations(code), "", "eval")
+    compiled = compile(ast.fix_missing_locations(code), "", "eval")
 
     assert "__FORMULAIC_CONTEXT__" not in env
     assert "__FORMULAIC_METADATA__" not in env
@@ -182,7 +182,7 @@ def stateful_eval(
 
     # Evaluate and return
     return eval(
-        code,
+        compiled,
         {},
         LayeredMapping(
             {
