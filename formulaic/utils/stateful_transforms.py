@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
+    Set,
     TYPE_CHECKING,
     cast,
 )
@@ -19,6 +20,7 @@ import numpy
 
 from .iterators import peekable_iter
 from .layered_mapping import LayeredMapping
+from .variables import get_expression_variables, Variable
 
 if TYPE_CHECKING:
     from formulaic.model_spec import ModelSpec  # pragma: no cover
@@ -97,6 +99,7 @@ def stateful_eval(
     metadata: Optional[Mapping],
     state: Optional[MutableMapping],
     spec: Optional["ModelSpec"],
+    variables: Optional[Set[Variable]] = None,
 ) -> Any:
     """
     Evaluate an expression in a nominated environment and with a nominated state.
@@ -116,6 +119,8 @@ def stateful_eval(
             stateful transforms).
         spec: The current `ModelSpec` instance being evaluated (passed through
             to stateful transforms).
+        variables: A (optional) set of variables to update with the variables
+            used in this stateful evaluation.
 
     Returns:
         The result of the evaluation.
@@ -133,10 +138,14 @@ def stateful_eval(
 
     # Ensure that variable names in code are valid for Python's interpreter
     # If not, create new variable in mutable env layer, and update code.
-    expr = sanitize_variable_names(expr, env)
+    aliases: Dict[str, str] = {}
+    expr = sanitize_variable_names(expr, env, aliases)
 
     # Parse Python code
     code = ast.parse(expr, mode="eval")
+
+    if variables is not None:
+        variables.update(get_expression_variables(code, env, aliases))
 
     # Extract the nodes of the graph that correspond to stateful transforms
     stateful_nodes: Dict[str, ast.Call] = {}
@@ -230,7 +239,9 @@ UNQUOTED_BACKTICK_MATCHER = re.compile(
 )
 
 
-def sanitize_variable_names(expr: str, env: MutableMapping) -> str:
+def sanitize_variable_names(
+    expr: str, env: MutableMapping, aliases: MutableMapping
+) -> str:
     """
     Sanitize any variables names in the expression that are not valid Python
     identifiers and are surrounded by backticks (`). This allows use of field
@@ -246,6 +257,8 @@ def sanitize_variable_names(expr: str, env: MutableMapping) -> str:
         expr: The expression to sanitize.
         env: The environment to keep updated with any name substitutions. This
             environment mapping will be mutated in place during this evaluation.
+        aliases: A dictionary/map to update with any variable mappings. Mapping
+            is from the sanitized variable back to the original variable.
 
     Returns:
         The sanitized expression.
@@ -266,6 +279,7 @@ def sanitize_variable_names(expr: str, env: MutableMapping) -> str:
             else:
                 next(expr_parts)
                 new_name = sanitize_variable_name(variable_name, env)
+                aliases[new_name] = variable_name
                 sanitized_expr.append(f" {new_name} ")
         else:
             sanitized_expr.append(expr_part)

@@ -43,7 +43,7 @@ from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.stateful_transforms import stateful_eval
-from formulaic.utils.variables import Variable, get_expression_variables
+from formulaic.utils.variables import Variable
 
 from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 
@@ -596,6 +596,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _evaluate(
         self, expr: str, metadata: Any, spec: ModelSpec
     ) -> Tuple[Any, Set[Variable]]:
+        variables: Set[Variable] = set()
         return (
             stateful_eval(
                 expr,
@@ -603,8 +604,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 {expr: metadata},
                 spec.transform_state,
                 spec,
+                variables=variables,
             ),
-            get_expression_variables(expr, self.layered_context),
+            variables,
         )
 
     def _is_categorical(self, values: Any) -> bool:
