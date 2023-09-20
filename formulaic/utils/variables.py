@@ -46,11 +46,21 @@ class Variable(str):
 
 
 def get_expression_variables(
-    expr: Union[str, ast.AST], context: Mapping
+    expr: Union[str, ast.AST], context: Mapping, aliases: Optional[Mapping] = None
 ) -> Set[Variable]:
+    """
+    Extract the variables that are used in the nominated Python expression.
+
+    Args:
+        expr: The string or AST representing the python expression.
+        context: The context from which variable values will be looked up.
+        aliases: A mapping from variable name in the expression to the alias to
+            assign to the variable (primarily useful when reverting a variable
+            renaming performed during sanitization).
+    """
     if isinstance(expr, str):
         expr = ast.parse(expr, mode="eval")
-    variables = _get_ast_node_variables(expr)
+    variables = _get_ast_node_variables(expr, aliases or {})
 
     if isinstance(context, LayeredMapping):
         out = set()
@@ -61,20 +71,23 @@ def get_expression_variables(
     return set(variables)
 
 
-def _get_ast_node_variables(node: ast.AST) -> List[Variable]:
+def _get_ast_node_variables(node: ast.AST, aliases: Mapping) -> List[Variable]:
     variables: List[Variable] = []
 
     todo = deque([node])
     while todo:
         node = todo.popleft()
+        if not isinstance(node, (ast.Call, ast.Attribute, ast.Name)):
+            todo.extend(ast.iter_child_nodes(node))
+            continue
+        name = _get_ast_node_name(node)
+        name = aliases.get(name, name)
         if isinstance(node, ast.Call):
-            variables.append(Variable(_get_ast_node_name(node), roles=["callable"]))
+            variables.append(Variable(name, roles=["callable"]))
             todo.extend(node.args)
             todo.extend(node.keywords)
-        elif isinstance(node, (ast.Attribute, ast.Name)):
-            variables.append(Variable(_get_ast_node_name(node), roles=["value"]))
         else:
-            todo.extend(ast.iter_child_nodes(node))
+            variables.append(Variable(name, roles=["value"]))
 
     return variables
 

@@ -436,3 +436,12 @@ class TestPandasMaterializer:
         assert mm.model_spec.structure == [
             EncodedTermStructure(term="None", scoped_terms=[], columns=[]),
         ]
+
+    def test_quoted_python_args(self):
+        data = pandas.DataFrame({"exotic!~  -name": [1, 2, 3]})
+        mm = PandasMaterializer(data, output="pandas").get_model_matrix(
+            "np.power(`exotic!~  -name`, 2)"
+        )
+        assert mm.shape == (3, 2)
+        assert len(mm.model_spec.structure) == 2
+        assert numpy.all(mm.values == numpy.array([[1, 1], [1, 4], [1, 9]]))
