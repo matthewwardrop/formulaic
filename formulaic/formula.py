@@ -177,7 +177,7 @@ class Formula(Structured[List[Term]]):
         # Order terms appropriately
         orderer = None
         if self._ordering is OrderingMethod.DEGREE:
-            orderer = lambda terms: sorted(terms, key=lambda term: len(term.factors))
+            orderer = lambda terms: sorted(terms, key=lambda term: term.degree)
         elif self._ordering is OrderingMethod.SORT:
             orderer = lambda terms: sorted(
                 [Term(factors=sorted(term.factors)) for term in terms]

@@ -31,10 +31,10 @@ class TestFormula:
     def test_constructor(self):
         assert [str(t) for t in Formula(["a", "b", "c"])] == ["a", "b", "c"]
         assert [str(t) for t in Formula(["a", "c", "b", "1"])] == [
+            "1",
             "a",
             "c",
             "b",
-            "1",
         ]
 
         f = Formula((["a", "b"], ["c", "d"]))

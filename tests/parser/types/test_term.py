@@ -42,3 +42,9 @@ class TestTerm:
 
     def test_repr(self, term1):
         assert repr(term1) == "c:b"
+
+    def test_degree(self, term1, term3):
+        assert term1.degree == 2
+        assert term3.degree == 3
+        assert Term([Factor("1", eval_method="literal")]).degree == 0
+        assert Term([Factor("1", eval_method="literal"), Factor("x")]).degree == 1
