@@ -153,3 +153,60 @@ class TestPoly:
         assert numpy.allclose(
             poly(data, 3, raw=True), numpy.array([data, data**2, data**3]).T
         )
+
+    def test_nulls(self, data):
+        state = {}
+        data = numpy.concatenate([[numpy.nan, numpy.nan, numpy.nan], data])
+        data[:3] = numpy.nan
+        V = poly(data, degree=3, _state=state)
+
+        assert V.shape[1] == 3
+
+        # Comparison data copied from R output of:
+        # > data = seq(from=0, to=1, by=0.05)
+        # > poly(data, 3)
+        r_reference = numpy.array(
+            [
+                [numpy.nan, numpy.nan, numpy.nan],
+                [numpy.nan, numpy.nan, numpy.nan],
+                [numpy.nan, numpy.nan, numpy.nan],
+                [-3.603750e-01, 0.42285541, -4.332979e-01],
+                [-3.243375e-01, 0.29599879, -1.733191e-01],
+                [-2.883000e-01, 0.18249549, 1.824412e-02],
+                [-2.522625e-01, 0.08234553, 1.489937e-01],
+                [-2.162250e-01, -0.00445111, 2.265312e-01],
+                [-1.801875e-01, -0.07789442, 2.584584e-01],
+                [-1.441500e-01, -0.13798440, 2.523770e-01],
+                [-1.081125e-01, -0.18472105, 2.158888e-01],
+                [-7.207500e-02, -0.21810437, 1.565954e-01],
+                [-3.603750e-02, -0.23813436, 8.209854e-02],
+                [-3.000725e-17, -0.24481103, -4.395626e-17],
+                [3.603750e-02, -0.23813436, -8.209854e-02],
+                [7.207500e-02, -0.21810437, -1.565954e-01],
+                [1.081125e-01, -0.18472105, -2.158888e-01],
+                [1.441500e-01, -0.13798440, -2.523770e-01],
+                [1.801875e-01, -0.07789442, -2.584584e-01],
+                [2.162250e-01, -0.00445111, -2.265312e-01],
+                [2.522625e-01, 0.08234553, -1.489937e-01],
+                [2.883000e-01, 0.18249549, -1.824412e-02],
+                [3.243375e-01, 0.29599879, 1.733191e-01],
+                [3.603750e-01, 0.42285541, 4.332979e-01],
+            ]
+        )
+
+        assert numpy.allclose(
+            V,
+            r_reference,
+            equal_nan=True,
+        )
+
+        assert state["alpha"] == pytest.approx({0: 0.5, 1: 0.5, 2: 0.5})
+        assert state["norms2"] == pytest.approx(
+            {0: 21.0, 1: 1.925, 2: 0.14020416666666669, 3: 0.009734175}
+        )
+
+        assert numpy.allclose(
+            poly(data, degree=3, _state=state),
+            r_reference,
+            equal_nan=True,
+        )

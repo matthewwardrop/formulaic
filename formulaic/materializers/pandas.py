@@ -9,6 +9,7 @@ import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
 from formulaic.utils.cast import as_columns
+from formulaic.utils.null_handling import find_nulls, drop_rows as drop_nulls
 
 from .base import FormulaMaterializer
 from .types import NAAction
@@ -39,24 +40,24 @@ class PandasMaterializer(FormulaMaterializer):
         if na_action is NAAction.IGNORE:
             return
 
-        if isinstance(
-            values, dict
-        ):  # pragma: no cover; no formulaic transforms return dictionaries any more
-            for key, vs in values.items():
-                self._check_for_nulls(f"{name}[{key}]", vs, na_action, drop_rows)
+        try:
+            null_indices = find_nulls(values)
 
-        elif na_action is NAAction.RAISE:
-            if isinstance(values, pandas.Series) and values.isnull().values.any():
-                raise ValueError(f"`{name}` contains null values after evaluation.")
+            if na_action is NAAction.RAISE:
+                if null_indices:
+                    raise ValueError(f"`{name}` contains null values after evaluation.")
 
-        elif na_action is NAAction.DROP:
-            if isinstance(values, pandas.Series):
-                drop_rows.update(numpy.flatnonzero(values.isnull().values))
+            elif na_action is NAAction.DROP:
+                drop_rows.update(null_indices)
 
-        else:
+            else:
+                raise ValueError(
+                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
+                )  # pragma: no cover; this is currently impossible to reach
+        except ValueError as e:
             raise ValueError(
-                f"Do not know how to interpret `na_action` = {repr(na_action)}."
-            )  # pragma: no cover; this is currently impossible to reach
+                f"Error encountered while checking for nulls in `{name}`: {e}"
+            ) from e
 
     @override
     def _encode_constant(
@@ -67,13 +68,10 @@ class PandasMaterializer(FormulaMaterializer):
         spec: ModelSpec,
         drop_rows: Sequence[int],
     ) -> Any:
+        nrows = self.nrows - len(drop_rows)
         if spec.output == "sparse":
-            return spsparse.csc_matrix(
-                numpy.array([value] * self.nrows).reshape(
-                    (self.nrows - len(drop_rows), 1)
-                )
-            )
-        series = value * numpy.ones(self.nrows - len(drop_rows))
+            return spsparse.csc_matrix(numpy.array([value] * nrows).reshape((nrows, 1)))
+        series = value * numpy.ones(nrows)
         return series
 
     @override
@@ -86,9 +84,11 @@ class PandasMaterializer(FormulaMaterializer):
         drop_rows: Sequence[int],
     ) -> Any:
         if drop_rows:
-            values = values.drop(index=values.index[drop_rows])
+            values = drop_nulls(values, indices=drop_rows)
         if spec.output == "sparse":
-            return spsparse.csc_matrix(numpy.array(values).reshape((self.nrows, 1)))
+            return spsparse.csc_matrix(
+                numpy.array(values).reshape((values.shape[0], 1))
+            )
         return values
 
     @override
@@ -107,7 +107,7 @@ class PandasMaterializer(FormulaMaterializer):
         from formulaic.transforms import encode_contrasts
 
         if drop_rows:
-            values = values.drop(index=values.index[drop_rows])
+            values = drop_nulls(values, indices=drop_rows)
         return as_columns(
             encode_contrasts(
                 values,

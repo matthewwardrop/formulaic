@@ -160,11 +160,21 @@ class TestPandasMaterializer:
             )
 
     @pytest.mark.parametrize("formula,tests", PANDAS_TESTS.items())
-    def test_na_handling(self, data_with_nulls, formula, tests):
-        mm = PandasMaterializer(data_with_nulls).get_model_matrix(formula)
-        assert isinstance(mm, pandas.DataFrame)
+    @pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+    def test_na_handling(self, data_with_nulls, formula, tests, output):
+        mm = PandasMaterializer(data_with_nulls).get_model_matrix(
+            formula, output=output
+        )
+        if output == "pandas":
+            assert isinstance(mm, pandas.DataFrame)
+            assert list(mm.columns) == tests[2]
+        elif output == "numpy":
+            assert isinstance(mm, numpy.ndarray)
+
+        else:
+            assert isinstance(mm, spsparse.csc_matrix)
         assert mm.shape == (tests[3], len(tests[2]))
-        assert list(mm.columns) == tests[2]
+        assert list(mm.model_spec.column_names) == tests[2]
 
         if formula == "A:B":
             return
