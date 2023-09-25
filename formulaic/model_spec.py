@@ -229,7 +229,10 @@ class ModelSpec:
         up elements of this mapping using the string representation of the
         `Term`.
         """
-        return {k: slice(v[0], v[-1] + 1) for k, v in self.term_indices.items()}
+        return {
+            k: slice(v[0], v[-1] + 1) if v else slice(0, 0)
+            for k, v in self.term_indices.items()
+        }
 
     @cached_property
     def term_variables(self) -> Dict[Term, Set[Variable]]:

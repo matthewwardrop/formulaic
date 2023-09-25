@@ -226,3 +226,19 @@ class TestModelSpec:
             ),
         ):
             model_spec.term_variables
+
+    def test_unrepresented_term(self):
+        model_spec = (
+            Formula("A")
+            .get_model_matrix(pandas.DataFrame({"A": ["a", "a", "a"]}))
+            .model_spec
+        )
+
+        assert model_spec.term_indices == {
+            "1": [0],
+            "A": [],
+        }
+        assert model_spec.term_slices == {
+            "1": slice(0, 1),
+            "A": slice(0, 0),
+        }
