@@ -3,6 +3,19 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.5 (25 September 2023)
+
+This is a minor release with several important bugfixes.
+
+**Bugfixes and cleanups:**
+
+* Fixed intercept terms sorting after other features (by not counting literal
+  factors toward the degree of a term).
+* Fixed a regression in 0.6.4 around quoted field names in Python evaluations.
+* Fixed detection and dropping of null rows in sparse datasets.
+* Fixed `poly()` transforms operating on datasets that include null values.
+* Arguments can now be passed when running the unit tests using `hatch run tests`.
+
 ## 0.6.4 (10 July 2023)
 
 This is a minor release with several new features and cleanups.
