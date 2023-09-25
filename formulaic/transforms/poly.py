@@ -62,7 +62,7 @@ def poly(  # pylint: disable=dangerous-default-value  # always replaced by state
         regression.
 
         `nan` values in `x` will be ignored and progagated through to generated
-        polynomials.
+        polynomials in the corresponding row indices.
 
         The signature of this transform is intentionally chosen to be compatible
         with R.
@@ -71,7 +71,15 @@ def poly(  # pylint: disable=dangerous-default-value  # always replaced by state
     if raw:
         return numpy.stack([numpy.power(x, k) for k in range(1, degree + 1)], axis=1)
 
-    x = numpy.array(x)
+    x = numpy.array(x, dtype=numpy.float64)
+
+    # Prepare output matrix (needed because we resize x below if there are nulls)
+    out = numpy.empty((x.shape[0], degree))
+    out.fill(numpy.nan)
+
+    # Filter to non-null indices (we will invert this later)
+    nonnull_indices = numpy.flatnonzero(~numpy.isnan(x))
+    x = x[nonnull_indices]
 
     # Check if we already have generated the alpha and beta coefficients.
     # If not, we enter "training" mode.
@@ -114,7 +122,8 @@ def poly(  # pylint: disable=dangerous-default-value  # always replaced by state
         _state["alpha"] = alpha
         _state["norms2"] = norms2
 
+    # Populate output matrix with evaluated polynomials
+    out[nonnull_indices, :] = P[:, 1:]
+
     # Return basis dropping the first (constant) column
-    return FactorValues(
-        P[:, 1:], column_names=tuple(str(i) for i in range(1, degree + 1))
-    )
+    return FactorValues(out, column_names=tuple(str(i) for i in range(1, degree + 1)))
