@@ -3,6 +3,15 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 0.6.6 (4 October 2023)
+
+This is minor release with one important bugfix.
+
+**Bugfixes and cleanups:**
+
+* Fixes a regression introduced by 0.6.4 whereby missing variables will be
+  silently dropped from the formula., rather than raising an exception.
+
 ## 0.6.5 (25 September 2023)
 
 This is a minor release with several important bugfixes.
