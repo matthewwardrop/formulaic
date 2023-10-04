@@ -50,7 +50,6 @@ from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic import FormulaSpec, ModelSpec, ModelSpecs
 
-
 EncodedTermStructure = namedtuple(
     "EncodedTermStructure", ("term", "scoped_terms", "columns")
 )
@@ -590,7 +589,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return self.factor_cache[factor.expr]
 
     def _lookup(self, name: str) -> Tuple[Any, Set[Variable]]:
-        values, layer = self.layered_context.get_with_layer_name(name)
+        sentinel = object()
+        values, layer = self.layered_context.get_with_layer_name(name, default=sentinel)
+        if values is sentinel:
+            raise NameError(
+                f"`{name}` is not present in the dataset or evaluation context."
+            )
         return values, {Variable(name, roles=("value",), source=layer)}
 
     def _evaluate(

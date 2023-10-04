@@ -455,3 +455,20 @@ class TestPandasMaterializer:
         assert mm.shape == (3, 2)
         assert len(mm.model_spec.structure) == 2
         assert numpy.all(mm.values == numpy.array([[1, 1], [1, 4], [1, 9]]))
+
+    def test_lookup_nonexistent_variable(self):
+        data = pandas.DataFrame({})
+        with pytest.raises(
+            FactorEvaluationError,
+            match=re.escape(
+                "Unable to evaluate factor `a`. [NameError: `a` is not present in the dataset or evaluation context.]"
+            ),
+        ):
+            PandasMaterializer(data).get_model_matrix("a")
+        with pytest.raises(
+            FactorEvaluationError,
+            match=re.escape(
+                "Unable to evaluate factor `I(a)`. [NameError: name 'a' is not defined]"
+            ),
+        ):
+            PandasMaterializer(data).get_model_matrix("I(a)")
