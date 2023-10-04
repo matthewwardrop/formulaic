@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.7.2"
 dependencies = [
@@ -71,8 +72,8 @@ include = [
 
 [tool.hatch.envs.default]
 dependencies = [
-    'formulaic[arrow,calculus]; python_version < "3.11"',
-    'formulaic[calculus]; python_version == "3.11"',
+    'formulaic[arrow,calculus]; python_version < "3.12"',
+    'formulaic[calculus]; python_version == "3.12"',
     "pytest==7.2.0",
     "pytest-cov==4.0.0",
 ]
