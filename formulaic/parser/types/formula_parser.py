@@ -42,8 +42,9 @@ class FormulaParser:
             formula: The formula string to be tokenized.
         """
         from ..algos.tokenize import tokenize
+        from ..algos.sanitize_tokens import sanitize_tokens
 
-        return tokenize(formula)
+        return sanitize_tokens(tokenize(formula))
 
     def get_ast(self, formula: str) -> Union[None, Token, ASTNode]:
         """
