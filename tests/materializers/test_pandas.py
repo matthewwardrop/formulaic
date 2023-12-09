@@ -472,3 +472,12 @@ class TestPandasMaterializer:
             ),
         ):
             PandasMaterializer(data).get_model_matrix("I(a)")
+
+    def test_transform_state_with_inconsistent_formatting(self, data):
+        ms1 = PandasMaterializer(data).get_model_matrix("bs(a, df=4)").model_spec
+        ms2 = PandasMaterializer(data).get_model_matrix("bs( `a`, df = 4) ").model_spec
+        assert ms1.transform_state == ms2.transform_state
+
+    def test_nested_transform_state(self, data):
+        ms = PandasMaterializer(data).get_model_matrix("bs(bs(a))").model_spec
+        assert {"bs(a)", "bs(bs(a))"}.issubset(ms.transform_state)
