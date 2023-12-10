@@ -186,14 +186,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # the shared transform state pool.
         model_specs._map(
             lambda ms: ms.transform_state.update(
-                {
-                    factor.expr: factor_evaluation_model_spec.transform_state[
-                        factor.expr
-                    ]
-                    for term in ms.formula
-                    for factor in term.factors
-                    if factor.expr in factor_evaluation_model_spec.transform_state
-                }
+                factor_evaluation_model_spec.transform_state
             )
         )
 
