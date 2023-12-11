@@ -10,7 +10,7 @@ from .contrasts import Contrasts, encode_contrasts
 
 
 def md5_to_int(s: str) -> int:
-    return int(md5(s.encode()).hexdigest(), 16)
+    return int(md5(s.encode(), usedforsecurity=False).hexdigest(), 16)
 
 
 def hashed(
@@ -49,7 +49,7 @@ def hashed(
         encoder_state: Dict[str, Any],
         model_spec,
     ):
-        values = np.array([hash(v) % levels for v in values])
+        values = np.array(values)
         empty_state = {}
         return encode_contrasts(
             values,
@@ -61,7 +61,7 @@ def hashed(
         )
 
     return FactorValues(
-        data,
+        np.array([md5_to_int(v) % levels for v in data]),
         kind="categorical",
         spans_intercept=spans_intercept,
         encoder=encoder,
