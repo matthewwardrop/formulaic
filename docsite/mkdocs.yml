@@ -18,8 +18,8 @@ nav:
     - Using with existing libraries: guides/integration.ipynb
   - Developer Guides:
     - Introduction: dev/index.md
-    - API: dev/api.md
-    - Recommendations: dev/recommendations.md
+    - Integration: dev/integration.md
+    - Extensions: dev/extensions.md
 theme:
   name: material
   font:

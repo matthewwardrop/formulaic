@@ -49,7 +49,3 @@ You will need `pip>=21.3` in order for this to work.
 You can then make any changes you like to the repo, and have them be reflected
 in your local Python sessions. Happy hacking, and I look forward to your
 contributions!
-
-Dependencies are managed using [Poetry](https://python-poetry.org/), and if you
-need to add a dependency, please use `poetry add ...`, which will ensure
-consistency of testing environments/etc.

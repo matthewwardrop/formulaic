@@ -1,6 +1,6 @@
 This section introduces the basic notions and origins of formulas. If you are
 already familiar with formulas from another context, you might want to skip
-forward to the [Formula Grammar](grammar.md) or [User Guides](../guides/).
+forward to the [Formula Grammar](../guides/grammar/) or other [User Guides](../guides/).
 
 ## Origins
 
@@ -15,7 +15,7 @@ in Python (by [patsy](https://github.com/pydata/patsy)), in
 [Julia](https://juliadata.github.io/DataFrames.jl/v0.9/man/formulas/), and quite
 conceivably elsewhere. Each implementation has its own nuances and grammatical
 extensions, including Formulaic's which are described more completely in the
-[Formula Grammar](grammar.md) section of this manual.
+[Formula Grammar](../guides/grammar/) section of this manual.
 
 
 ## Why are they useful?
@@ -91,11 +91,8 @@ simplify data preparation workflows.
 ## Where to from here?
 
 To learn about the full set of features supported by the formula language as
-implemented by Formulaic, please review the [Formula Grammar](grammar.md). To
+implemented by Formulaic, please review the [Formula Grammar](../guides/grammar/). To
 get a feel for how you can use `formulaic` to transform your dataframes into
-model matrices, please review the [Quickstart](../guides/quickstart.md).  For
-more advanced use-cases, such as overriding or customising the implementations
-of formula parsing, please refer to the [Advanced Usage](../guides/advanced.md)
-section.
+model matrices, please review the [Quickstart](../guides/quickstart/).
 
 [^1]: Wilkinson, G. N., and C. E. Rogers. Symbolic description of factorial models for analysis of variance. J. Royal Statistics Society 22, pp. 392–399, 1973.
