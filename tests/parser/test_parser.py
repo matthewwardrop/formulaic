@@ -73,6 +73,7 @@ FORMULA_TO_TERMS = {
     "(a+b)**2": ["1", "a", "a:b", "b"],
     "(a+b)^2": ["1", "a", "a:b", "b"],
     "(a+b)**3": ["1", "a", "a:b", "b"],
+    "50:a": ["1", "50:a"],
     # Nested products
     "a/b": ["1", "a", "a:b"],
     "(b+a)/c": ["1", "b", "a", "b:a:c"],
@@ -161,6 +162,42 @@ class TestFormulaParser:
 
         terms = PARSER_NO_INTERCEPT.get_terms(expr)
         assert {str(term) for term in terms} == names
+
+    def test_invalid_literals(self):
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Numeric literals other than `1` can only be used to scale other terms."
+            ),
+        ):
+            PARSER.get_terms("50")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape("String literals are not valid in formulae."),
+        ):
+            PARSER.get_terms("'asd'")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape("Term already seen with a different numerical scaling."),
+        ):
+            PARSER.get_terms("1 * a")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Numeric literals other than `1` can only be used to scale other terms."
+            ),
+        ):
+            PARSER.get_terms("50*a")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape("String literals are not valid in formulae."),
+        ):
+            PARSER.get_terms("'asd':a")
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape("Term already seen with a different numerical scaling."),
+        ):
+            PARSER.get_terms("50:a + 100:a")
 
 
 class TestDefaultOperatorResolver:
