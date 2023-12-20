@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Iterable, Sequence, Tuple, Union, cast
 
+from formulaic.parser.types.factor import Factor
+
 from .algos.tokenize import tokenize
 from .types import (
     FormulaParser,
@@ -113,6 +115,66 @@ class DefaultFormulaParser(FormulaParser):
         tokens = merge_operator_tokens(tokens, symbols={"+", "-"})
 
         return tokens
+
+    def get_terms(self, formula: str) -> Structured[List[Term]]:
+        """
+        Assemble the `Term` instances for a formula string. Depending on the
+        operators involved, this may be an iterable of `Term` instances, or
+        an iterable of iterables of `Term`s, etc.
+
+        This implementation also verifies that the formula is well-formed, in
+        that it does not have any literals apart from 1 or numeric scaling of
+        other terms.
+
+        Args:
+            formula: The formula for which an AST should be generated.
+        """
+        terms = super().get_terms(formula)
+
+        def check_terms(terms: Iterable[Term]) -> None:
+            seen_terms = set()
+            for term in terms:
+                if len(term.factors) == 1:
+                    factor = term.factors[0]
+                    if (
+                        factor.eval_method is Factor.EvalMethod.LITERAL
+                        and factor.expr != "1"
+                    ):
+                        raise exc_for_token(
+                            factor.token or Token(),
+                            "Numeric literals other than `1` can only be used "
+                            "to scale other terms. (tip: Use `:` rather than "
+                            "`*` when scaling terms)"
+                            if factor.expr.replace(".", "", 1).isnumeric()
+                            else "String literals are not valid in formulae.",
+                        )
+                else:
+                    for factor in term.factors:
+                        if (
+                            factor.eval_method is Factor.EvalMethod.LITERAL
+                            and not factor.expr.replace(".", "", 1).isnumeric()
+                        ):
+                            raise exc_for_token(
+                                factor.token or Token(),
+                                "String literals are not valid in formulae.",
+                            )
+
+                term_hash = tuple(
+                    factor.expr
+                    for factor in term.factors
+                    if factor.eval_method != Factor.EvalMethod.LITERAL
+                )
+                if term_hash in seen_terms:
+                    raise exc_for_token(
+                        term.factors[0].token or Token(),
+                        "Term already seen with a different numerical scaling. "
+                        "(tip: Use `:` rather than `*` when scaling terms)",
+                    )
+                seen_terms.add(term_hash)
+
+        terms._map(check_terms)
+
+        return terms
 
 
 class DefaultOperatorResolver(OperatorResolver):
