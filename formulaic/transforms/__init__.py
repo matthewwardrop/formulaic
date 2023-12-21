@@ -5,7 +5,7 @@ from formulaic.utils.stateful_transforms import stateful_transform
 from .basis_spline import basis_spline
 from .identity import identity
 from .contrasts import C, encode_contrasts, ContrastsRegistry
-from .featurehash import hashed
+from .hashed import hashed
 from .patsy_compat import PATSY_COMPAT_TRANSFORMS
 from .poly import poly
 from .scale import center, scale

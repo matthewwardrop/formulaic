@@ -24,9 +24,9 @@ def hashed(
     spans_intercept: bool = False,
 ):
     """
-    Hashes the values of a factor into a fixed number of levels. DUe to the
-    large number of levels required to avoid collisions, this transform should
-    be used with output='sparse' to avoid memory issues.
+    Deterministically the values of a factor into a fixed number of levels.
+    Due to the large number of levels required to avoid collisions,
+    this transform should be used with `output='sparse'` to avoid memory issues.
 
     Args:
         data: The data to feature hash.
@@ -40,6 +40,7 @@ def hashed(
             an integer. The default is to use the MD5 hash function.
         spans_intercept: Whether the values span the intercept or not, default
             False.
+
     """
 
     def encoder(
@@ -60,8 +61,10 @@ def hashed(
             _spec=model_spec,
         )
 
+    stringified_data = np.array(data).astype(np.str_)
+
     return FactorValues(
-        np.array([md5_to_int(v) % levels for v in data]),
+        (np.vectorize(md5_to_int)(stringified_data) % levels).astype(np.int_),
         kind="categorical",
         spans_intercept=spans_intercept,
         encoder=encoder,
