@@ -24,7 +24,7 @@ def hashed(
     spans_intercept: bool = False,
 ):
     """
-    Deterministically the values of a factor into a fixed number of levels.
+    Deterministically hashes the values of a factor into a fixed number of levels.
     Due to the large number of levels required to avoid collisions,
     this transform should be used with `output='sparse'` to avoid memory issues.
 
