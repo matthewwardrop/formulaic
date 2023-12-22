@@ -25,8 +25,8 @@ def hashed(
 ):
     """
     Deterministically hashes the values of a factor into a fixed number of levels.
-    Due to the large number of levels required to avoid collisions,
-    this transform should be used with `output='sparse'` to avoid memory issues.
+    If `levels` is large, you will likely want to use this transform in conjunction
+    with `output='sparse'` to avoid memory issues.
 
     Args:
         data: The data to feature hash.
