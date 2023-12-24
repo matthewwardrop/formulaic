@@ -5,10 +5,10 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Iterable, Sequence, Tuple, Union, cast
 
-from formulaic.parser.types.factor import Factor
-
+from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
 from .types import (
+    Factor,
     FormulaParser,
     Operator,
     OperatorResolver,
@@ -71,7 +71,7 @@ class DefaultFormulaParser(FormulaParser):
         token_plus = Token("+", kind=Token.Kind.OPERATOR)
         token_minus = Token("-", kind=Token.Kind.OPERATOR)
 
-        tokens = tokenize(formula)
+        tokens = sanitize_tokens(tokenize(formula))
 
         # Substitute "0" with "-1"
         tokens = replace_tokens(
