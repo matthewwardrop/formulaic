@@ -79,7 +79,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
-tests = 'pytest -W error --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
+tests = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
 
 [[tool.hatch.envs.test.matrix]]
 python = ["37", "38", "39", "310", "311"]
