@@ -264,15 +264,6 @@ class Formula(Structured[List[Term]]):
             ),
         )
 
-    @property
-    def terms(self) -> Formula:
-        warnings.warn(
-            "`Formula.terms` is deprecated. Please index/iterate over `Formula` directly instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self
-
     def __getattr__(self, attr: str) -> Any:
         # Keep substructures wrapped to retain access to helper functions.
         subformula = super().__getattr__(attr)

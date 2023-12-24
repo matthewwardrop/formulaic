@@ -155,19 +155,6 @@ class ModelSpec:
             )
         return tuple(feature for row in self.structure for feature in row.columns)
 
-    @property
-    def feature_names(self) -> Sequence[str]:
-        """
-        A deprecated reference to `ModelSpec.column_names`. Will be removed in
-        v1.0.0.
-        """
-        warnings.warn(
-            "`ModelSpec.feature_names` is deprecated and will be removed in v1.0.0. Use `ModelSpec.column_names` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.column_names
-
     @cached_property
     def column_indices(self) -> Dict[str, int]:
         """
@@ -175,19 +162,6 @@ class ModelSpec:
         model matrices.
         """
         return {name: i for i, name in enumerate(self.column_names)}
-
-    @property
-    def feature_indices(self) -> Dict[str, int]:
-        """
-        A deprecated reference to `ModelSpec.column_indices`. Will be removed in
-        v1.0.0.
-        """
-        warnings.warn(
-            "`ModelSpec.feature_indices` is deprecated and will be removed in v1.0.0. Use `ModelSpec.column_indices` instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.column_indices
 
     @property
     def terms(self) -> List[Term]:
