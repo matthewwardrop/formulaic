@@ -1,9 +1,9 @@
 import ast
 import keyword
 import re
-from typing import MutableMapping
+import sys
+from typing import MutableMapping, Union
 
-import astor
 import numpy
 
 from .iterators import peekable_iter
@@ -11,8 +11,17 @@ from .iterators import peekable_iter
 # Expression formatting
 
 
-def format_expr(expr: str) -> str:
-    code = ast.parse(expr, mode="eval")
+def format_expr(expr: Union[str, ast.AST]) -> str:  # pragma: no cover; branched code
+    if sys.version_info >= (3, 9):
+        code = ast.parse(expr, mode="eval") if isinstance(expr, str) else expr
+        return ast.unparse(code).replace("\n", " ")
+
+    import astor  # pylint: disable=import-error
+
+    # Note: We use `mode="exec"` here because `astor` inserts parentheses around
+    # expressions that cannot be naively removed. We still require that these
+    # are `eval`-uable in the `stateful_eval` method.
+    code = ast.parse(expr, mode="exec") if isinstance(expr, str) else expr
     return astor.to_source(code).strip().replace("\n    ", "")
 
 

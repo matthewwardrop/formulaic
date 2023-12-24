@@ -13,9 +13,7 @@ from typing import (
     cast,
 )
 
-import astor
-
-from .code import sanitize_variable_names
+from .code import format_expr, sanitize_variable_names
 from .layered_mapping import LayeredMapping
 from .variables import get_expression_variables, Variable
 
@@ -148,9 +146,7 @@ def stateful_eval(
     stateful_nodes: Dict[str, ast.Call] = {}
     for node in ast.walk(code):
         if _is_stateful_transform(node, env):
-            stateful_nodes[astor.to_source(node).strip().replace("\n    ", "")] = cast(
-                ast.Call, node
-            )
+            stateful_nodes[format_expr(node)] = cast(ast.Call, node)
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
     for name, node in stateful_nodes.items():
@@ -221,7 +217,7 @@ def _is_stateful_transform(node: ast.AST, env: Mapping) -> bool:
 
     try:
         func = eval(
-            compile(astor.to_source(node.func).strip(), "", "eval"), {}, env
+            compile(format_expr(node.func), "", "eval"), {}, env
         )  # nosec; Get function handle (assuming it exists in env)
         return getattr(func, "__is_stateful_transform__", False)
     except NameError:
