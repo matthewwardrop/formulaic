@@ -67,6 +67,7 @@ that have *not* been implemented by `formulaic` are explicitly noted also.
 | `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
 | `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
 | `te(...)` | Generates a tensor product smooth. | ✗ | ✓ | ✓ |
+| `hashed(...)` | Categorically encode a deterministic hash of a column. | ✓ | ✗ | ✗ |
 | ...       | Others? Contributions welcome!     | ? | ? | ? |
 
 !!! tip
