@@ -35,7 +35,9 @@ class TestContrastsTransform:
         spec = ModelSpec(formula=[], output="pandas")
         _compare_factor_values(
             encode_contrasts(
-                data=["a", "b", "c", "a", "b", "c"], _state=state, _spec=spec
+                data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
+                _state=state,
+                _spec=spec,
             ),
             FactorValues(
                 pandas.DataFrame(
@@ -58,7 +60,9 @@ class TestContrastsTransform:
         with pytest.warns(DataMismatchWarning):
             _compare_factor_values(
                 encode_contrasts(
-                    data=["a", "b", "d", "a", "b", "d"], _state=state, _spec=spec
+                    data=pandas.Series(["a", "b", "d", "a", "b", "d"]),
+                    _state=state,
+                    _spec=spec,
                 ),
                 FactorValues(
                     pandas.DataFrame(
@@ -80,7 +84,7 @@ class TestContrastsTransform:
 
         _compare_factor_values(
             encode_contrasts(
-                data=["a", "b", "c", "a", "b", "c"],
+                data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
                 reduced_rank=True,
                 _state=state,
                 _spec=spec,
@@ -107,7 +111,9 @@ class TestContrastsTransform:
         spec = ModelSpec(formula=[], output="sparse")
         _compare_factor_values(
             encode_contrasts(
-                data=["a", "b", "c", "a", "b", "c"], _state=state, _spec=spec
+                data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
+                _state=state,
+                _spec=spec,
             ),
             FactorValues(
                 pandas.DataFrame(
@@ -129,7 +135,7 @@ class TestContrastsTransform:
 
         _compare_factor_values(
             encode_contrasts(
-                data=["a", "b", "c", "a", "b", "c"],
+                data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
                 reduced_rank=True,
                 _state=state,
                 _spec=spec,
@@ -154,7 +160,9 @@ class TestContrastsTransform:
         with pytest.warns(DataMismatchWarning):
             _compare_factor_values(
                 encode_contrasts(
-                    data=["a", "b", "d", "a", "b", "d"], _state=state, _spec=spec
+                    data=pandas.Series(["a", "b", "d", "a", "b", "d"]),
+                    _state=state,
+                    _spec=spec,
                 ),
                 FactorValues(
                     pandas.DataFrame(
@@ -176,7 +184,9 @@ class TestContrastsTransform:
 
     def test_numpy(self):
         assert isinstance(
-            encode_contrasts(data=["a", "b", "c", "a", "b", "c"], output="numpy"),
+            encode_contrasts(
+                data=pandas.Series(["a", "b", "c", "a", "b", "c"]), output="numpy"
+            ),
             numpy.ndarray,
         )
 
@@ -263,12 +273,14 @@ class TestContrastsTransform:
     @pytest.mark.filterwarnings("ignore::formulaic.errors.DataMismatchWarning")
     def test_empty_levels(self):
         empty_numpy = encode_contrasts(
-            data=["a", "b", "c", "a", "b", "c"], levels=[], output="numpy"
+            data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
+            levels=[],
+            output="numpy",
         )
         assert empty_numpy.shape == (6, 0)
 
         empty_numpy_reduced = encode_contrasts(
-            data=["a", "b", "c", "a", "b", "c"],
+            data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
             levels=["a"],
             output="numpy",
             reduced_rank=True,
@@ -276,12 +288,16 @@ class TestContrastsTransform:
         assert empty_numpy_reduced.shape == (6, 0)
 
         empty_pandas = encode_contrasts(
-            data=["a", "b", "c", "a", "b", "c"], levels=[], output="pandas"
+            data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
+            levels=[],
+            output="pandas",
         )
         assert empty_pandas.shape == (6, 0)
 
         empty_sparse = encode_contrasts(
-            data=["a", "b", "c", "a", "b", "c"], levels=[], output="sparse"
+            data=pandas.Series(["a", "b", "c", "a", "b", "c"]),
+            levels=[],
+            output="sparse",
         )
         assert empty_sparse.shape == (6, 0)
 

@@ -55,30 +55,22 @@ class TestModelSpec:
         assert model_spec.formula == Formula("a + A + A:a")
         assert model_spec.ensure_full_rank is True
         assert model_spec.materializer == "pandas"
-        assert (
-            model_spec.column_names
-            == model_spec.feature_names
-            == (
-                "Intercept",
-                "a",
-                "A[T.b]",
-                "A[T.c]",
-                "A[T.b]:a",
-                "A[T.c]:a",
-            )
+        assert model_spec.column_names == (
+            "Intercept",
+            "a",
+            "A[T.b]",
+            "A[T.c]",
+            "A[T.b]:a",
+            "A[T.c]:a",
         )
-        assert (
-            model_spec.column_indices
-            == model_spec.feature_indices
-            == {
-                "Intercept": 0,
-                "a": 1,
-                "A[T.b]": 2,
-                "A[T.c]": 3,
-                "A[T.b]:a": 4,
-                "A[T.c]:a": 5,
-            }
-        )
+        assert model_spec.column_indices == {
+            "Intercept": 0,
+            "a": 1,
+            "A[T.b]": 2,
+            "A[T.c]": 3,
+            "A[T.b]:a": 4,
+            "A[T.c]:a": 5,
+        }
         assert model_spec.term_slices == {
             "1": slice(0, 1),
             "a": slice(1, 2),
@@ -100,21 +92,16 @@ class TestModelSpec:
         assert model_spec.variables == {"a", "A"}
         assert model_spec.variables_by_source == {"data": {"a", "A"}}
 
-    @pytest.mark.filterwarnings(
-        r"ignore:`ModelSpec\.feature_names` is deprecated.*:DeprecationWarning"
-    )
     def test_get_model_matrix(self, model_spec, data2):
         m = model_spec.get_model_matrix(data2)
 
         assert isinstance(m, pandas.DataFrame)
         assert model_spec.column_names == tuple(m.columns)
-        assert model_spec.feature_names == tuple(m.columns)
 
         model_spec = model_spec.update(materializer=None)
         m2 = model_spec.get_model_matrix(data2)
         assert isinstance(m2, pandas.DataFrame)
         assert model_spec.column_names == tuple(m2.columns)
-        assert model_spec.feature_names == tuple(m2.columns)
 
         m3 = model_spec.get_model_matrix(data2, output="sparse")
         assert isinstance(m3, scipy.sparse.spmatrix)

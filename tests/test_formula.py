@@ -67,21 +67,6 @@ class TestFormula:
             "a:b:c",
         ]
 
-    @pytest.mark.filterwarnings(
-        r"ignore:`Formula\.terms` is deprecated.*:DeprecationWarning"
-    )
-    def test_terms_alias(self, formula_expr):
-        assert [str(t) for t in formula_expr.terms] == [
-            "1",
-            "a",
-            "b",
-            "c",
-            "a:b",
-            "a:c",
-            "b:c",
-            "a:b:c",
-        ]
-
     def test_ordering(self):
         assert [str(t) for t in Formula("a+e:d+b:c+f")] == [
             "1",

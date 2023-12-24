@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from enum import Enum
 from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union, cast
 
