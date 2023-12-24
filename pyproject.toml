@@ -74,12 +74,12 @@ include = [
 dependencies = [
     'formulaic[arrow,calculus]; python_version < "3.12"',
     'formulaic[calculus]; python_version == "3.12"',
-    "pytest==7.2.0",
-    "pytest-cov==4.0.0",
+    "pytest==7.4.3",
+    "pytest-cov==4.1.0",
 ]
 
 [tool.hatch.envs.default.scripts]
-tests = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
+tests = 'pytest -W error --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
 
 [[tool.hatch.envs.test.matrix]]
 python = ["37", "38", "39", "310", "311"]

@@ -164,6 +164,7 @@ class ModelSpec:
         warnings.warn(
             "`ModelSpec.feature_names` is deprecated and will be removed in v1.0.0. Use `ModelSpec.column_names` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self.column_names
 
@@ -184,6 +185,7 @@ class ModelSpec:
         warnings.warn(
             "`ModelSpec.feature_indices` is deprecated and will be removed in v1.0.0. Use `ModelSpec.column_indices` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self.column_indices
 

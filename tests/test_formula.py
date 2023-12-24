@@ -83,28 +83,28 @@ class TestFormula:
         ]
 
     def test_ordering(self):
-        assert [str(t) for t in Formula("a+e:d+b:c+f").terms] == [
+        assert [str(t) for t in Formula("a+e:d+b:c+f")] == [
             "1",
             "a",
             "f",
             "e:d",
             "b:c",
         ]
-        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="degree").terms] == [
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="degree")] == [
             "1",
             "a",
             "f",
             "e:d",
             "b:c",
         ]
-        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="none").terms] == [
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="none")] == [
             "1",
             "a",
             "e:d",
             "b:c",
             "f",
         ]
-        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="sort").terms] == [
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="sort")] == [
             "1",
             "a",
             "f",

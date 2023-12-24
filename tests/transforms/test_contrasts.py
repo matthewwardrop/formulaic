@@ -260,6 +260,7 @@ class TestContrastsTransform:
         with pytest.raises(ValueError, match=r"^Unknown output type"):
             encode_contrasts(data=["a", "b", "c", "a", "b", "c"], output="invalid")
 
+    @pytest.mark.filterwarnings("ignore::formulaic.errors.DataMismatchWarning")
     def test_empty_levels(self):
         empty_numpy = encode_contrasts(
             data=["a", "b", "c", "a", "b", "c"], levels=[], output="numpy"

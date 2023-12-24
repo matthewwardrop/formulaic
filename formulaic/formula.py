@@ -269,6 +269,7 @@ class Formula(Structured[List[Term]]):
         warnings.warn(
             "`Formula.terms` is deprecated. Please index/iterate over `Formula` directly instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         return self
 

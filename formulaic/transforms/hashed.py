@@ -11,11 +11,11 @@ from formulaic.materializers.types import FactorValues
 
 from .contrasts import Contrasts, encode_contrasts
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
 
 
-def md5_to_int(s: str) -> int:
+def md5_to_int(s: str) -> int:  # pragma: no cover; branched code
     if sys.version_info >= (3, 9):
         hashed = md5(s.encode(), usedforsecurity=False)
     else:
