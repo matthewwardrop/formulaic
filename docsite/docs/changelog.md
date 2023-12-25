@@ -3,6 +3,12 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 1.0.1 (24 December 2023)
+
+**Bugfixes and cleanups:**
+
+* Update package status from "beta" to "production/stable".
+
 ## 1.0.0 (24 December 2023)
 
 **Breaking changes:**
