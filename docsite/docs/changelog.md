@@ -3,6 +3,40 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 1.0.0 (24 December 2023)
+
+**Breaking changes:**
+
+* Python tokens are now canonically formatted (see below).
+* Methods deprecated during the 0.x series have been removed: `Formula.terms`,
+  `ModelSpec.feature_names`, and `ModelSpec.feature_indices`.
+
+**New features and enhancements:**
+
+* Python tokens are now sanitized and canonically formatted to prevent
+  ambiguities and better align with `patsy`.
+* Added official support for Python 3.12 (no code changes were necessary).
+* Added the `hashed` transform for categorically encoding deterministically
+  hashed representations of a dataset.
+
+**Bugfixes and cleanups:**
+
+* Fixed transform state not propagating correctly when Python code tokens were
+  not canonically formatted.
+* Literals in formulae will no longer be silently ignored, and feature scaling
+  is now fully supported.
+* Improved code parsing and formatting utilities and dropped the requirement for
+  `astor` for Python 3.9 and newer.
+* Fixed all warnings emitted during unit tests.
+
+**Documentation:**
+
+* Removed incompleteness warnings.
+* Added some lightweight developer documents.
+* Fixed some broken links.
+
+---
+
 ## 0.6.6 (4 October 2023)
 
 This is minor release with one important bugfix.
