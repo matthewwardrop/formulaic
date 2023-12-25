@@ -11,7 +11,7 @@ authors = [
 license = "MIT"
 readme = "README.md"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Intended Audience :: Developers",
