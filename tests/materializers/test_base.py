@@ -18,6 +18,7 @@ class TestFormulaMaterializer:
     def test_registrations(self):
         assert sorted(FormulaMaterializer.REGISTERED_NAMES) == ["arrow", "pandas"]
         assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == [
+            "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
             "pyarrow.lib.Table",
         ]
