@@ -21,7 +21,7 @@ if TYPE_CHECKING:  # pragma: no cover
 class PandasMaterializer(FormulaMaterializer):
 
     REGISTER_NAME = "pandas"
-    REGISTER_INPUTS = ("pandas.core.frame.DataFrame",)
+    REGISTER_INPUTS = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
     REGISTER_OUTPUTS = ("pandas", "numpy", "sparse")
 
     @override
