@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Sequence
 
 import pandas
 from interface_meta import override
@@ -14,8 +14,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class ArrowMaterializer(PandasMaterializer):
 
-    REGISTER_NAME = "arrow"
-    REGISTER_INPUTS = ("pyarrow.lib.Table",)
+    REGISTER_NAME: str = "arrow"
+    REGISTER_INPUTS: Sequence[str] = ("pyarrow.lib.Table",)
 
     @override
     def _init(self) -> None:
