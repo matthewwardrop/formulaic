@@ -133,6 +133,6 @@ For more details, see [here](benchmarks/README.md).
 Below are some of the projects that use Formulaic:
 
 - [Glum](https://github.com/Quantco/glum) (High performance Python GLM's with all the features).
-- [Linearmodels](https://github.com/bashtage/linearmodels)(Additional linear models including instrumental variable and panel data models that are missing from statsmodels).
+- [Linearmodels](https://github.com/bashtage/linearmodels) (Additional linear models including instrumental variable and panel data models that are missing from statsmodels).
 - [Tabmat](https://github.com/Quantco/tabmat) (Efficient matrix representations for working with tabular data).
 - Add your project here!
