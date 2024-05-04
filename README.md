@@ -135,5 +135,6 @@ Below are some of the projects that use Formulaic:
 - [Glum](https://github.com/Quantco/glum) (High performance Python GLM's with all the features).
 - [Lifelines](https://github.com/camDavidsonPilon/lifelines) (Survival analysis in Python).
 - [Linearmodels](https://github.com/bashtage/linearmodels) (Additional linear models including instrumental variable and panel data models that are missing from statsmodels).
+- [Pyfixest](https://github.com/s3alfisc/pyfixest) (Fast High-Dimensional Fixed Effects Regression in Python following fixest-syntax).
 - [Tabmat](https://github.com/Quantco/tabmat) (Efficient matrix representations for working with tabular data).
 - Add your project here!
