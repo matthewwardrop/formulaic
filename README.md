@@ -38,7 +38,7 @@ import pandas
 from formulaic import Formula
 
 df = pandas.DataFrame({
-    'y': [0,1,2],
+    'y': [0, 1, 2],
     'x': ['A', 'B', 'C'],
     'z': [0.3, 0.1, 0.2],
 })
@@ -127,3 +127,14 @@ For more details, see [here](benchmarks/README.md).
 - [StatsModels.jl `@formula`](https://juliastats.org/StatsModels.jl/stable/formula/): The implementation of Wilkinson formulas for Julia.
 - [R Formulas](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/formula): The implementation of Wilkinson formulas for R, which is thoroughly introduced [here](https://cran.r-project.org/web/packages/Formula/vignettes/Formula.pdf). [R itself is an implementation of [S](https://en.wikipedia.org/wiki/S_%28programming_language%29), in which formulas were first made popular].
 - The work that started it all: Wilkinson, G. N., and C. E. Rogers. Symbolic description of factorial models for analysis of variance. J. Royal Statistics Society 22, pp. 392–399, 1973.
+
+## Used by
+
+Below are some of the projects that use Formulaic:
+
+- [Glum](https://github.com/Quantco/glum) (High performance Python GLM's with all the features).
+- [Lifelines](https://github.com/camDavidsonPilon/lifelines) (Survival analysis in Python).
+- [Linearmodels](https://github.com/bashtage/linearmodels) (Additional linear models including instrumental variable and panel data models that are missing from statsmodels).
+- [Pyfixest](https://github.com/s3alfisc/pyfixest) (Fast High-Dimensional Fixed Effects Regression in Python following fixest-syntax).
+- [Tabmat](https://github.com/Quantco/tabmat) (Efficient matrix representations for working with tabular data).
+- Add your project here!
