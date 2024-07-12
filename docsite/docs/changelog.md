@@ -3,6 +3,18 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 1.0.2 (12 July 2024)
+
+**Bugfixes and cleanups:**
+
+* Fix compatibility with `pandas` >=3.
+* Fix `mypy` type inference in materializer subclasses.
+
+**Documentation:**
+
+* Add column name extraction to `sklearn` integration example.
+* Add section to allow users to indicate their usage of formulaic.
+
 ## 1.0.1 (24 December 2023)
 
 **Bugfixes and cleanups:**
