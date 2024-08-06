@@ -4,6 +4,8 @@ import functools
 import itertools
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
+import narwhals.dtypes as nwd
+import narwhals.stable.v1 as nw
 import numpy
 import pandas
 import scipy.sparse as spsparse
@@ -18,19 +20,26 @@ if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
 
 
-class PandasMaterializer(FormulaMaterializer):
-    REGISTER_NAME = "pandas"
-    REGISTER_INPUTS: Sequence[
-        str
-    ] = ()  # ("pandas.core.frame.DataFrame", "pandas.DataFrame")
-    REGISTER_OUTPUTS: Sequence[str] = ("pandas", "numpy", "sparse")
+class NarwhalsMaterializer(FormulaMaterializer):
+    REGISTER_NAME = "narwhals"
+    REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
+    REGISTER_OUTPUTS: Sequence[str] = ("narwhals", "pandas", "numpy", "sparse")
+
+    @override
+    def _init(self) -> None:
+        self.__narwhals_data = nw.from_native(self.data)
+        self.__data_context = self.__narwhals_data.to_dict()
+
+    @override  # type: ignore
+    @property
+    def data_context(self):
+        return self.__data_context
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        if isinstance(values, (pandas.Series, pandas.Categorical)):
-            return values.dtype == object or isinstance(
-                values.dtype, pandas.CategoricalDtype
-            )
+        if isinstance(values, nw.Series):
+            if not isinstance(values.dtype, nwd.NumericType):
+                return True
         return super()._is_categorical(values)
 
     @override
@@ -82,10 +91,14 @@ class PandasMaterializer(FormulaMaterializer):
 
         if drop_rows:
             values = drop_nulls(values, indices=drop_rows)
+        if isinstance(values, nw.Series):
+            values = values.to_pandas()
+
         return as_columns(
             encode_contrasts(
                 values,
                 reduced_rank=False,
+                output="pandas" if spec.output == "narwhals" else spec.output,
                 _metadata=metadata,
                 _state=encoder_state,
                 _spec=spec,
@@ -152,8 +165,9 @@ class PandasMaterializer(FormulaMaterializer):
     ) -> pandas.DataFrame:
         # If we are outputing a pandas DataFrame, explicitly override index
         # in case transforms/etc have lost track of it.
-        if spec.output == "pandas":
-            pandas_index = cast(pandas.DataFrame, self.data_context).index
+        pandas_index = None
+        if spec.output == "pandas" and isinstance(self.data, pandas.DataFrame):
+            pandas_index = cast(pandas.DataFrame, self.data).index
             if drop_rows:
                 pandas_index = pandas_index.drop(
                     cast(pandas.DataFrame, self.data_context).index[drop_rows]
@@ -164,17 +178,39 @@ class PandasMaterializer(FormulaMaterializer):
             values = numpy.empty((self.data.shape[0], 0))
             if spec.output == "sparse":
                 return spsparse.csc_matrix(values)
+            if spec.output == "narwhals":
+                # TODO: Inconsistent with non-empty case below (where we use to-native)
+                return nw.from_native(values)
             if spec.output == "numpy":
                 return values
-            return pandas.DataFrame(index=pandas_index)
+            return (
+                pandas.DataFrame(index=pandas_index)
+                if pandas_index is not None
+                else pandas.DataFrame(values)
+            )
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":
             return spsparse.hstack([col[1] for col in cols])
-        if spec.output == "numpy":
-            return numpy.stack([col[1] for col in cols], axis=1)
-        return pandas.DataFrame(
-            {col[0]: col[1] for col in cols},
-            index=pandas_index,
-            copy=False,
+
+        # TODO: Can we do better than this? Having to reconstitute raw data
+        # does not seem ideal.
+        combined = nw.from_dict(
+            {
+                name: (nw.to_native(col) if isinstance(col, nw.Series) else col)
+                for name, col in cols
+            },
+            native_namespace=nw.get_native_namespace(self.__narwhals_data),
         )
+        if spec.output == "narwhals":
+            if isinstance(self.data, nw.DataFrame):
+                return combined
+            return nw.to_native(combined)
+        if spec.output == "pandas":
+            df = combined.to_pandas()
+            if pandas_index is not None:
+                return df.set_index(pandas_index, drop=True)
+            return df
+        if spec.output == "numpy":
+            return combined.to_numpy()
+        raise ValueError(f"Invalid output type: {spec.output}")
