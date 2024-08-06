@@ -102,7 +102,10 @@ def _differentiate_factors(
                 "`sympy` is not available. Install it using `pip install formulaic[calculus]` or `pip install sympy`."
             ) from e
     else:
-        assert len(factors) == 1
+        if len(factors) != 1:
+            raise RuntimeError(
+                "Cannot differentiate non-trivial factors without `sympy`."
+            )
         expr = 1
         eval_method = next(iter(factors)).eval_method
 

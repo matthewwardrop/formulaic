@@ -4,7 +4,6 @@ from formulaic.utils.iterators import peekable_iter
 
 
 def test_peekable_iter():
-
     it = peekable_iter([1, 2, 3, 4, 5, 6])
 
     assert it.peek() == 1

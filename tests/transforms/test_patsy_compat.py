@@ -1,8 +1,9 @@
 import numpy
 import pandas
+
 from formulaic import model_matrix
 from formulaic.transforms.contrasts import TreatmentContrasts
-from formulaic.transforms.patsy_compat import standardize, Treatment
+from formulaic.transforms.patsy_compat import Treatment, standardize
 from formulaic.transforms.scale import scale
 
 

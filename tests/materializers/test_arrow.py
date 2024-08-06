@@ -48,6 +48,10 @@ class TestArrowMaterializer:
     def materializer(self, data):
         return ArrowMaterializer(data)
 
+    def test_data_wrapper(self, materializer):
+        assert set(materializer.data_context) == {"a", "A"}
+        assert len(materializer.data_context) == 2
+
     @pytest.mark.parametrize("formula,tests", ARROW_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(formula, ensure_full_rank=True)

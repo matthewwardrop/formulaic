@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -11,17 +12,16 @@ from typing import (
     Sequence,
     Set,
     Union,
-    TYPE_CHECKING,
     cast,
 )
 
 from formulaic.materializers.base import EncodedTermStructure
 from formulaic.parser.types import Structured, Term
-from formulaic.utils.constraints import LinearConstraintSpec, LinearConstraints
+from formulaic.utils.constraints import LinearConstraints, LinearConstraintSpec
 from formulaic.utils.variables import Variable
 
 from .formula import Formula, FormulaSpec
-from .materializers import FormulaMaterializer, NAAction, ClusterBy
+from .materializers import ClusterBy, FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model_matrix import ModelMatrices, ModelMatrix

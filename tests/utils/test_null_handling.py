@@ -6,11 +6,10 @@ import pytest
 import scipy.sparse
 
 from formulaic.materializers.types import FactorValues
-from formulaic.utils.null_handling import find_nulls, drop_rows
+from formulaic.utils.null_handling import drop_rows, find_nulls
 
 
 def test_find_nulls():
-
     assert find_nulls(None) == set()
     assert find_nulls(FactorValues(None)) == set()
     assert find_nulls(1) == set()
@@ -58,7 +57,6 @@ def test_find_nulls():
 
 
 def test_drop_rows():
-
     assert drop_rows([1, 2, 3], [1]) == [1, 3]
     assert numpy.all(
         drop_rows(pandas.Series([1, 2, 3]), [0]) == pandas.Series([2, 3], index=[1, 2])

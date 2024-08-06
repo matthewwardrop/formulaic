@@ -1,12 +1,12 @@
-from pyexpat import model
 import re
-
-import pytest
+from pyexpat import model
 
 import numpy
 import pandas
+import pytest
 import scipy.sparse
-from formulaic import Formula, ModelSpec, ModelSpecs, ModelMatrix, ModelMatrices
+
+from formulaic import Formula, ModelMatrices, ModelMatrix, ModelSpec, ModelSpecs
 from formulaic.materializers.base import FormulaMaterializerMeta
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.parser.types import Factor, Term

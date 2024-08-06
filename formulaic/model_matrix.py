@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Generic, Optional, TypeVar, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, cast
 
 import wrapt
 

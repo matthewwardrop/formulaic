@@ -1,6 +1,6 @@
 from __future__ import annotations
-import ast
 
+import ast
 import functools
 import inspect
 import itertools
@@ -8,12 +8,13 @@ import operator
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     Generator,
     Hashable,
-    List,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -21,7 +22,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    TYPE_CHECKING,
     cast,
 )
 
@@ -56,7 +56,6 @@ EncodedTermStructure = namedtuple(
 
 
 class FormulaMaterializerMeta(InterfaceMeta):
-
     INTERFACE_RAISE_ON_VIOLATION = True
 
     REGISTERED_NAMES: Dict[str, Type[FormulaMaterializer]] = {}
@@ -119,7 +118,6 @@ class FormulaMaterializerMeta(InterfaceMeta):
 
 
 class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
-
     REGISTER_NAME: Optional[str] = None
     REGISTER_INPUTS: Sequence[str] = ()
     REGISTER_OUTPUTS: Sequence[Hashable] = ()
@@ -209,7 +207,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _build_model_matrix(
         self, spec: ModelSpec, drop_rows: Sequence[int]
     ) -> ModelMatrix:
-
         # Step 0: Apply any requested column/term clustering
         # This must happen before Step 1 otherwise the greedy rank reduction
         # below would result in a different outcome than if the columns had
@@ -228,10 +225,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             scoped_cols = {}
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
-                    scoped_cols[
-                        "Intercept"
-                    ] = scoped_term.scale * self._encode_constant(
-                        1, None, {}, spec, drop_rows
+                    scoped_cols["Intercept"] = (
+                        scoped_term.scale
+                        * self._encode_constant(1, None, {}, spec, drop_rows)
                     )
                 else:
                     scoped_cols.update(
@@ -455,7 +451,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             else:
                 factors.append((ScopedFactor(factor),))
         return OrderedSet(
-            ScopedTerm(factors=(p for p in prod if p != 1), scale=scale)
+            ScopedTerm(
+                factors=(cast(ScopedFactor, p) for p in prod if p != 1), scale=scale
+            )
             for prod in itertools.product(*factors)
         )
 
@@ -534,7 +532,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     raise FactorEvaluationError(
                         f"The evaluation method `{factor.eval_method.value}` for factor `{factor}` is not understood."
                     )
-            except FactorEvaluationError:  # pragma: no cover; future proofing against new eval methods
+            except (
+                FactorEvaluationError
+            ):  # pragma: no cover; future proofing against new eval methods
                 raise
             except Exception as e:
                 raise FactorEvaluationError(
@@ -746,7 +746,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             and reduced_rank
         ):
             encoded = FactorValues(
-                encoded.copy(), metadata=encoded.__formulaic_metadata__  # type: ignore
+                encoded.copy(),
+                metadata=encoded.__formulaic_metadata__,  # type: ignore
             )
             del encoded[encoded.__formulaic_metadata__.drop_field]
 
@@ -831,7 +832,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]], None, None]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
         structure = cast(List[EncodedTermStructure], spec.structure)
-        assert len(cols) == len(structure)
+        if not len(cols) == len(structure):  # pragma: no cover
+            raise RuntimeError(
+                "Specification structure and columns are mismatched. Please report this error with examples!"
+            )
         for i, col_spec in enumerate(cols):
             scoped_cols = col_spec[2]
             target_cols = structure[i][2]
@@ -854,9 +858,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     f"Term `{col_spec[0]}` has generated columns that are inconsistent with specification: generated {list(scoped_cols)}, expecting {target_cols}."
                 )
 
-            yield col_spec[0], col_spec[1], {
-                col: scoped_cols[col] for col in target_cols
-            }
+            yield (
+                col_spec[0],
+                col_spec[1],
+                {col: scoped_cols[col] for col in target_cols},
+            )
 
     def _get_columns_for_term(
         self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1

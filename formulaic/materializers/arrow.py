@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Sequence
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Sequence
 
 import pandas
 from interface_meta import override
-
 
 from .pandas import PandasMaterializer
 
@@ -13,8 +13,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class ArrowMaterializer(PandasMaterializer):
-
-    REGISTER_NAME: str = "arrow"
+    REGISTER_NAME = "arrow"
     REGISTER_INPUTS: Sequence[str] = ("pyarrow.lib.Table",)
 
     @override
@@ -27,7 +26,7 @@ class ArrowMaterializer(PandasMaterializer):
         return self.__data_context
 
 
-class LazyArrowTableProxy:
+class LazyArrowTableProxy(Mapping):
     def __init__(self, table: pyarrow.Table):
         self.table = table
         self.column_names = set(self.table.column_names)
@@ -43,3 +42,9 @@ class LazyArrowTableProxy:
         if key not in self._cache:
             self._cache[key] = self.table.column(key).to_pandas()
         return self._cache[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.column_names)
+
+    def __len__(self) -> int:
+        return len(self.column_names)

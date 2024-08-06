@@ -2,14 +2,14 @@ import pandas
 import pytest
 
 from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
+from formulaic.materializers.base import FormulaMaterializer
+from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.materializers.types import (
     EvaluatedFactor,
     FactorValues,
     ScopedFactor,
     ScopedTerm,
 )
-from formulaic.materializers.base import FormulaMaterializer
-from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 
@@ -105,7 +105,6 @@ class TestFormulaMaterializer:
         ) == [ScopedTerm((A, B, C_))]
 
     def test__flatten_encoded_evaled_factor(self):
-
         flattened = PandasMaterializer(data=None)._flatten_encoded_evaled_factor(
             "name",
             FactorValues(
@@ -120,7 +119,6 @@ class TestFormulaMaterializer:
         assert list(flattened.values()) == [1, 2, 3, 4]
 
     def test__enforce_structure(self):
-
         # TODO: Make sure that imputations are intuitive
 
         df = pandas.DataFrame({"a": [1]})

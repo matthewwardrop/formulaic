@@ -1,12 +1,12 @@
-import pytest
-
 import functools
 import itertools
 
+import pytest
+
 from formulaic.errors import FormulaSyntaxError
 from formulaic.parser import DefaultOperatorResolver
-from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
 from formulaic.parser.algos.tokenize import tokenize
+from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
 from formulaic.parser.types import Operator
 
 

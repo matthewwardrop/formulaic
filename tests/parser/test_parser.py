@@ -1,6 +1,6 @@
-from io import BytesIO
 import pickle
 import re
+from io import BytesIO
 from typing import List
 from xml.etree.ElementInclude import include
 
@@ -10,7 +10,6 @@ from formulaic.errors import FormulaParsingError, FormulaSyntaxError
 from formulaic.parser import DefaultFormulaParser, DefaultOperatorResolver
 from formulaic.parser.types import Structured, Token
 from formulaic.parser.types.term import Term
-
 
 FORMULA_TO_TOKENS = {
     "": ["1"],
@@ -206,7 +205,6 @@ class TestDefaultOperatorResolver:
         return DefaultOperatorResolver()
 
     def test_resolve(self, resolver):
-
         assert len(resolver.resolve(Token("+++++"), 1, [])) == 1
         assert resolver.resolve(Token("+++++"), 1, [])[0].symbol == "+"
         assert resolver.resolve(Token("+++++"), 1, [])[0].arity == 2

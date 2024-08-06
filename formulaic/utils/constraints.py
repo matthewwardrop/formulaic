@@ -16,21 +16,20 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import Literal
 
 import numpy
+from typing_extensions import Literal
 
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
 from formulaic.parser.types import (
     ASTNode,
     Factor,
-    OperatorResolver,
     Operator,
+    OperatorResolver,
     Token,
 )
 from formulaic.parser.utils import exc_for_token
-
 
 LinearConstraintSpec = Union[
     str,
@@ -364,9 +363,7 @@ class ScaledFactor:
         return f"{self.scale}*{self.factor}"  # pragma: no cover
 
 
-class ConstraintOperatorResolver(
-    OperatorResolver
-):  # pylint: disable=unnecessary-lambda
+class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessary-lambda
     """
     The default constraint `OperatorResolver` implementation.
 
@@ -386,7 +383,6 @@ class ConstraintOperatorResolver(
         def add_terms(
             terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
         ) -> Set[ScaledFactor]:
-
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
@@ -403,7 +399,6 @@ class ConstraintOperatorResolver(
         def sub_terms(
             terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
         ) -> Set[ScaledFactor]:
-
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 

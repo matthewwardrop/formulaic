@@ -1,7 +1,7 @@
 import pytest
 
-from formulaic.parser.types import Factor
 from formulaic.materializers.types import EvaluatedFactor, FactorValues
+from formulaic.parser.types import Factor
 
 
 class TestEvaluatedFactor:

@@ -5,8 +5,8 @@ import re
 from enum import Enum
 from typing import Any, Iterable, Optional, Tuple, Union
 
-from .ordered_set import OrderedSet
 from .factor import Factor
+from .ordered_set import OrderedSet
 from .term import Term
 
 

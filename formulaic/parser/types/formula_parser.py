@@ -41,8 +41,8 @@ class FormulaParser:
         Args:
             formula: The formula string to be tokenized.
         """
-        from ..algos.tokenize import tokenize
         from ..algos.sanitize_tokens import sanitize_tokens
+        from ..algos.tokenize import tokenize
 
         return sanitize_tokens(tokenize(formula))
 

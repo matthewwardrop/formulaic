@@ -7,7 +7,6 @@ from .operator import Operator
 from .structured import Structured
 from .term import Term
 
-
 ItemType = TypeVar("ItemType")
 
 

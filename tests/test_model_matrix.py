@@ -5,12 +5,12 @@ import pandas
 import pytest
 
 from formulaic import (
-    model_matrix,
-    ModelSpec,
-    ModelMatrix,
-    ModelMatrices,
-    ModelSpecs,
     FactorValues,
+    ModelMatrices,
+    ModelMatrix,
+    ModelSpec,
+    ModelSpecs,
+    model_matrix,
 )
 
 

@@ -6,7 +6,6 @@ from formulaic.utils.layered_mapping import LayeredMapping
 
 
 def test_layered_context():
-
     layer1 = {"a": 1, "b": 2, "c": 3}
     layer2 = {"a": 2, "d": 4}
 
@@ -43,7 +42,6 @@ def test_layered_context():
 
 
 def test_named_layered_mappings():
-
     data_layer = LayeredMapping({"data": 1}, name="data")
     context_layer = LayeredMapping({"context": "context"}, name="context")
     layers = LayeredMapping({"data": None, "context": None}, data_layer, context_layer)

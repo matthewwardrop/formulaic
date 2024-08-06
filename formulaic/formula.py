@@ -11,7 +11,6 @@ from .parser import DefaultFormulaParser
 from .parser.types import FormulaParser, OrderedSet, Structured, Term
 from .utils.calculus import differentiate_term
 
-
 FormulaSpec: TypeAlias = Union[
     str,
     List[Union[str, Term]],

@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import functools
 import itertools
-from typing import Any, Dict, List, Sequence, Set, Tuple, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
 
 import numpy
 import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
+
 from formulaic.utils.cast import as_columns
-from formulaic.utils.null_handling import find_nulls, drop_rows as drop_nulls
+from formulaic.utils.null_handling import drop_rows as drop_nulls
+from formulaic.utils.null_handling import find_nulls
 
 from .base import FormulaMaterializer
 from .types import NAAction
@@ -19,8 +21,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class PandasMaterializer(FormulaMaterializer):
-
-    REGISTER_NAME: str = "pandas"
+    REGISTER_NAME = "pandas"
     REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
     REGISTER_OUTPUTS: Sequence[str] = ("pandas", "numpy", "sparse")
 
@@ -36,7 +37,6 @@ class PandasMaterializer(FormulaMaterializer):
     def _check_for_nulls(
         self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
     ) -> None:
-
         if na_action is NAAction.IGNORE:
             return
 

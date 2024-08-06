@@ -1,6 +1,6 @@
-from ast import Str
 import pickle
 import re
+from ast import Str
 from io import BytesIO
 
 import pytest
@@ -27,7 +27,6 @@ class TestStructured:
             Structured(_invalid=True)
 
     def test_access_structure(self):
-
         s = Structured("Hello", key="asd")
         assert s.root == "Hello"
         assert s[None] == "Hello"
@@ -120,7 +119,6 @@ class TestStructured:
         assert Structured(_metadata={"a": 1})._update()._metadata == {"a": 1}
 
     def test__merge(self):
-
         _m = Structured._merge
 
         assert _m() == Structured()

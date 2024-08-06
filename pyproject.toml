@@ -105,60 +105,57 @@ dependencies = [
 
 [tool.hatch.envs.lint]
 dependencies = [
-    "black==22.6",
-    "flake8==5.0.4",
-    "flake8-pyproject",
-    "mypy==1.4.1",
+    "mypy==1.11.1",
     "mypy-extensions==1.0.0",
-    "pylint==2.17.4",
-    "pytest-cov==3.0.0",
-    "pytest==6.2.5",
+    "ruff==0.5.6",
 ]
 
 [tool.hatch.envs.lint.scripts]
 check = [
-    "black --check formulaic tests",
-    "flake8 formulaic",
-    "pylint formulaic",
+    "ruff format --check",
     "mypy formulaic",
 ]
-format = "black formulaic tests"
+format = "ruff format"
 
 # Linting configuration
 
-[tool.flake8]
-ignore = [
-    "C901","E203","E501","E712","E722","E731","W503","W504","W601"
-]
-max-complexity = 25
-import-order-style = "edited"
-application-import-names = "formulaic"
+[tool.ruff]
+target-version = "py310"
 
-[tool.pylint."MESSAGES CONTROL"]
-disable = [
-    "cyclic-import",
-    "duplicate-code",
-    "eval-used",
-    "fixme",
-    "import-outside-toplevel",
-    "invalid-name",
-    "line-too-long",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "missing-module-docstring",
-    "no-member",
-    "protected-access",
-    "redefined-outer-name",
-    "too-few-public-methods",
-    "too-many-arguments",
-    "too-many-branches",
-    "too-many-instance-attributes",
-    "too-many-statements",
-    "ungrouped-imports",
-    "unnecessary-lambda-assignment",
-    "unused-argument",
-    "use-dict-literal",
+exclude = [
+    "*.egg-info",
+    "*.pyc",
+    ".cache",
+    ".coverage.*",
+    ".gradle",
+    ".tox",
+    "build",
+    "dist",
+    "htmlcov.*",
 ]
+
+[tool.ruff.lint]
+select = [
+    "F",  # flake8 rules
+    "E",  # pycodestyle
+    "W",  # pycodestyle
+    "S",  # bandit
+    "I001",  # import sorting
+    # "D", # documentation
+]
+
+ignore = [
+    "C901",
+    "E203",
+    "E501",
+    "E712",
+    "E722",
+    "E731",
+    "S307",  # Use of ast.literal_eval
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["F", "E", "W", "S"]
 
 [tool.mypy]
 allow_redefinition = true

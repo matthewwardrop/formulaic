@@ -1,11 +1,12 @@
 from ntpath import join
+
 import pytest
 
 from formulaic.parser.types import Token
 from formulaic.parser.utils import (
-    replace_tokens,
     insert_tokens_after,
     merge_operator_tokens,
+    replace_tokens,
 )
 
 

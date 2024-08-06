@@ -1,6 +1,6 @@
 import pytest
 
-from formulaic.materializers.types import ScopedFactor, ScopedTerm, EvaluatedFactor
+from formulaic.materializers.types import EvaluatedFactor, ScopedFactor, ScopedTerm
 from formulaic.parser.types import Factor
 from formulaic.utils.variables import Variable
 

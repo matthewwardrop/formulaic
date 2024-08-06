@@ -1,8 +1,7 @@
 import pytest
 
-from formulaic.parser.algos.tokenize import tokenize
 from formulaic.errors import FormulaSyntaxError
-
+from formulaic.parser.algos.tokenize import tokenize
 
 TOKEN_TESTS = {
     "": [],

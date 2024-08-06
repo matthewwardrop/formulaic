@@ -150,12 +150,16 @@ def tokenize(
             continue  # pragma: no cover; workaround bug in coverage
 
         if word_chars.match(char):
-            assert token.kind in (
+            if token.kind not in (
                 None,
                 Token.Kind.OPERATOR,
                 Token.Kind.VALUE,
                 Token.Kind.NAME,
-            ), f"Unexpected token kind {token.kind}."
+            ):
+                raise exc_for_token(  # pragma: no cover
+                    Token(source=formula, source_start=i, source_end=i),
+                    f"Unexpected token kind {token.kind} for character '{char}'.",
+                )
             if token and token.kind is Token.Kind.OPERATOR:
                 yield token
                 token = Token(source=formula)

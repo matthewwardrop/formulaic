@@ -1,9 +1,9 @@
 import ast
-import itertools
 import functools
+import itertools
 import re
 from dataclasses import dataclass, field
-from typing import List, Iterable, Sequence, Tuple, Union, cast
+from typing import Iterable, List, Sequence, Tuple, Union, cast
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize

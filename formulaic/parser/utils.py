@@ -2,9 +2,9 @@ import re
 from typing import Iterable, Optional, Sequence, Set, Tuple, Type, Union
 
 from formulaic.errors import FormulaSyntaxError
+
 from .types.ast_node import ASTNode
 from .types.token import Token
-
 
 # Exception handling
 
@@ -241,7 +241,7 @@ def merge_operator_tokens(
         # `token` is an operator that can be collapsed on the left
         if pooled_token:
             pooled_token = token.copy_with_attrs(token=pooled_token.token + token.token)
-            if symbols and not pooled_token.token[-1] in symbols:
+            if symbols and pooled_token.token[-1] not in symbols:
                 yield pooled_token
                 pooled_token = None
             continue
