@@ -1,6 +1,7 @@
-import pytest
+import re
 
 import numpy
+import pytest
 
 from formulaic.utils.stateful_transforms import stateful_eval, stateful_transform
 
@@ -15,7 +16,6 @@ def dummy_transform(data, _state=None, _spec=None, _metadata=None):
 
 
 def test_stateful_transform():
-
     state = {}
     metadata = {}
     assert dummy_transform(1, _state=state, _metadata=metadata) == 1
@@ -49,6 +49,25 @@ def test_stateful_eval():
         )
         == 1
     )
+
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape(
+            "Reserved names {'__FORMULAIC_CONTEXT__'} are already in use in the "
+            "evaluation environment."
+        ),
+    ):
+        stateful_eval(
+            "dummy_transform(data)",
+            {
+                "dummy_transform": dummy_transform,
+                "data": 1,
+                "__FORMULAIC_CONTEXT__": {},
+            },
+            None,
+            state,
+            None,
+        )
 
 
 def test_stateful_eval_variable_name_sanitization():

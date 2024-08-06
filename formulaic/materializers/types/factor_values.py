@@ -1,8 +1,9 @@
 from __future__ import annotations
-import copy
 
+import copy
 from dataclasses import dataclass, replace
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -13,7 +14,6 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    TYPE_CHECKING,
 )
 
 import wrapt

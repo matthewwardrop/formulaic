@@ -1,6 +1,6 @@
 import copy
 
-from formulaic.utils.sentinels import _MissingType, MISSING
+from formulaic.utils.sentinels import MISSING, _MissingType
 
 
 def test_missing():

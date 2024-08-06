@@ -4,12 +4,13 @@ import sys
 import time
 from collections import namedtuple
 
-import formulaic
 import numpy
 import pandas
 import patsy
-from formulaic import Formula
 from uncertainties import ufloat
+
+import formulaic
+from formulaic import Formula
 
 ALL_TOOLINGS = ["patsy", "formulaic", "formulaic_sparse", "R", "R_sparse"]
 

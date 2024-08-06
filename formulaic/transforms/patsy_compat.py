@@ -1,12 +1,13 @@
 from typing import Any, Dict, Mapping, Optional
+
 from formulaic.utils.stateful_transforms import stateful_transform
 
 from .contrasts import (
-    TreatmentContrasts,
+    DiffContrasts,
+    HelmertContrasts,
     PolyContrasts,
     SumContrasts,
-    HelmertContrasts,
-    DiffContrasts,
+    TreatmentContrasts,
 )
 from .scale import scale
 

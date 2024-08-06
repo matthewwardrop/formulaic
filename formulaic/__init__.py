@@ -1,6 +1,6 @@
 from .formula import Formula, FormulaSpec
 from .materializers import FactorValues
-from .model_matrix import ModelMatrix, ModelMatrices
+from .model_matrix import ModelMatrices, ModelMatrix
 from .model_spec import ModelSpec, ModelSpecs
 from .sugar import model_matrix
 

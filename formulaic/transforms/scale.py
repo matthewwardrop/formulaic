@@ -1,4 +1,5 @@
 from typing import Any
+
 import numpy
 import scipy.sparse as spsparse
 
@@ -60,7 +61,8 @@ def scale(  # pylint: disable=dangerous-default-value  # always replaced by stat
 
 @scale.register  # type: ignore[attr-defined]
 def _(data: spsparse.spmatrix, *args: Any, **kwargs: Any) -> numpy.ndarray:
-    assert data.shape[1] == 1
+    if data.shape[1] != 1:
+        raise ValueError("Cannot scale a sparse matrix with more than one column.")
     return scale(data.toarray()[:, 0], *args, **kwargs)
 
 

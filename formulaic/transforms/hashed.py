@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from hashlib import md5
 from numbers import Number
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -19,7 +19,7 @@ def md5_to_int(s: str) -> int:  # pragma: no cover; branched code
     if sys.version_info >= (3, 9):
         hashed = md5(s.encode(), usedforsecurity=False)
     else:
-        hashed = md5(s.encode())
+        hashed = md5(s.encode())  # noqa: S324 ; use of insecure hash function
     return int(hashed.hexdigest(), 16)
 
 

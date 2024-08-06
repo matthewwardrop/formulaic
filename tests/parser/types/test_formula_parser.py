@@ -2,7 +2,6 @@ import pytest
 
 from formulaic.parser.types import FormulaParser
 
-
 FORMULA_TO_TOKENS = {
     "": [],
     " ": [],

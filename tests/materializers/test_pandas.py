@@ -19,7 +19,6 @@ from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAActio
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor, Structured
 
-
 PANDAS_TESTS = {
     # '<formula>': (<full_rank_names>, <names>, <full_rank_null_names>, <null_rows>)
     "a": (["Intercept", "a"], ["Intercept", "a"], ["Intercept", "a"], 2),

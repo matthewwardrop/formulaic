@@ -2,7 +2,6 @@ from formulaic.parser.types import OrderedSet
 
 
 def test_ordered_set():
-
     assert OrderedSet() == OrderedSet()
     assert len(OrderedSet()) == 0
 

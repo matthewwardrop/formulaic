@@ -1,11 +1,11 @@
 import sys
-from typing import Any, Optional, Mapping, Union
+from typing import Any, Mapping, Optional, Union
 
 from .layered_mapping import LayeredMapping
 
 
 def capture_context(
-    context: Optional[Union[int, Mapping[str, Any]]] = 0
+    context: Optional[Union[int, Mapping[str, Any]]] = 0,
 ) -> Optional[Mapping[str, Any]]:
     """
     Explicitly capture the context to be used by subsequent formula

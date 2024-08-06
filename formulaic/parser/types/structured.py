@@ -17,7 +17,6 @@ from typing import (
     Union,
 )
 
-
 ItemType = TypeVar("ItemType")
 _MISSING = object()
 
@@ -437,9 +436,7 @@ class Structured(Generic[ItemType]):
         self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Any, None, None]:
-        if (
-            self._has_root and not self._has_keys and isinstance(self.root, Iterable)
-        ):  # pylint: disable=isinstance-second-argument-not-valid-type
+        if self._has_root and not self._has_keys and isinstance(self.root, Iterable):  # pylint: disable=isinstance-second-argument-not-valid-type
             yield from self.root
         else:
             if self._has_root:  # Always yield root first.

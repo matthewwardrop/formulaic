@@ -1,20 +1,20 @@
 from __future__ import annotations
-from abc import abstractmethod
 
 import inspect
 import warnings
+from abc import abstractmethod
 from numbers import Number
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Hashable,
-    Sequence,
-    Tuple,
-    Union,
     Dict,
+    Hashable,
     Iterable,
     List,
     Optional,
-    TYPE_CHECKING,
+    Sequence,
+    Tuple,
+    Union,
     cast,
 )
 

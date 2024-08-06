@@ -1,6 +1,5 @@
-import pytest
-
 import pandas
+import pytest
 
 from formulaic import model_matrix
 from formulaic.errors import FactorEvaluationError

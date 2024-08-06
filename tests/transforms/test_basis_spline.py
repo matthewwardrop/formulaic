@@ -3,9 +3,9 @@ import re
 import numpy
 import pytest
 
-from formulaic.transforms.basis_spline import basis_spline
 from formulaic import model_matrix
 from formulaic.errors import FactorEvaluationError
+from formulaic.transforms.basis_spline import basis_spline
 
 
 class TestBasisSpline:

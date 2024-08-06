@@ -2,8 +2,7 @@ from collections import namedtuple
 from typing import Iterable, List, Union
 
 from ..types import ASTNode, Operator, OperatorResolver, Token
-from ..utils import exc_for_token, exc_for_missing_operator
-
+from ..utils import exc_for_missing_operator, exc_for_token
 
 OrderedOperator = namedtuple("OrderedOperator", ("operator", "token", "index"))
 CONTEXT_OPENERS = {"(", "["}
@@ -53,7 +52,11 @@ def tokens_to_ast(
         operator, token, index = ordered_operator
 
         if operator.fixity is Operator.Fixity.INFIX:
-            assert operator.arity == 2
+            if operator.arity != 2:
+                raise exc_for_token(  # pragma: no cover
+                    token,
+                    f"Infix operator `{token.token}` must have an arity of 2 (got: {operator.arity}).",
+                )
             min_index = index - 1
             max_index = index + 1
         elif operator.fixity is Operator.Fixity.PREFIX:
@@ -107,7 +110,6 @@ def tokens_to_ast(
             )
 
             for operator in operators:
-
                 while (
                     operator_stack
                     and operator_stack[-1].token.kind is not Token.Kind.CONTEXT

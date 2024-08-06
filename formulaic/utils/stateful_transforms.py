@@ -2,6 +2,7 @@ import ast
 import functools
 import inspect
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -9,13 +10,12 @@ from typing import (
     MutableMapping,
     Optional,
     Set,
-    TYPE_CHECKING,
     cast,
 )
 
 from .code import format_expr, sanitize_variable_names
 from .layered_mapping import LayeredMapping
-from .variables import get_expression_variables, Variable
+from .variables import Variable, get_expression_variables
 
 if TYPE_CHECKING:
     from formulaic.model_spec import ModelSpec  # pragma: no cover
@@ -177,10 +177,17 @@ def stateful_eval(
     # Compile mutated AST
     compiled = compile(ast.fix_missing_locations(code), "", "eval")
 
-    assert "__FORMULAIC_CONTEXT__" not in env
-    assert "__FORMULAIC_METADATA__" not in env
-    assert "__FORMULAIC_STATE__" not in env
-    assert "__FORMULAIC_SPEC__" not in env
+    used_reserved = {
+        "__FORMULAIC_CONTEXT__",
+        "__FORMULAIC_METADATA__",
+        "__FORMULAIC_STATE__",
+        "__FORMULAIC_SPEC__",
+    }.intersection(env)
+    if used_reserved:
+        raise RuntimeError(
+            f"Reserved names {repr(used_reserved)} are already in use in the "
+            "evaluation environment."
+        )
 
     # Evaluate and return
     return eval(
@@ -216,9 +223,7 @@ def _is_stateful_transform(node: ast.AST, env: Mapping) -> bool:
         return False
 
     try:
-        func = eval(
-            compile(format_expr(node.func), "", "eval"), {}, env
-        )  # nosec; Get function handle (assuming it exists in env)
+        func = eval(compile(format_expr(node.func), "", "eval"), {}, env)  # nosec; Get function handle (assuming it exists in env)
         return getattr(func, "__is_stateful_transform__", False)
     except NameError:
         return False

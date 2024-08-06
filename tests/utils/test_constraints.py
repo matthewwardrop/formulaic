@@ -4,11 +4,10 @@ import numpy
 import pytest
 
 from formulaic.errors import FormulaSyntaxError
-from formulaic.utils.constraints import LinearConstraints, LinearConstraintParser
+from formulaic.utils.constraints import LinearConstraintParser, LinearConstraints
 
 
 class TestLinearConstraints:
-
     REF_MATRICES = {
         1: [[1, 1, 1]],
         2: [[1, 1, 1], [1, 0, -1]],
@@ -188,7 +187,6 @@ class TestLinearConstraints:
 
 
 class TestLinearConstraintParser:
-
     COLUMNS = list("abcd")
 
     TEST_CASES = {
