@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy
 import pandas
@@ -11,10 +11,8 @@ from interface_meta import override
 
 from formulaic.utils.cast import as_columns
 from formulaic.utils.null_handling import drop_rows as drop_nulls
-from formulaic.utils.null_handling import find_nulls
 
 from .base import FormulaMaterializer
-from .types import NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
@@ -32,32 +30,6 @@ class PandasMaterializer(FormulaMaterializer):
                 values.dtype, pandas.CategoricalDtype
             )
         return super()._is_categorical(values)
-
-    @override
-    def _check_for_nulls(
-        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
-    ) -> None:
-        if na_action is NAAction.IGNORE:
-            return
-
-        try:
-            null_indices = find_nulls(values)
-
-            if na_action is NAAction.RAISE:
-                if null_indices:
-                    raise ValueError(f"`{name}` contains null values after evaluation.")
-
-            elif na_action is NAAction.DROP:
-                drop_rows.update(null_indices)
-
-            else:
-                raise ValueError(
-                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
-                )  # pragma: no cover; this is currently impossible to reach
-        except ValueError as e:
-            raise ValueError(
-                f"Error encountered while checking for nulls in `{name}`: {e}"
-            ) from e
 
     @override
     def _encode_constant(
