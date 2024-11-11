@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Union, Tuple, List
 
 from .formula import FormulaSpec
 from .model_matrix import ModelMatrices, ModelMatrix
@@ -12,7 +12,7 @@ def model_matrix(
     *,
     context: Union[int, Mapping[str, Any]] = 0,
     **spec_overrides: Any,
-) -> Union[ModelMatrix, ModelMatrices]:
+) -> Union[Union[ModelMatrix, ModelMatrices], Tuple[Union[ModelMatrix, ModelMatrices], List[int]]]:
     """
     Generate a model matrix directly from a formula or model spec.
 
@@ -48,6 +48,8 @@ def model_matrix(
         nominated structure.
     """
     _context = capture_context(context + 1) if isinstance(context, int) else context
+    return_drop_index = spec_overrides.pop("return_drop_index", False)
+
     return ModelSpec.from_spec(spec, **spec_overrides).get_model_matrix(
-        data, context=_context
+        data, context=_context, return_drop_index=return_drop_index
     )
