@@ -311,6 +311,7 @@ class ModelSpec:
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
+        drop_rows: Optional[Set[int]] = None,
         **attr_overrides: Any,
     ) -> ModelMatrix:
         """
@@ -333,7 +334,7 @@ class ModelSpec:
             materializer = FormulaMaterializer.for_materializer(self.materializer)
         return materializer(
             data, context=context, **(self.materializer_params or {})
-        ).get_model_matrix(self)
+        ).get_model_matrix(self, drop_rows=drop_rows)
 
     def get_linear_constraints(self, spec: LinearConstraintSpec) -> LinearConstraints:
         """
@@ -410,6 +411,7 @@ class ModelSpecs(Structured[ModelSpec]):
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
+        drop_rows: Optional[Set[int]] = None,
         **attr_overrides: Any,
     ) -> ModelMatrices:
         """
@@ -431,7 +433,7 @@ class ModelSpecs(Structured[ModelSpec]):
 
         if attr_overrides:
             return ModelSpec.from_spec(self, **attr_overrides).get_model_matrix(
-                data, context=context
+                data, context=context, drop_rows=drop_rows
             )
 
         # Check whether we can generate model matrices jointly (i.e. all
@@ -469,7 +471,7 @@ class ModelSpecs(Structured[ModelSpec]):
         return cast(
             ModelMatrices,
             self._map(
-                lambda model_spec: model_spec.get_model_matrix(data, context=context),
+                lambda model_spec: model_spec.get_model_matrix(data, context=context, drop_rows=drop_rows),
                 as_type=ModelMatrices,
             ),
         )
