@@ -13,6 +13,7 @@ from typing import (
     Set,
     Union,
     cast,
+    Tuple
 )
 
 from formulaic.materializers.base import EncodedTermStructure
@@ -312,7 +313,7 @@ class ModelSpec:
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
         **attr_overrides: Any,
-    ) -> ModelMatrix:
+    ) -> Union[Union[ModelMatrix, ModelMatrices], Tuple[Union[ModelMatrix, ModelMatrices], List[int]]]:
         """
         Build the model matrix (or matrices) realisation of this model spec for
         the nominated `data`.
@@ -325,15 +326,17 @@ class ModelSpec:
                 constructing model matrices. This is shorthand for first
                 running `ModelSpec.update(**attr_overrides)`.
         """
+        return_drop_index = attr_overrides.pop("return_drop_index", False)
         if attr_overrides:
-            return self.update(**attr_overrides).get_model_matrix(data, context=context)
+            return self.update(**attr_overrides).get_model_matrix(data, context=context,
+                                                                  return_drop_index=return_drop_index)
         if self.materializer is None:
             materializer = FormulaMaterializer.for_data(data)
         else:
             materializer = FormulaMaterializer.for_materializer(self.materializer)
         return materializer(
             data, context=context, **(self.materializer_params or {})
-        ).get_model_matrix(self)
+        ).get_model_matrix(self, return_drop_index=return_drop_index)
 
     def get_linear_constraints(self, spec: LinearConstraintSpec) -> LinearConstraints:
         """
@@ -428,10 +431,11 @@ class ModelSpecs(Structured[ModelSpec]):
                 running `ModelSpec.from_spec(model_specs, **attr_overrides)`.
         """
         from formulaic import ModelMatrices
+        return_drop_index = attr_overrides.pop("return_drop_index", False)
 
         if attr_overrides:
             return ModelSpec.from_spec(self, **attr_overrides).get_model_matrix(
-                data, context=context
+                data, context=context, return_drop_index=return_drop_index
             )
 
         # Check whether we can generate model matrices jointly (i.e. all
@@ -464,12 +468,13 @@ class ModelSpecs(Structured[ModelSpec]):
                 materializer = FormulaMaterializer.for_materializer(materializer)
             return materializer(  # type: ignore
                 data, context=context, **(materializer_params or {})
-            ).get_model_matrix(self)
+            ).get_model_matrix(self, return_drop_index=return_drop_index)
 
         return cast(
             ModelMatrices,
             self._map(
-                lambda model_spec: model_spec.get_model_matrix(data, context=context),
+                lambda model_spec: model_spec.get_model_matrix(data, context=context,
+                                                               return_drop_index=return_drop_index),
                 as_type=ModelMatrices,
             ),
         )

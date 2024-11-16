@@ -154,11 +154,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def nrows(self) -> int:
         return len(self.data)
 
-    def get_model_matrix(
+    def get_model_matrix_with_dropped(
         self,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
         **spec_overrides: Any,
-    ) -> Union[ModelMatrix, ModelMatrices]:
+    ) -> Tuple[Union[ModelMatrix, ModelMatrices], List[int]]:
         from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
@@ -202,7 +202,20 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         if should_simplify:
             return cast(Union[ModelMatrix, ModelMatrices], model_matrices._simplify())
-        return model_matrices
+        return model_matrices, drop_rows
+
+
+    def get_model_matrix(
+        self,
+        spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        **spec_overrides: Any,
+    ) -> Union[Union[ModelMatrix, ModelMatrices], Tuple[Union[ModelMatrix, ModelMatrices], List[int]]]:
+        return_drop_index = spec_overrides.pop("return_drop_index", False)
+        model_matrices, drop_index = self.get_model_matrix_with_dropped(spec, **spec_overrides)
+        if return_drop_index:
+            return model_matrices, drop_index
+        else:
+            return model_matrices
 
     def _build_model_matrix(
         self, spec: ModelSpec, drop_rows: Sequence[int]
