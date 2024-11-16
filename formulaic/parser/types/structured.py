@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import itertools
 from collections import defaultdict
 from typing import (
@@ -97,7 +98,7 @@ class Structured(Generic[ItemType]):
                 f"The invalid keys are: {set(key for key in structure if key.startswith('_'))}."
             )
         if root is not _MISSING:
-            structure["root"] = self.__prepare_item("root", root)
+            structure["root"] = root
         self._metadata = _metadata
 
         self._structure = {
@@ -106,6 +107,9 @@ class Structured(Generic[ItemType]):
 
     def __prepare_item(self, key: str, item: Any) -> Any:
         if isinstance(item, Structured):
+            if type(item) is self.__class__:
+                # Will already have been prepared
+                return item
             return item._map(
                 lambda x: self._prepare_item(key, x), as_type=self.__class__
             )
@@ -258,28 +262,39 @@ class Structured(Generic[ItemType]):
         if not isinstance(structured, Structured):
             return structured
 
-        structure = structured._structure
+        structure = structured._structure.copy()
+        structure_modified: bool = False
 
         if recurse:
 
-            def simplify_obj(obj: Any) -> Any:
+            def simplify_obj(obj: Any) -> Tuple[Any, bool]:
+                """
+                Return the simplified object, and a flag indicating whether the
+                object was modified.
+                """
                 if isinstance(obj, Structured):
-                    return obj._simplify(recurse=True)
+                    simplified = obj._simplify(recurse=True)
+                    return simplified, simplified is not obj
                 if isinstance(obj, tuple):
-                    return tuple(simplify_obj(o) for o in obj)
-                return obj
+                    simplified = tuple(simplify_obj(o) for o in obj)
+                    return tuple(s[0] for s in simplified), any(
+                        s[1] for s in simplified
+                    )
+                return obj, False
 
-            structure = {
-                key: simplify_obj(value) for key, value in structured._structure.items()
-            }
+            for key, value in tuple(structure.items()):
+                value, value_modified = simplify_obj(value)
+                if value_modified:
+                    structure[key] = value
+                    structure_modified = True
 
-        if inplace:
-            self._structure = structure
-            return self
-        return self.__class__(
-            _metadata=self._metadata,
-            **structure,
-        )
+        if not inplace and not structure_modified:
+            # Avoid any further work if simplification has not occurred
+            return structured
+        if not inplace:
+            self = copy.copy(self)
+        self._structure = structure
+        return self
 
     def _update(self, root: Any = _MISSING, **structure: Any) -> Structured[ItemType]:
         """

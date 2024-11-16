@@ -1,6 +1,5 @@
 import pickle
 import re
-from ast import Str
 from io import BytesIO
 
 import pytest

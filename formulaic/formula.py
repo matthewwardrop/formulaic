@@ -144,6 +144,8 @@ class Formula(Structured[List[Term]]):
             item: The specification to convert.
         """
 
+        formula_or_terms: Union[List[Term], Structured[List[Term]]]
+
         if isinstance(item, str):
             item = cast(
                 FormulaSpec,
@@ -153,9 +155,14 @@ class Formula(Structured[List[Term]]):
             )
 
         if isinstance(item, Structured):
-            formula_or_terms = Formula(
-                _parser=self._nested_parser, **item._structure
-            )._simplify()
+            return cast(
+                Union[List[Term], Formula],
+                Formula(
+                    _parser=self._nested_parser,
+                    _ordering=self._ordering,
+                    **item._structure,
+                )._simplify(),
+            )
         elif isinstance(item, (list, set, OrderedSet)):
             formula_or_terms = [
                 term
@@ -266,14 +273,14 @@ class Formula(Structured[List[Term]]):
         # Keep substructures wrapped to retain access to helper functions.
         subformula = super().__getattr__(attr)
         if attr != "root":
-            return Formula.from_spec(subformula)
+            return Formula.from_spec(subformula, ordering="none")  # already ordered
         return subformula
 
     def __getitem__(self, key: Any) -> Any:
         # Keep substructures wrapped to retain access to helper functions.
         subformula = super().__getitem__(key)
         if key != "root":
-            return Formula.from_spec(subformula)
+            return Formula.from_spec(subformula, ordering="none")  # already ordered
         return subformula
 
     def __repr__(self, to_str: Callable[..., str] = repr) -> str:
