@@ -73,6 +73,12 @@ class TestLinearConstraints:
             (
                 2,
                 LinearConstraints.from_spec(
+                    ["a + b + c - 10", "a - c = 10"], variable_names=["a", "b", "c"]
+                ),
+            ),
+            (
+                2,
+                LinearConstraints.from_spec(
                     {"a + b + c": 10, "a - c": 10}, variable_names=["a", "b", "c"]
                 ),
             ),
