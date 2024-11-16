@@ -26,6 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">=3.7.2"
 dependencies = [
@@ -72,8 +73,7 @@ include = [
 
 [tool.hatch.envs.default]
 dependencies = [
-    'formulaic[arrow,calculus]; python_version < "3.12"',
-    'formulaic[calculus]; python_version == "3.12"',
+    'formulaic[arrow,calculus]',
     "pytest==7.4.3",
     "pytest-cov==4.1.0",
 ]
@@ -82,7 +82,7 @@ dependencies = [
 tests = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["37", "38", "39", "310", "311", "312", "313"]
 
 [[tool.hatch.envs.test_min.matrix]]
 python = ["37"]
