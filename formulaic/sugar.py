@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Optional, Set, Union
 
 from .formula import FormulaSpec
 from .model_matrix import ModelMatrices, ModelMatrix
@@ -11,6 +11,7 @@ def model_matrix(
     data: Any,
     *,
     context: Union[int, Mapping[str, Any]] = 0,
+    drop_rows: Optional[Set[int]] = None,
     **spec_overrides: Any,
 ) -> Union[ModelMatrix, ModelMatrices]:
     """
@@ -49,5 +50,5 @@ def model_matrix(
     """
     _context = capture_context(context + 1) if isinstance(context, int) else context
     return ModelSpec.from_spec(spec, **spec_overrides).get_model_matrix(
-        data, context=_context
+        data, context=_context, drop_rows=drop_rows
     )
