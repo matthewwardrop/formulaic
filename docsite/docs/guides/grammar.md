@@ -62,6 +62,7 @@ that have *not* been implemented by `formulaic` are explicitly noted also.
 | `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | ✗ |
 | `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^7] | ✓ |
 | `standardize(...)` | Alias of `scale`. | ✓[^8] | ✓ | ✗ |
+| `lag(...[, <k>])` | Generate lagging or leading columns (useful for datasets collected at regular intervals). | ✓ | ✗ | ✓ |
 | `poly(...)` | Generates a polynomial basis, allowing non-linear fits. | ✓ | ✗ | ✓ |
 | `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
 | `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |

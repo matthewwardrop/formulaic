@@ -6,6 +6,7 @@ from .basis_spline import basis_spline
 from .contrasts import C, ContrastsRegistry, encode_contrasts
 from .hashed import hashed
 from .identity import identity
+from .lag import lag
 from .patsy_compat import PATSY_COMPAT_TRANSFORMS
 from .poly import poly
 from .scale import center, scale
@@ -16,6 +17,7 @@ __all__ = [
     "C",
     "encode_contrasts",
     "ContrastsRegistry",
+    "lag",
     "poly",
     "center",
     "scale",
@@ -35,6 +37,7 @@ TRANSFORMS = {
     # Bespoke transforms
     "bs": basis_spline,
     "center": center,
+    "lag": lag,
     "poly": poly,
     "scale": scale,
     "C": C,
