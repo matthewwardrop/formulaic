@@ -220,6 +220,7 @@ class Formula(Structured[List[Term]]):
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
+        drop_rows: Optional[Set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
         """
@@ -230,13 +231,17 @@ class Formula(Structured[List[Term]]):
             data: The data for which to build the model matrices.
             context: An additional mapping object of names to make available in
                 when evaluating formula term factors.
+            drop_rows: An optional set of row indices to drop from the model
+                matrix. If specified, it will also be updated during
+                materialization with any additional rows dropped due to null
+                values.
             spec_overrides: Any `ModelSpec` attributes to set/override. See
                 `ModelSpec` for more details.
         """
         from .model_spec import ModelSpec
 
         return ModelSpec.from_spec(self, **spec_overrides).get_model_matrix(
-            data, context=context
+            data, context=context, drop_rows=drop_rows
         )
 
     def differentiate(  # pylint: disable=redefined-builtin

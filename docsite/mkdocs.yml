@@ -10,6 +10,7 @@ nav:
     - Introduction: guides/index.md
     - Quickstart: guides/quickstart.ipynb
     - How it works: guides/formulae.ipynb
+    - Handling Missing Data: guides/missing_data.ipynb
     - Formula Grammar: guides/grammar.md
     - Model Specs: guides/model_specs.ipynb
     - Transforms: guides/transforms.ipynb

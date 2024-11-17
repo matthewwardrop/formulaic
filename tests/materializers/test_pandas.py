@@ -480,3 +480,18 @@ class TestPandasMaterializer:
     def test_nested_transform_state(self, data):
         ms = PandasMaterializer(data).get_model_matrix("bs(bs(a))").model_spec
         assert {"bs(a)", "bs(bs(a))"}.issubset(ms.transform_state)
+
+    def test_drop_rows(self, data, data_with_nulls):
+        drop_rows = {0, 1}
+        mm = PandasMaterializer(data).get_model_matrix("a", drop_rows=drop_rows)
+        assert mm.shape == (1, 2)
+        assert list(mm.index) == [2]
+        assert drop_rows == {0, 1}
+
+        drop_rows = {0, 1}
+        mm = PandasMaterializer(data_with_nulls).get_model_matrix(
+            "a", drop_rows=drop_rows
+        )
+        assert mm.shape == (0, 2)
+        assert not list(mm.index)
+        assert drop_rows == {0, 1, 2}

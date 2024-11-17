@@ -157,6 +157,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def get_model_matrix(
         self,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        drop_rows: Optional[Set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, ModelMatrices]:
         from formulaic import ModelSpec
@@ -175,7 +176,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
-        drop_rows: Set[int] = set()
+        drop_rows: Set[int] = drop_rows if drop_rows is not None else set()
         for factor in factors:
             self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
         drop_rows: Sequence[int] = sorted(drop_rows)
