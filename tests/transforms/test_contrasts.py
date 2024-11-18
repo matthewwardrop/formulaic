@@ -11,10 +11,13 @@ from formulaic.materializers import FactorValues
 from formulaic.model_spec import ModelSpec
 from formulaic.transforms.contrasts import (
     ContrastsRegistry as contr,
+    ContrastsState,
 )
 from formulaic.transforms.contrasts import (
     SumContrasts,
     encode_contrasts,
+    UNSET,
+    _UnsetSentinel,
 )
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 
@@ -29,6 +32,11 @@ def _compare_factor_values(a, b, comp=lambda x, y: numpy.allclose(x, y)):
     else:
         assert comp(a, b)
     assert a.__formulaic_metadata__ == b.__formulaic_metadata__
+
+
+def test_unset_sentinel():
+    assert _UnsetSentinel() is UNSET
+    assert repr(UNSET) == "UNSET"
 
 
 class TestContrastsTransform:
@@ -58,6 +66,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
         with pytest.warns(DataMismatchWarning):
             _compare_factor_values(
@@ -83,6 +92,7 @@ class TestContrastsTransform:
                 ),
             )
             assert state["categories"] == ["a", "b", "c"]
+            assert "contrasts" in state
 
         _compare_factor_values(
             encode_contrasts(
@@ -107,6 +117,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
     def test_sparse(self):
         state = {}
@@ -134,6 +145,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
         _compare_factor_values(
             encode_contrasts(
@@ -158,6 +170,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
         with pytest.warns(DataMismatchWarning):
             _compare_factor_values(
@@ -183,6 +196,7 @@ class TestContrastsTransform:
                 ),
             )
             assert state["categories"] == ["a", "b", "c"]
+            assert "contrasts" in state
 
     def test_numpy(self):
         assert isinstance(
@@ -217,6 +231,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
     def test_specifying_contrast_class(self):
         state = {}
@@ -243,6 +258,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
     def test_specifying_custom_encode_contrasts(self):
         state = {}
@@ -267,6 +283,7 @@ class TestContrastsTransform:
             ),
         )
         assert state["categories"] == ["a", "b", "c"]
+        assert "contrasts" in state
 
     def test_invalid_output_type(self):
         with pytest.raises(ValueError, match=r"^Unknown output type"):
@@ -914,4 +931,15 @@ def test_full_rankness_opt_out():
         "C(A, spans_intercept=False)[T.a]",
         "C(A, spans_intercept=False)[T.b]",
         "C(A, spans_intercept=False)[T.c]",
+    )
+
+
+def test_contrasts_state():
+    assert numpy.allclose(
+        ContrastsState(contr.helmert(), ["a", "b", "c"]).get_coding_matrix(),
+        contr.helmert().get_coding_matrix(["a", "b", "c"]),
+    )
+    assert numpy.allclose(
+        ContrastsState(contr.helmert(), ["a", "b", "c"]).get_coefficient_matrix(),
+        contr.helmert().get_coefficient_matrix(["a", "b", "c"]),
     )
