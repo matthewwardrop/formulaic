@@ -10,6 +10,7 @@ from .model_matrix import ModelMatrix
 from .parser import DefaultFormulaParser
 from .parser.types import FormulaParser, OrderedSet, Structured, Term
 from .utils.calculus import differentiate_term
+from .utils.variables import Variable, get_expression_variables
 
 FormulaSpec: TypeAlias = Union[
     str,
@@ -242,6 +243,44 @@ class Formula(Structured[List[Term]]):
 
         return ModelSpec.from_spec(self, **spec_overrides).get_model_matrix(
             data, context=context, drop_rows=drop_rows
+        )
+
+    @property
+    def required_variables(self) -> Set[Variable]:
+        """
+        The set of variables required in the data order to materialize this
+        formula.
+
+        Attempts are made to restrict these variables only to those expected in
+        the data, and not, for example, those associated with transforms and/or
+        values present in the evaluation namespace by default (e.g. `y ~ C(x)`
+        would include only `y` and `x`). This may not always be possible for
+        more advanced formulae that insert constants into the formula via the
+        evaluation context rather than the data context.
+        """
+
+        variables: List[Variable] = []
+
+        # Recurse through formula to collect all variables
+        self._map(
+            lambda terms: variables.extend(
+                variable
+                for term in terms
+                for factor in term.factors
+                for variable in get_expression_variables(factor.expr, {})
+                if "value" in variable.roles
+            )
+        )
+
+        # Filter out constants like `contr` that are already present in the
+        # TRANSFORMS namespace.
+        from formulaic.transforms import TRANSFORMS
+
+        return set(
+            filter(
+                lambda variable: variable.split(".", 1)[0] not in TRANSFORMS,
+                Variable.union(variables),
+            )
         )
 
     def differentiate(  # pylint: disable=redefined-builtin
