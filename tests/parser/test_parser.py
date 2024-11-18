@@ -198,6 +198,34 @@ class TestFormulaParser:
         ):
             PARSER.get_terms("50:a + 100:a")
 
+    def test_feature_flags(self):
+        assert "lhs" in DefaultFormulaParser(feature_flags={"twosided"}).get_terms(
+            "y ~ x"
+        )
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Operator `~` has been disabled in this context via parser configuration."
+            ),
+        ):
+            DefaultFormulaParser(feature_flags={}).get_terms("y ~ x")
+
+        assert (
+            len(
+                DefaultFormulaParser()
+                .set_feature_flags({"multipart"})
+                .get_terms("x | y")
+            )
+            == 2
+        )
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Operator `|` has been disabled in this context via parser configuration."
+            ),
+        ):
+            DefaultFormulaParser().set_feature_flags({}).get_terms("x | y")
+
 
 class TestDefaultOperatorResolver:
     @pytest.fixture
@@ -239,3 +267,13 @@ class TestDefaultOperatorResolver:
         resolver = pickle.load(o)
         assert "operator_table" not in resolver.__dict__
         assert resolver.operator_table
+
+    def test_feature_flags(self):
+        resolver = DefaultOperatorResolver(feature_flags=set())
+        tbl = resolver.operator_table
+        new_tbl = resolver.set_feature_flags({"twosided"}).operator_table
+
+        assert tbl is not new_tbl
+        assert len([o for o in tbl["~"] if o.disabled]) > len(
+            [o for o in new_tbl["~"] if o.disabled]
+        )

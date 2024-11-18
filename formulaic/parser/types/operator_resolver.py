@@ -46,7 +46,9 @@ class OperatorResolver(metaclass=abc.ABCMeta):
             operator_table[operator.symbol].append(operator)
         for symbol in operator_table:
             operator_table[symbol] = sorted(
-                operator_table[symbol], key=lambda op: op.precedence, reverse=True
+                operator_table[symbol],
+                key=lambda op: (op.precedence, op.arity),
+                reverse=True,
             )
         return operator_table
 
@@ -93,6 +95,12 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         ]
         if not candidates:
             raise exc_for_token(token, f"Operator `{symbol}` is incorrectly used.")
+        candidates = [candidate for candidate in candidates if not candidate.disabled]
+        if not candidates:
+            raise exc_for_token(
+                token,
+                f"Operator `{symbol}` has been disabled in this context via parser configuration.",
+            )
         if len(candidates) > 1:
             raise exc_for_token(
                 token,

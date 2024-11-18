@@ -35,6 +35,9 @@ class Operator:
             which case `Structured._merge` will not be used in the
             `ASTNode.to_terms()`, and the termsets will be directly passed to
             `Operator.to_terms()`.
+        disabled: Whether this operator is disabled and should not be used. This
+            is useful for restricting the set of formula that can be parsed in
+            certain contexts.
     """
 
     class Associativity(Enum):
@@ -60,6 +63,7 @@ class Operator:
             Callable[[List[Union[Token, Operator]]], bool]
         ] = None,
         structural: bool = False,
+        disabled: bool = False,
     ):
         self.symbol = symbol
         self.arity = arity
@@ -69,6 +73,7 @@ class Operator:
         self._to_terms = to_terms
         self._accepts_context = accepts_context
         self.structural = structural
+        self.disabled = disabled
 
     @property
     def associativity(self) -> Operator.Associativity:
