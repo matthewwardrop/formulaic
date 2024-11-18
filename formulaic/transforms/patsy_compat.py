@@ -8,6 +8,7 @@ from .contrasts import (
     PolyContrasts,
     SumContrasts,
     TreatmentContrasts,
+    UNSET,
 )
 from .scale import scale
 
@@ -23,7 +24,7 @@ def standardize(
     return scale(x, center=center, scale=rescale, ddof=ddof, _state=_state)
 
 
-def Treatment(reference: Any = TreatmentContrasts.MISSING) -> TreatmentContrasts:
+def Treatment(reference: Any = UNSET) -> TreatmentContrasts:
     return TreatmentContrasts(base=reference)
 
 

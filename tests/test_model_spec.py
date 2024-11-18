@@ -78,18 +78,33 @@ class TestModelSpec:
             "A:a": slice(4, 6),
         }
         assert model_spec.terms == ["1", "a", "A", "A:a"]
+        assert model_spec.term_factors == {
+            "1": {"1"},
+            "a": {"a"},
+            "A": {"A"},
+            "A:a": {"a", "A"},
+        }
         assert model_spec.term_variables == {
             "1": set(),
             "a": {"a"},
             "A": {"A"},
             "A:a": {"a", "A"},
         }
+        assert model_spec.factors == {"1", "a", "A"}
+        assert model_spec.factor_terms == {
+            "1": {"1"},
+            "a": {"a", "A:a"},
+            "A": {"A", "A:a"},
+        }
+        assert model_spec.factor_variables == {"1": set(), "a": {"a"}, "A": {"A"}}
+        assert set(model_spec.factor_contrasts) == {"A"}
+        assert model_spec.factor_contrasts["A"].levels == ["a", "b", "c"]
+        assert model_spec.variables == {"a", "A"}
         assert model_spec.variable_terms == {"a": {"a", "A:a"}, "A": {"A", "A:a"}}
         assert model_spec.variable_indices == {
             "a": [1, 4, 5],
             "A": [2, 3, 4, 5],
         }
-        assert model_spec.variables == {"a", "A"}
         assert model_spec.variables_by_source == {"data": {"a", "A"}}
 
     def test_get_model_matrix(self, model_spec, data2):
@@ -184,6 +199,8 @@ class TestModelSpec:
     def test_empty(self):
         model_spec = ModelSpec([])
 
+        assert model_spec.factor_contrasts == {}
+
         with pytest.raises(
             RuntimeError,
             match=re.escape(
@@ -213,6 +230,16 @@ class TestModelSpec:
             ),
         ):
             model_spec.term_variables
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.factor_variables
 
     def test_unrepresented_term(self):
         model_spec = (

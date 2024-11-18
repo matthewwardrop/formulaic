@@ -16,7 +16,7 @@ from typing import (
 )
 
 from formulaic.materializers.base import EncodedTermStructure
-from formulaic.parser.types import Structured, Term
+from formulaic.parser.types import Factor, Structured, Term
 from formulaic.utils.constraints import LinearConstraints, LinearConstraintSpec
 from formulaic.utils.variables import Variable
 
@@ -24,6 +24,7 @@ from .formula import Formula, FormulaSpec
 from .materializers import ClusterBy, FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
+    from .transforms.contrasts import ContrastsState
     from .model_matrix import ModelMatrices, ModelMatrix
 
 # Cached property was introduced in Python 3.8 (we currently support 3.7)
@@ -210,6 +211,18 @@ class ModelSpec:
         }
 
     @cached_property
+    def term_factors(self) -> Dict[Term, Set[Factor]]:
+        """
+        A mapping from `Term` instances to the factors which were used to
+        generate them.
+        """
+        term_factors: Dict[Term, Set[Factor]] = defaultdict(set)
+        for term in self.terms:
+            for factor in term.factors:
+                term_factors[term].add(factor)
+        return dict(term_factors)
+
+    @cached_property
     def term_variables(self) -> Dict[Term, Set[Variable]]:
         """
         An ordered mapping of `Term` instances to the set of `Variable`
@@ -224,14 +237,97 @@ class ModelSpec:
                 "to the model matrix generated when calling `.get_model_matrix()`."
             )
         term_variables = {}
-        start = 0
         for row in self.structure:
-            end = start + len(row[2])
             term_variables[row[0]] = Variable.union(
                 *(term.variables for term in row[1]),
             )
-            start = end
         return term_variables
+
+    @cached_property
+    def factors(self) -> Set[Factor]:
+        """
+        The factors used to generate model matrices from this `ModelSpec`
+        instance.
+        """
+        return {factor for term in self.terms for factor in term.factors}
+
+    @cached_property
+    def factor_terms(self) -> Dict[Factor, Set[Term]]:
+        """
+        A mapping from `Factor` instances to the terms which used it. This is
+        the reverse mapping of `.term_factors`.
+        """
+        factor_terms: Dict[Factor, Set[Term]] = defaultdict(set)
+        for term, factors in self.term_factors.items():
+            for factor in factors:
+                factor_terms[factor].add(term)
+        return dict(factor_terms)
+
+    @cached_property
+    def factor_variables(self) -> Dict[Factor, Set[Variable]]:
+        """
+        A mapping from `Factor` instances to the variables used in the evaluation
+        of that factor.
+        """
+
+        if self.structure is None:
+            raise RuntimeError(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            )
+
+        factor_variables: Dict[Factor, List[Variable]] = defaultdict(list)
+        for s in self.structure:
+            for scoped_term in s.scoped_terms:
+                for scoped_factor in scoped_term.factors:
+                    factor_variables[scoped_factor.factor.factor].extend(
+                        scoped_factor.factor.variables
+                    )
+
+        return {
+            factor: Variable.union(factor_variables.get(factor, []))
+            for factor in self.factors
+        }
+
+    @cached_property
+    def factor_contrasts(self) -> Dict[Factor, ContrastsState]:
+        """
+        A mapping of `Factor` instances to their contrasts state. This is useful
+        if you would like to introspect some of the coding choices, or reuse
+        these encodings outside of formulaic. Only categorical factors that were
+        encoded by Formulaic will be included in this mapping.
+
+        Note that these contrast states do *not* include whether the factor was
+        encoded using reduced rank or not, since this is potentially ambiguous
+        even within a single term. [Depending on the context, a factor may
+        be encoded as either or both full and reduced rank in order to fully
+        span the vector space]. Instead, you can choose whether to reduce the
+        rank using:
+        ```
+        model_spec.factor_contrasts[<factor>].get_coding_matrix(reduced_rank=True)
+        ```
+        If not specified, the default is to reduce the rank, which gives the
+        more interesting matrices.
+
+        Refer to the documentation of `ContrastsState` for more details.
+        """
+        return {
+            factor: self.encoder_state[factor][1]["contrasts"]
+            for factor in self.factors
+            if factor in self.encoder_state
+            and self.encoder_state[factor][0] is Factor.Kind.CATEGORICAL
+            and "contrasts" in self.encoder_state[factor][1]
+        }
+
+    @cached_property
+    def variables(self) -> Set[Variable]:
+        """
+        The variables used during the materialization of the entire formula.
+        """
+        return Variable.union(
+            *(variables for variables in self.term_variables.values())
+        )
 
     @cached_property
     def variable_terms(self) -> Dict[Variable, Set[Term]]:
@@ -257,12 +353,6 @@ class ModelSpec:
             )
             for variable, terms in self.variable_terms.items()
         }
-
-    @cached_property
-    def variables(self) -> Set[Variable]:
-        return Variable.union(
-            *(variables for variables in self.term_variables.values())
-        )
 
     @cached_property
     def variables_by_source(self) -> Dict[Optional[str], Set[Variable]]:
