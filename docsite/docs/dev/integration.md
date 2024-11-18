@@ -5,7 +5,7 @@ APIs that should make it straightforward to integrate into any project.
 In this document we provide several general recommendations for developers
 integrating Formulaic, and then some more specific guidance for developers
 looking to migrate existing formula functionality from `patsy`. As you are
-working on integration Formulaic, if you come across anything not mentioned here
+working on integrating Formulaic, if you come across anything not mentioned here
 that really ought to be, please report it to our
 [Issue Tracker](https://github.com/matthewwardrop/formulaic/issues).
 
@@ -54,6 +54,13 @@ recommendations that might make your integration work easier.
   stored encoder and transform states are considered implementation details of
   stateful transforms and are subject to change between major versions. Patch
   releases should never result in changes to this state.
+* Formulaic's default parsers allow you to restrict the set of features used
+  when parsing formulae. This is useful if you are expecting formulae to be of a
+  particular structural form, and do not want to have to check after the fact.
+  Any feature that results in nested structure is associated with a feature flag
+  in `formulaic.parser.DefaultParserFeatureFlag`. You can pass these flags, or a
+  set of (case-insensitive) strings corresponding to these enums, to
+  `DefaultFormulaParser(feature_flags=...)`.
 
 ## Migrating from Patsy
 

@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import ast
 import functools
 import itertools
 import re
 from dataclasses import dataclass, field
-from typing import Iterable, List, Sequence, Tuple, Union, cast
+from enum import Flag, auto
+from typing import Iterable, List, Sequence, Set, Tuple, Union, cast
+
+from typing_extensions import Self
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
@@ -25,6 +30,27 @@ from .utils import (
 )
 
 
+class DefaultParserFeatureFlag(Flag):
+    """
+    Feature flags to restrict the flexibility of the formula parser.
+    """
+
+    NONE = 0
+    TWOSIDED = auto()
+    MULTIPART = auto()
+
+    @classmethod
+    def from_spec(
+        cls, flags: Union[DefaultParserFeatureFlag, Set[str]]
+    ) -> DefaultParserFeatureFlag:
+        if isinstance(flags, DefaultParserFeatureFlag):
+            return flags
+        result = cls.NONE
+        for flag in flags:
+            result |= getattr(cls, flag.upper())
+        return result
+
+
 @dataclass
 class DefaultFormulaParser(FormulaParser):
     """
@@ -41,6 +67,9 @@ class DefaultFormulaParser(FormulaParser):
         include_intercept: Whether to include an intercept by default
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
+        feature_flags: Feature flags to enable or disable certain features. Can
+            be passed in as a `DefaultParserFeatureFlag` value or as a set of string flags
+            (which will be cast to a `DefaultParserFeatureFlag` instance internally).
     """
 
     ZERO_PATTERN = re.compile(r"(?:^|(?<=\W))0(?=\W|$)")
@@ -50,6 +79,20 @@ class DefaultFormulaParser(FormulaParser):
         default_factory=lambda: DefaultOperatorResolver()  # pylint: disable=unnecessary-lambda
     )
     include_intercept: bool = True
+    feature_flags: DefaultParserFeatureFlag = (
+        DefaultParserFeatureFlag.TWOSIDED | DefaultParserFeatureFlag.MULTIPART
+    )
+
+    def __post_init__(self) -> None:
+        if isinstance(self.feature_flags, set):
+            self.feature_flags = DefaultParserFeatureFlag.from_spec(self.feature_flags)
+        if isinstance(self.operator_resolver, DefaultOperatorResolver):
+            self.operator_resolver.set_feature_flags(self.feature_flags)
+
+    def set_feature_flags(self, flags: DefaultParserFeatureFlag | Set[str]) -> Self:
+        self.feature_flags = DefaultParserFeatureFlag.from_spec(flags)
+        self.__post_init__()
+        return self
 
     def get_tokens(self, formula: str) -> Iterable[Token]:
         """
@@ -177,6 +220,7 @@ class DefaultFormulaParser(FormulaParser):
         return terms
 
 
+@dataclass
 class DefaultOperatorResolver(OperatorResolver):
     """
     The default operator resolver implementation.
@@ -186,7 +230,27 @@ class DefaultOperatorResolver(OperatorResolver):
     subclassing to support other kinds of operators, in which case `.operators`
     and/or `.resolve` can be overridden. For more details about which operators
     are implemented, review the code or the documentation website.
+
+    Attributes:
+        feature_flags: Feature flags to enable or disable certain features. Can
+            be passed in as a `DefaultParserFeatureFlag` value or as a set of string
+            flags (which will be cast to a `DefaultParserFeatureFlag` instance
+            internally).
     """
+
+    feature_flags: DefaultParserFeatureFlag = (
+        DefaultParserFeatureFlag.TWOSIDED | DefaultParserFeatureFlag.MULTIPART
+    )
+
+    def __post_init__(self) -> None:
+        if isinstance(self.feature_flags, set):
+            self.feature_flags = DefaultParserFeatureFlag.from_spec(self.feature_flags)
+
+    def set_feature_flags(self, flags: DefaultParserFeatureFlag | Set[str]) -> Self:
+        self.feature_flags = DefaultParserFeatureFlag.from_spec(flags)
+        if "operator_table" in self.__dict__:
+            del self.__dict__["operator_table"]
+        return self
 
     @property
     def operators(self) -> List[Operator]:
@@ -237,6 +301,7 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=lambda lhs, rhs: Structured(lhs=lhs, rhs=rhs),
                 accepts_context=lambda context: len(context) == 0,
                 structural=True,
+                disabled=DefaultParserFeatureFlag.TWOSIDED not in self.feature_flags,
             ),
             Operator(
                 "~",
@@ -258,6 +323,7 @@ class DefaultOperatorResolver(OperatorResolver):
                     isinstance(c, Operator) and c.symbol in "~|" for c in context
                 ),
                 structural=True,
+                disabled=DefaultParserFeatureFlag.MULTIPART not in self.feature_flags,
             ),
             Operator(
                 "+",
