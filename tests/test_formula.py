@@ -200,3 +200,10 @@ class TestFormula:
         formula = pickle.load(o)
         assert formula.lhs.root == ["a"]
         assert formula.rhs.root == ["1", "b"]
+
+    def test_required_variables(self):
+        assert Formula("a + b").required_variables == {"a", "b"}
+        assert Formula("a + b + a:b").required_variables == {"a", "b"}
+        assert Formula("a + C(b)").required_variables == {"a", "b"}
+        assert Formula("a + C(b, levels=['b1', 'b2'])").required_variables == {"a", "b"}
+        assert Formula("a + C(b, contr.Treatment)").required_variables == {"a", "b"}
