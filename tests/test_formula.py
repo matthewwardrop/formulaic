@@ -68,51 +68,51 @@ class TestFormula:
         ]
 
     def test_ordering(self):
-        # assert [str(t) for t in Formula("a+e:d+b:c+f")] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "e:d",
-        #     "b:c",
-        # ]
-        # assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="degree")] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "e:d",
-        #     "b:c",
-        # ]
-        # assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="none")] == [
-        #     "1",
-        #     "a",
-        #     "e:d",
-        #     "b:c",
-        #     "f",
-        # ]
-        # assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="sort")] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "b:c",
-        #     "d:e",
-        # ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f")] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="degree")] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="none")] == [
+            "1",
+            "a",
+            "e:d",
+            "b:c",
+            "f",
+        ]
+        assert [str(t) for t in Formula("a+e:d+b:c+f", _ordering="sort")] == [
+            "1",
+            "a",
+            "f",
+            "b:c",
+            "d:e",
+        ]
 
         # Test nested ordering
 
-        # assert [str(t) for t in Formula("y~a+e:d+b:c+f").rhs] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "e:d",
-        #     "b:c",
-        # ]
-        # assert [str(t) for t in Formula("y~a+e:d+b:c+f", _ordering="degree").rhs] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "e:d",
-        #     "b:c",
-        # ]
+        assert [str(t) for t in Formula("y~a+e:d+b:c+f").rhs] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
+        assert [str(t) for t in Formula("y~a+e:d+b:c+f", _ordering="degree").rhs] == [
+            "1",
+            "a",
+            "f",
+            "e:d",
+            "b:c",
+        ]
         assert [str(t) for t in Formula("y~a+e:d+b:c+f", _ordering="none").rhs] == [
             "1",
             "a",
@@ -120,13 +120,13 @@ class TestFormula:
             "b:c",
             "f",
         ]
-        # assert [str(t) for t in Formula("y~a+e:d+b:c+f", _ordering="sort").rhs] == [
-        #     "1",
-        #     "a",
-        #     "f",
-        #     "b:c",
-        #     "d:e",
-        # ]
+        assert [str(t) for t in Formula("y~a+e:d+b:c+f", _ordering="sort").rhs] == [
+            "1",
+            "a",
+            "f",
+            "b:c",
+            "d:e",
+        ]
 
     def test_get_model_matrix(self, formula_expr, formula_exprs, data):
         mm_expr = formula_expr.get_model_matrix(data)
