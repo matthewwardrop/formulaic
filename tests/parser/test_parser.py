@@ -63,6 +63,49 @@ FORMULA_TO_TERMS = {
         "lhs": (["a"], ["b"]),
         "rhs": (["1", "c"], ["1", "d"]),
     },
+    # Formula stages
+    "[ a ~ b ]": {"root": ["1", "a_hat"], "deps": ({"lhs": ["a"], "rhs": ["1", "b"]},)},
+    "y ~ [ a ~ b ]": {
+        "lhs": ["y"],
+        "rhs": {"root": ["1", "a_hat"], "deps": ({"lhs": ["a"], "rhs": ["1", "b"]},)},
+    },
+    "[ a ~ [ b ~ c ] ]": {
+        "root": ["1", "a_hat"],
+        "deps": (
+            {
+                "lhs": ["a"],
+                "rhs": {
+                    "root": ["1", "b_hat"],
+                    "deps": ({"lhs": ["b"], "rhs": ["1", "c"]},),
+                },
+            },
+        ),
+    },
+    "y ~ [ a ~ [ b ~ c ] + [d ~ e] ]": {
+        "lhs": ["y"],
+        "rhs": {
+            "root": ["1", "a_hat"],
+            "deps": (
+                {
+                    "lhs": ["a"],
+                    "rhs": {
+                        "root": ["1", "b_hat", "d_hat"],
+                        "deps": (
+                            {"lhs": ["b"], "rhs": ["1", "c"]},
+                            {"lhs": ["d"], "rhs": ["1", "e"]},
+                        ),
+                    },
+                },
+            ),
+        },
+    },
+    "y ~ [ a:b ~ c + d ]": {
+        "lhs": ["y"],
+        "rhs": {
+            "root": ["1", "`a:b_hat`"],
+            "deps": ({"lhs": ["a:b"], "rhs": ["1", "c", "d"]},),
+        },
+    },
     # Products
     "a:b": ["1", "a:b"],
     "b:a + a:b": ["1", "b:a"],
@@ -92,8 +135,10 @@ FORMULA_TO_TERMS = {
     "{a | b | c}": ["1", "a | b | c"],
 }
 
-PARSER = DefaultFormulaParser()
-PARSER_NO_INTERCEPT = DefaultFormulaParser(include_intercept=False)
+PARSER = DefaultFormulaParser(feature_flags={"all"})
+PARSER_NO_INTERCEPT = DefaultFormulaParser(
+    include_intercept=False, feature_flags={"all"}
+)
 
 
 class TestFormulaParser:
@@ -225,6 +270,15 @@ class TestFormulaParser:
             ),
         ):
             DefaultFormulaParser().set_feature_flags({}).get_terms("x | y")
+
+    def test_invalid_multistage_formula(self):
+        with pytest.raises(
+            NotImplementedError,
+            match=re.escape(
+                "Nested multistage formulas do not support structured lhs."
+            ),
+        ):
+            DefaultFormulaParser(feature_flags={"all"}).get_terms("[[a ~ b] ~ c]")
 
 
 class TestDefaultOperatorResolver:

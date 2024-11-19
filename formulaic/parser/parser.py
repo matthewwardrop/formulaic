@@ -35,9 +35,14 @@ class DefaultParserFeatureFlag(Flag):
     Feature flags to restrict the flexibility of the formula parser.
     """
 
-    NONE = 0
     TWOSIDED = auto()
     MULTIPART = auto()
+    MULTISTAGE = auto()
+
+    # Convenience flags
+    NONE = 0
+    DEFAULT = TWOSIDED | MULTIPART
+    ALL = TWOSIDED | MULTIPART | MULTISTAGE
 
     @classmethod
     def from_spec(
@@ -79,9 +84,7 @@ class DefaultFormulaParser(FormulaParser):
         default_factory=lambda: DefaultOperatorResolver()  # pylint: disable=unnecessary-lambda
     )
     include_intercept: bool = True
-    feature_flags: DefaultParserFeatureFlag = (
-        DefaultParserFeatureFlag.TWOSIDED | DefaultParserFeatureFlag.MULTIPART
-    )
+    feature_flags: DefaultParserFeatureFlag = DefaultParserFeatureFlag.DEFAULT
 
     def __post_init__(self) -> None:
         if isinstance(self.feature_flags, set):
@@ -132,13 +135,34 @@ class DefaultFormulaParser(FormulaParser):
                     join_operator="+",
                 )
             )
-            rhs_index = (
-                max(
-                    (i for i, token in enumerate(tokens) if token.token.endswith("~")),
-                    default=-1,
-                )
-                + 1
-            )
+
+            def find_rhs_index(tokens: List[Token]) -> int:
+                """
+                Find the top-level index of the tilde operator starting the
+                right hand side of the formula (or -1 if not found).
+                """
+                from .algos.tokens_to_ast import CONTEXT_CLOSERS, CONTEXT_OPENERS
+
+                context = []
+                for index, token in enumerate(tokens):
+                    if token.kind is Token.Kind.CONTEXT:
+                        if token.token in CONTEXT_OPENERS:
+                            context.append(token.token)
+                            continue
+                        else:
+                            if (
+                                not context
+                                or context[-1] != CONTEXT_CLOSERS[token.token]
+                            ):
+                                return -1  # pragma: no cover ; should not happen
+                            context.pop()
+                    if context:
+                        continue
+                    if token.token == "~":  # noqa: S105
+                        return index
+                return -1
+
+            rhs_index = find_rhs_index(tokens) + 1
             tokens = [
                 *(
                     tokens[:rhs_index]
@@ -238,9 +262,7 @@ class DefaultOperatorResolver(OperatorResolver):
             internally).
     """
 
-    feature_flags: DefaultParserFeatureFlag = (
-        DefaultParserFeatureFlag.TWOSIDED | DefaultParserFeatureFlag.MULTIPART
-    )
+    feature_flags: DefaultParserFeatureFlag = DefaultParserFeatureFlag.DEFAULT
 
     def __post_init__(self) -> None:
         if isinstance(self.feature_flags, set):
@@ -292,6 +314,25 @@ class DefaultOperatorResolver(OperatorResolver):
                 for term in itertools.product(*[arg] * int(power_term.factors[0].expr))
             )
 
+        def multistage_formula(
+            lhs: OrderedSet[Term], rhs: OrderedSet[Term]
+        ) -> Structured[OrderedSet[Term]]:
+            def get_terms(terms: OrderedSet[Term]) -> List[Term]:
+                return [
+                    Term(
+                        factors=[Factor(str(t) + "_hat", eval_method="lookup")],
+                        origin=t,
+                    )
+                    for t in terms
+                ]
+
+            if isinstance(lhs, Structured):
+                raise NotImplementedError(
+                    "Nested multistage formulas do not support structured lhs."
+                )
+
+            return Structured(get_terms(lhs), deps=(Structured(lhs=lhs, rhs=rhs),))
+
         return [
             Operator(
                 "~",
@@ -312,6 +353,16 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=lambda terms: terms,
                 accepts_context=lambda context: len(context) == 0,
                 structural=True,
+            ),
+            Operator(
+                "~",
+                arity=2,
+                precedence=-100,
+                associativity=None,
+                to_terms=multistage_formula,
+                accepts_context=lambda context: bool(context) and context[-1] == "[",
+                structural=True,
+                disabled=DefaultParserFeatureFlag.MULTISTAGE not in self.feature_flags,
             ),
             Operator(
                 "|",

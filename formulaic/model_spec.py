@@ -24,8 +24,8 @@ from .formula import Formula, FormulaSpec
 from .materializers import ClusterBy, FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .transforms.contrasts import ContrastsState
     from .model_matrix import ModelMatrices, ModelMatrix
+    from .transforms.contrasts import ContrastsState
 
 # Cached property was introduced in Python 3.8 (we currently support 3.7)
 try:

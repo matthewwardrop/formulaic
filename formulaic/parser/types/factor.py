@@ -99,4 +99,6 @@ class Factor:
         return OrderedSet((Term([self]),))
 
     def __repr__(self) -> str:
+        if ":" in self.expr:
+            return f"`{self.expr}`"
         return self.expr

@@ -112,6 +112,7 @@ dependencies = [
 
 [tool.hatch.envs.lint.scripts]
 check = [
+    "ruff check",
     "ruff format --check",
     "mypy formulaic",
 ]

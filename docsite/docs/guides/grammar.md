@@ -42,9 +42,10 @@ unless otherwise indicated.
 | `+` | 1 | Returns the current term unmodified (not very useful). | ✓ | ✓ | ✓ |
 | `-` | 1 | Negates a term (only implemented for 0, in which case it is replaced with `1`). | ✓ | ✓ | ✓ |
 |-----|
-| `|` | 2 | Splits a formula into multiple parts, allowing the simultaneous generation of multiple model matrices. When on the right-hand-side of the `~` operator, all parts will attract an additional intercept term by default. | ✓ | ✗ | ✓[^6] |
+| `\|` | 2 | Splits a formula into multiple parts, allowing the simultaneous generation of multiple model matrices. When on the right-hand-side of the `~` operator, all parts will attract an additional intercept term by default. | ✓ | ✗ | ✓[^6] |
 |-----|
 | `~` | 1,2 | Separates the target features from the input features. If absent, it is assumed that we are considering only the the input features. Unless otherwise indicated, it is assumed that the input features implicitly include an intercept. | ✓ | ✓ | ✓ |
+| `[ . ~ . ]` | 2 | [Experimental] Multi stage formula notation, which is useful in (e.g.) IV contexts. Requires the `MULTISTAGE` feature flag to be passed to the parser. | ✓ | ✗ | ✗ |
 
 
 ## Transforms
