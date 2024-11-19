@@ -1,4 +1,5 @@
 import copy
+import pickle
 
 import numpy
 import pandas
@@ -26,6 +27,16 @@ def test_model_matrix_copy():
     m3 = copy.deepcopy(m)
     assert numpy.all(m3.__wrapped__ == matrix)
     assert m3.model_spec is not spec
+
+
+def test_model_matrix_pickle():
+    matrix = numpy.array([[1, 2, 3], [4, 5, 6]])
+    spec = ModelSpec(formula="x")
+    m = ModelMatrix(matrix, spec=spec)
+
+    m2 = pickle.loads(pickle.dumps(m))
+    assert numpy.all(m2.__wrapped__ == matrix)
+    assert m2.model_spec is not spec
 
 
 def test_factor_values_copy():
