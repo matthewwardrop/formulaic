@@ -10,14 +10,14 @@ from formulaic.errors import DataMismatchWarning
 from formulaic.materializers import FactorValues
 from formulaic.model_spec import ModelSpec
 from formulaic.transforms.contrasts import (
-    ContrastsRegistry as contr,
+    UNSET,
     ContrastsState,
+    SumContrasts,
+    _UnsetSentinel,
+    encode_contrasts,
 )
 from formulaic.transforms.contrasts import (
-    SumContrasts,
-    encode_contrasts,
-    UNSET,
-    _UnsetSentinel,
+    ContrastsRegistry as contr,
 )
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 
