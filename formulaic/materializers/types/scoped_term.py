@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Set
+from typing import Any, Iterable, Mapping, Set
 
+from formulaic.materializers.types.evaluated_factor import EvaluatedFactor
 from formulaic.utils.variables import Variable
 
 from .scoped_factor import ScopedFactor
@@ -61,6 +62,29 @@ class ScopedTerm:
                 for factor in factors
             ]
         return ScopedTerm(factors, scale=self.scale)
+
+    def rehydrate(self, factor_values: Mapping[str, EvaluatedFactor]) -> ScopedTerm:
+        """
+        Rehydrate the `ScopedTerm` instance with new `EvaluatedFactor` instances
+        that have been computed for each factor. An exception will be raised if
+        any required factor is missing from the `factor_values` mapping. This is
+        used to allow the reuse of serialized `ScopedTerm` structure that have
+        had their factor values excised using `.copy(without_values=True)`.
+
+        Args:
+            factor_values: A mapping from factor expressions to `EvaluatedFactor`
+                instances. This mapping should contain all factors in the term.
+        """
+        return ScopedTerm(
+            [
+                ScopedFactor(
+                    factor=factor_values[factor.factor.expr],
+                    reduced=factor.reduced,
+                )
+                for factor in self.factors
+            ],
+            scale=self.scale,
+        )
 
     @property
     def variables(self) -> Set[Variable]:

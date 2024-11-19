@@ -42,5 +42,21 @@ class TestScopedTerm:
         assert copied.factors == scoped_term.factors
         assert copied.scale == scoped_term.scale
 
+        copied_without_values = scoped_term.copy(without_values=True)
+        assert all(
+            factor.factor.values is None for factor in copied_without_values.factors
+        )
+
+    def test_rehydrate(self, scoped_term):
+        factors = {
+            "a": EvaluatedFactor(Factor("a"), values=[1], variables={Variable("a")}),
+            "b": EvaluatedFactor(Factor("b"), values=[1], variables={Variable("b")}),
+        }
+        rehydrated = scoped_term.copy(without_values=True).rehydrate(factors)
+        assert all(
+            factors[factor.factor.expr] is factor.factor
+            for factor in rehydrated.factors
+        )
+
     def test_variables(self, scoped_term):
         assert scoped_term.variables == {"a", "b"}

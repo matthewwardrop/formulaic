@@ -11,6 +11,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     Union,
     cast,
 )
@@ -142,10 +143,11 @@ class ModelSpec:
 
     # Derived features
 
-    @cached_property
-    def column_names(self) -> Sequence[str]:
+    @property
+    def __structure(self) -> List[EncodedTermStructure]:
         """
-        The names associated with the columns of the generated model matrix.
+        A reference to `.structure` if it is populated, or otherwise an
+        exception is raised.
         """
         if self.structure is None:
             raise RuntimeError(
@@ -153,7 +155,14 @@ class ModelSpec:
                 "likely be resolved by using the `ModelSpec` instance attached "
                 "to the model matrix generated when calling `.get_model_matrix()`."
             )
-        return tuple(feature for row in self.structure for feature in row.columns)
+        return self.structure
+
+    @cached_property
+    def column_names(self) -> Sequence[str]:
+        """
+        The names associated with the columns of the generated model matrix.
+        """
+        return tuple(feature for row in self.__structure for feature in row.columns)
 
     @cached_property
     def column_indices(self) -> Dict[str, int]:
@@ -162,6 +171,19 @@ class ModelSpec:
         model matrices.
         """
         return {name: i for i, name in enumerate(self.column_names)}
+
+    def get_column_indices(self, columns: Union[str, Sequence[str]]) -> List[int]:
+        """
+        Generate a list of column indices corresponding to the nominated column
+        names. This is useful when you want to slice a model matrix by specific
+        columns, and do not want to have to generate the indices yourself.
+
+        Args:
+            columns: The column names to include in the subset.
+        """
+        if isinstance(columns, str):
+            columns = [columns]
+        return [self.column_indices[column] for column in columns]
 
     @property
     def terms(self) -> List[Term]:
@@ -180,19 +202,44 @@ class ModelSpec:
         up elements of this mapping using the string representation of the
         `Term`.
         """
-        if self.structure is None:
-            raise RuntimeError(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
-            )
         slices = {}
         start = 0
-        for row in self.structure:
+        for row in self.__structure:
             end = start + len(row[2])
             slices[row[0]] = list(range(start, end))
             start = end
         return slices
+
+    def get_term_indices(
+        self, terms_spec: FormulaSpec, **formula_kwargs: Any
+    ) -> List[int]:
+        """
+        Generate a list of column indices corresponding to the columns
+        associated with the nominated `term_spec`.
+
+        This is useful when you want to slice a model matrix by specific terms.
+        If you want to generate new matrices for term subsets, consider using
+        `ModelSpec.subset()` instead.
+
+        The nominated `terms_spec` will be interpreted as a formula
+        specification, and the resulting term set must only include terms that
+        are present in this `ModelSpec` instance. A `ValueError` error will be
+        raised if the `terms_spec` is structured or contains terms not
+        represented by this `ModelSpec`.
+
+        The indices will be ordered according to the order of the terms in the
+        `terms_spec`.
+
+        Args:
+            terms_spec: The specification for the terms for which to extract
+                indices.
+            formula_kwargs: Additional keyword arguments to pass to the
+                `Formula.from_spec` constructor to control (e.g.) ordering.
+        """
+        terms: List[Term] = self.__get_restricted_formula(
+            terms_spec, **formula_kwargs
+        ).root
+        return [idx for term in terms for idx in self.term_indices[term]]
 
     @cached_property
     def term_slices(self) -> Dict[Term, slice]:
@@ -230,14 +277,8 @@ class ModelSpec:
         term. `Variable` instances are enriched strings, with the additional
         attributes `.roles` and `.source`.
         """
-        if self.structure is None:
-            raise RuntimeError(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
-            )
         term_variables = {}
-        for row in self.structure:
+        for row in self.__structure:
             term_variables[row[0]] = Variable.union(
                 *(term.variables for term in row[1]),
             )
@@ -269,16 +310,8 @@ class ModelSpec:
         A mapping from `Factor` instances to the variables used in the evaluation
         of that factor.
         """
-
-        if self.structure is None:
-            raise RuntimeError(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
-            )
-
         factor_variables: Dict[Factor, List[Variable]] = defaultdict(list)
-        for s in self.structure:
+        for s in self.__structure:
             for scoped_term in s.scoped_terms:
                 for scoped_factor in scoped_term.factors:
                     factor_variables[scoped_factor.factor.factor].extend(
@@ -354,6 +387,24 @@ class ModelSpec:
             for variable, terms in self.variable_terms.items()
         }
 
+    def get_variable_indices(
+        self, variables: Sequence[Union[str, Variable]]
+    ) -> List[int]:
+        """
+        Generate a list of column indices corresponding to the columns associated
+        with the nominated variables. This is useful when you want to slice a model
+        matrix by specific variables, and do not want to have to generate the indices
+        yourself.
+
+        Args:
+            variables: The variable names to include in the subset.
+        """
+        return [
+            idx
+            for variable in variables
+            for idx in self.variable_indices[variable]  # type: ignore # Variables are strings too
+        ]
+
     @cached_property
     def variables_by_source(self) -> Dict[Optional[str], Set[Variable]]:
         """
@@ -366,33 +417,44 @@ class ModelSpec:
             variables_by_source[variable.source].add(variable)
         return dict(variables_by_source)
 
-    # Transforms
-
-    def update(self, **kwargs: Any) -> ModelSpec:
+    def get_slice(self, columns_identifier: Union[int, str, Term, slice]) -> slice:
         """
-        Create a copy of this `ModelSpec` instance with the nominated attributes
-        mutated.
-        """
-        return replace(self, **kwargs)
-
-    def differentiate(self, *wrt: str, use_sympy: bool = False) -> ModelSpec:
-        """
-        EXPERIMENTAL: Take the gradient of this model spec. When used a linear
-        regression, evaluating a trained model on model matrices generated by
-        this formula is equivalent to estimating the gradient of that fitted
-        form with respect to `vars`.
+        Generate a `slice` instance corresponding to the columns associated with
+        the nominated `columns_identifier`. While this is provided for
+        convenience, it is usually better in library code to directly use the
+        indexing metadata methods/attributes associated with the nominated
+        identifier.
 
         Args:
-            wrt: The variables with respect to which the gradient should be
-                taken.
-            use_sympy: Whether to use sympy to perform symbolic differentiation.
-
-        Notes:
-            This method is provisional and may be removed in any future major
-            version.
+            columns_identifier: The identifier for which the slice should be
+                generated. Can be one of:
+                    - an integer specifying a specific column index.
+                    - a `Term` instance
+                    - a string representation of a term
+                    - a column name
         """
-        return self.update(
-            formula=self.formula.differentiate(*wrt, use_sympy=use_sympy),
+        if isinstance(columns_identifier, slice):
+            return columns_identifier
+        if isinstance(columns_identifier, int):
+            return slice(columns_identifier, columns_identifier + 1)
+
+        term_slices = self.term_slices
+        if isinstance(columns_identifier, Term):
+            if columns_identifier not in term_slices:
+                raise ValueError(
+                    f"Model matrices built using this spec do not include term: `{columns_identifier}`."
+                )
+            return term_slices[columns_identifier]
+        if columns_identifier in term_slices:
+            return term_slices[columns_identifier]  # type: ignore # Terms hash equivalent to their string repr
+
+        column_indices = self.column_indices
+        if columns_identifier in column_indices:
+            idx = column_indices[columns_identifier]
+            return slice(idx, idx + 1)
+
+        raise ValueError(
+            f"Model matrices built using this spec do not have any columns related to: `{repr(columns_identifier)}`."
         )
 
     # Utility methods
@@ -441,41 +503,77 @@ class ModelSpec:
         """
         return LinearConstraints.from_spec(spec, variable_names=self.column_names)
 
-    def get_slice(self, columns_identifier: Union[int, str, Term, slice]) -> slice:
+    # Transforms
+
+    def update(self, **kwargs: Any) -> ModelSpec:
         """
-        Generate a `slice` instance corresponding to the columns associated with
-        the nominated `columns_identifier`.
+        Create a copy of this `ModelSpec` instance with the nominated attributes
+        mutated.
+        """
+        return replace(self, **kwargs)
+
+    def subset(self, terms_spec: FormulaSpec, **formula_kwargs: Any) -> ModelSpec:
+        """
+        Subset this `ModelSpec` instance to only include the columns associated
+        with the nominated terms.
+
+        This is useful when you want to fit restricted models on a strict subset
+        of features included in this `ModelSpec` instance, and want to generate
+        new model matrices with just these terms.  If you just want to subset an
+        existing model matrix, you can use `ModelSpec.get_term_indices()`
+        instead.
+
+        Terms are selected from this `ModelSpec` instance by constructing a
+        `Formula` instance from the provided `terms_spec`, and then matching the
+        terms with those found in this `ModelSpec` instance. An error will be
+        raised if the `terms_spec` is incompatibly structured or contains terms
+        not represented by this `ModelSpec` instance. The model spec column
+        ordering will follow the ordering of the terms in `terms_spec`.
+
+        Note that subsetting this `ModelSpec` is in general not equivalent to
+        constructing this `ModelSpec` instance from scratch with the provided
+        formula specification. Specifically, the output is likely not to be
+        structurally full-rank whenever categorical variables are involved.
+        Instead, columns generated from the subset model spec are guaranteed to
+        match the corresponding columns generated from this parent model spec.
 
         Args:
-            columns_identifier: The identifier for which the slice should be
-                generated. Can be one of:
-                    - an integer specifying a specific column index.
-                    - a `Term` instance
-                    - a string representation of a term
-                    - a column name
+            terms_spec: The terms to include in the subset. A `Formula` instance
+                will be constructed from this specification, and the resulting
+                terms will be used to select the terms to include from this
+                model spec.
+            formula_kwargs: Additional keyword arguments to pass to the
+                `Formula.from_spec` constructor to control (e.g.) ordering.
         """
-        if isinstance(columns_identifier, slice):
-            return columns_identifier
-        if isinstance(columns_identifier, int):
-            return slice(columns_identifier, columns_identifier + 1)
 
-        term_slices = self.term_slices
-        if isinstance(columns_identifier, Term):
-            if columns_identifier not in term_slices:
-                raise ValueError(
-                    f"Model matrices built using this spec do not include term: `{columns_identifier}`."
-                )
-            return term_slices[columns_identifier]
-        if columns_identifier in term_slices:
-            return term_slices[columns_identifier]  # type: ignore # Terms hash equivalent to their string repr
+        formula: Formula = self.__get_restricted_formula(terms_spec, **formula_kwargs)
+        terms: List[Term] = formula.root
+        terms_set: Set[Term] = set(terms)
+        term_structure = {s.term: s for s in self.__structure if s.term in terms_set}
 
-        column_indices = self.column_indices
-        if columns_identifier in column_indices:
-            idx = column_indices[columns_identifier]
-            return slice(idx, idx + 1)
+        return self.update(
+            formula=formula,
+            structure=[term_structure[term] for term in terms],
+        )
 
-        raise ValueError(
-            f"Model matrices built using this spec do not have any columns related to: `{repr(columns_identifier)}`."
+    def differentiate(self, *wrt: str, use_sympy: bool = False) -> ModelSpec:
+        """
+        EXPERIMENTAL: Take the gradient of this model spec. When used a linear
+        regression, evaluating a trained model on model matrices generated by
+        this formula is equivalent to estimating the gradient of that fitted
+        form with respect to `vars`.
+
+        Args:
+            wrt: The variables with respect to which the gradient should be
+                taken.
+            use_sympy: Whether to use sympy to perform symbolic differentiation.
+
+        Notes:
+            This method is provisional and may be removed in any future major
+            version.
+        """
+        return self.update(
+            formula=self.formula.differentiate(*wrt, use_sympy=use_sympy),
         )
 
     # Only include dataclass fields when pickling.
@@ -483,6 +581,39 @@ class ModelSpec:
         return {
             k: v for k, v in self.__dict__.items() if k in self.__dataclass_fields__
         }
+
+    # Helpers
+
+    def __get_restricted_formula(
+        self, spec: FormulaSpec, **formula_kwargs: Any
+    ) -> Formula:
+        """
+        Construct a `Formula` instance from the provided `spec` that is a
+        restriction of the formula associated with this `ModelSpec` instance. A
+        `ValueError` is raised if the provided `spec` results in a structured
+        formula, or if it contains terms that are not described by this
+        `ModelSpec`.
+
+        Args:
+            spec: The formula specification for the restricted formula.
+            formula_kwargs: Additional keyword arguments to pass to the
+                `Formula.from_spec` constructor to control (e.g.) ordering.
+        """
+        formula = Formula.from_spec(spec, **formula_kwargs)
+        if formula._has_structure:
+            raise ValueError(
+                "Cannot subset a `ModelSpec` using a formula that has structure."
+            )
+
+        terms = formula.root
+
+        missing_terms: Set[Term] = set(terms).difference(self.terms)
+        if missing_terms:
+            raise ValueError(
+                f"Cannot subset a model spec with terms not present in the original model spec: {missing_terms}."
+            )
+
+        return formula
 
 
 class ModelSpecs(Structured[ModelSpec]):
@@ -574,6 +705,37 @@ class ModelSpecs(Structured[ModelSpec]):
                 ),
                 as_type=ModelMatrices,
             ),
+        )
+
+    def subset(self, terms_spec: FormulaSpec) -> ModelSpecs:
+        """
+        Subset this `ModelSpecs` instance to only include the columns associated
+        with the nominated terms. The structure of `terms_spec` must match the
+        structure of this `ModelSpecs` instance where they overlap. For more
+        details, please reference to `ModelSpec.subset`.
+
+        Args:
+            terms_spec: The terms to include in the subset. A `Formula` instance
+                will be constructed from this specification, and the resulting
+                terms will be used to select the terms to include from this
+                model spec.
+        """
+
+        formula = Formula.from_spec(terms_spec)
+
+        def map_formula_structure_onto_model_spec(
+            terms: List[Term], context: Tuple[Union[int, str], ...]
+        ) -> ModelSpec:
+            try:
+                return self[context].subset(terms)
+            except KeyError:
+                raise ValueError(
+                    f"Cannot subset a `ModelSpecs` instance using a formula with a different structure [indexing path `{context}` not found]."
+                )
+
+        return cast(
+            ModelSpecs,
+            formula._map(map_formula_structure_onto_model_spec, as_type=ModelSpecs),
         )
 
     def differentiate(self, *wrt: str, use_sympy: Any = False) -> ModelSpecs:
