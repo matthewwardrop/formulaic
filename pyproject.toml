@@ -37,7 +37,8 @@ dependencies = [
     "numpy>=1.16.5",
     "pandas>=1.0",
     "scipy>=1.6",
-    "wrapt>=1.0",
+    "wrapt>=1.0; python_version <\"3.13\"",
+    "wrapt>=1.17.0rc1; python_version >=\"3.13\"",
     "typing-extensions>=4.2.0",
 ]
 dynamic = ["version"]
