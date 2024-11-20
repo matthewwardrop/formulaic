@@ -16,6 +16,11 @@ from typing import (
     Union,
 )
 
+try:
+    from typing import SupportsIndex
+except ImportError:  # pragma: no cover
+    from typing_extensions import SupportsIndex
+
 import wrapt
 
 from formulaic.parser.types import Factor
@@ -82,8 +87,8 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
     def __init__(
         self,
         values: Any,
-        *,
         metadata: Union[FactorValuesMetadata, _MissingType] = MISSING,
+        *,
         kind: Union[str, Factor.Kind, _MissingType] = MISSING,
         column_names: Union[Tuple[Hashable, ...], _MissingType] = MISSING,
         spans_intercept: Union[bool, _MissingType] = MISSING,
@@ -138,3 +143,13 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             copy.deepcopy(self.__wrapped__, memo),
             metadata=copy.deepcopy(self._self_metadata),
         )
+
+    # Handle pickling behaviour
+
+    def __reduce_ex__(
+        self, protocol: SupportsIndex
+    ) -> Tuple[
+        Callable[[Any, Union[FactorValuesMetadata, _MissingType]], FactorValues],
+        Tuple[Any, Union[FactorValuesMetadata, _MissingType]],
+    ]:
+        return FactorValues, (self.__wrapped__, self._self_metadata)
