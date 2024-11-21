@@ -170,8 +170,8 @@ def _get_natural_f(knots):
     return numpy.vstack([numpy.zeros(knots.size), fm, numpy.zeros(knots.size)])
 
 
-def _get_free_crs_dmatrix(x, knots, cyclic=False):
-    """Builds an unconstrained cubic regression spline design matrix.
+def _get_free_crs_matrix(x, knots, cyclic=False):
+    """Builds an unconstrained cubic regression spline matrix.
 
     Returns design matrix with dimensions ``len(x) x n``
     for a cubic regression spline smoother
@@ -211,7 +211,7 @@ def _get_free_crs_dmatrix(x, knots, cyclic=False):
     return dmt.T
 
 
-def _absorb_constraints(design_matrix, constraints):
+def _absorb_constraints(spline_matrix, constraints):
     """Absorb model parameters constraints into the design matrix.
 
     :param design_matrix: The (2-d array) initial design matrix.
@@ -223,15 +223,16 @@ def _absorb_constraints(design_matrix, constraints):
       which is cleaner than numpy's version requiring a call like
       ``qr(..., mode='complete')`` to get a full QR decomposition.
     """
-    try:
-        from scipy import linalg
-    except ImportError:  # pragma: no cover
-        raise ImportError("Cubic spline functionality requires scipy.")
+    # try:
+    #     from scipy import linalg
+    # except ImportError:  # pragma: no cover
+    #     raise ImportError("Cubic spline functionality requires scipy.")
 
     m = constraints.shape[0]
-    q, r = linalg.qr(numpy.transpose(constraints))
+    q, r = numpy.linalg.qr(numpy.transpose(constraints))
+    # q, r = linalg.qr(numpy.transpose(constraints))
 
-    return numpy.dot(design_matrix, q[:, m:])
+    return numpy.dot(spline_matrix, q[:, m:])
 
 
 def _get_crs_dmatrix(x, knots, constraints=None, cyclic=False):
@@ -268,21 +269,19 @@ def cyclic_cubic_spline(
         constraints=None,
         _state: dict = {},
 ):
-        x_orig = x
-        x = numpy.atleast_1d(x)
+        x_arr = numpy.atleast_1d(x)
         if x.ndim == 2 and x.shape[1] == 1:
             x = x[:, 0]
         if x.ndim > 1:
             raise ValueError(
                 "Input to cyclic_cubic_spline must be 1-d or a 2-d column vector."
             )
-        dm = _get_crs_dmatrix(
-            x, all_knots, constraints, cyclic=True
-        )
-        if have_pandas:
-            if isinstance(x_orig, (pandas.Series, pandas.DataFrame)):
-                dm = pandas.DataFrame(dm)
-                dm.index = x_orig.index
+        dm = _get_free_crs_dmatrix(x, knots, cyclic=True)
+        if constraints is not None:
+            dm = _absorb_constraints(dm, constraints)
+        if isinstance(x, (pandas.Series, pandas.DataFrame)):
+            dm = pandas.DataFrame(dm)
+            dm.index = x.index
         return dm
 
 
