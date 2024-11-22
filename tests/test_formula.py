@@ -96,6 +96,14 @@ class TestFormula:
             "b:c",
             "d:e",
         ]
+        # RHS variable order intentionally non-lexicographic to test ordering
+        assert [str(t) for t in Formula("f+a+e:d+b:c", _ordering="grouped")] == [
+            "1",
+            "f",
+            "a",
+            "e:d",
+            "b:c",
+        ]
 
         # Test nested ordering
 
@@ -126,6 +134,14 @@ class TestFormula:
             "f",
             "b:c",
             "d:e",
+        ]
+        # RHS variable order intentionally non-lexicographic to test ordering
+        assert [str(t) for t in Formula("y~f+a+e:d+b:c", _ordering="grouped").rhs] == [
+            "1",
+            "f",
+            "a",
+            "e:d",
+            "b:c",
         ]
 
     def test_get_model_matrix(self, formula_expr, formula_exprs, data):

@@ -27,6 +27,7 @@ class OrderingMethod(Enum):
     NONE = "none"
     DEGREE = "degree"
     SORT = "sort"
+    GROUPED = "grouped"
 
 
 class Formula(Structured[List[Term]]):
@@ -188,6 +189,15 @@ class Formula(Structured[List[Term]]):
             orderer = lambda terms: sorted(
                 [Term(factors=sorted(term.factors)) for term in terms]
             )
+        elif self._ordering is OrderingMethod.GROUPED:
+
+            def orderer(terms: List[Term]) -> List[Term]:
+                from collections import defaultdict
+
+                groups = defaultdict(list)
+                for term in terms:
+                    groups[term.degree].append(term)
+                return sum([val[1] for val in sorted(groups.items())], [])
 
         if orderer is not None:
             if isinstance(formula_or_terms, Structured):
