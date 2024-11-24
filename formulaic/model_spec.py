@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -93,15 +94,24 @@ class ModelSpec:
         """
         from .model_matrix import ModelMatrix
 
-        def prepare_model_spec(obj: Any) -> ModelSpec:
+        def prepare_model_spec(obj: Any, ordering: Optional[str] = None) -> ModelSpec:
             if isinstance(obj, ModelMatrix):
                 obj = obj.model_spec
             if isinstance(obj, ModelSpec):
                 return obj.update(**attrs)
-            formula = Formula.from_spec(obj)
+            if isinstance(obj, Formula) and ordering is None:
+                ordering = obj._ordering.value
+            if ordering is not None:
+                formula = Formula.from_spec(obj, ordering=ordering)
+            else:
+                formula = Formula.from_spec(obj)
+
+            partial_prepare_model_spec = partial(prepare_model_spec, ordering=ordering)
+
             if not formula._has_root or formula._has_structure:
                 return cast(
-                    ModelSpec, formula._map(prepare_model_spec, as_type=ModelSpecs)
+                    ModelSpec,
+                    formula._map(partial_prepare_model_spec, as_type=ModelSpecs),
                 )
             return ModelSpec(formula=formula, **attrs)
 
