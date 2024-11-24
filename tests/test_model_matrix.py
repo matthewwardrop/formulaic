@@ -7,12 +7,14 @@ import pytest
 
 from formulaic import (
     FactorValues,
+    Formula,
     ModelMatrices,
     ModelMatrix,
     ModelSpec,
     ModelSpecs,
     model_matrix,
 )
+from formulaic.formula import OrderingMethod
 
 
 def test_model_matrix_copy():
@@ -63,3 +65,22 @@ def test_model_matrices():
     # Validate invalid type checking
     with pytest.raises(TypeError, match="`ModelMatrices` instances expect all.*"):
         ModelMatrices("invalid type!")
+
+
+@pytest.mark.parametrize("ordering", ["degree", "none", "sort"])
+def test_model_matrices_preserve_ordering(ordering):
+    data = pandas.DataFrame(
+        {
+            "y": numpy.random.standard_normal(100),
+            "x": numpy.random.standard_normal(100),
+            "w": numpy.random.standard_normal(100),
+            "d": numpy.random.choice(["a", "b", "c"], size=100),
+            "e": numpy.random.choice(["a", "b", "c"], size=100),
+        }
+    )
+    formula = Formula("y ~ 1 + e + x + d:x", _ordering=ordering)
+    ordering_method = OrderingMethod(ordering)
+    assert formula._ordering == ordering_method
+    model_matrices = model_matrix(formula, data)
+    assert model_matrices.rhs.model_spec.formula._ordering == ordering_method
+    assert model_matrices.lhs.model_spec.formula._ordering == ordering_method
