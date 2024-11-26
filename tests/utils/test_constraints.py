@@ -39,6 +39,12 @@ class TestLinearConstraints:
                     {"a + b + c = 10": -10}, variable_names=["a", "b", "c"]
                 ),
             ),
+            (
+                1,
+                LinearConstraints.from_spec(
+                    {"A[T.a] + b + c = 10": -10}, variable_names=["A[T.a]", "b", "c"]
+                ),
+            ),
             (1, LinearConstraints.from_spec([1, 1, 1], variable_names=["a", "b", "c"])),
             (
                 1,
@@ -86,6 +92,13 @@ class TestLinearConstraints:
                 2,
                 LinearConstraints.from_spec(
                     {"a + b + c = 5": 5, "a - c - 5": 5}, variable_names=["a", "b", "c"]
+                ),
+            ),
+            (
+                2,
+                LinearConstraints.from_spec(
+                    {"A[T.a] + b + c = 5": 5, "A[T.a] - c - 5": 5},
+                    variable_names=["A[T.a]", "b", "c"],
                 ),
             ),
             (
