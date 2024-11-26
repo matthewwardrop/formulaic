@@ -88,9 +88,9 @@ def tokenize(
                 yield token
                 token = Token(source=formula)
             continue
-        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "}", "%"):
-            if char in "(`" and quote_context[-1] in "})":
-                quote_context.append(char.replace("(", ")"))
+        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "]", "}", "%"):
+            if char in "`([" and quote_context[-1] in "})]":
+                quote_context.append(char.replace("(", ")").replace("[", "]"))
             token.update(char, i)
             continue
 
