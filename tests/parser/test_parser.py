@@ -250,7 +250,7 @@ class TestFormulaParser:
         with pytest.raises(
             FormulaSyntaxError,
             match=re.escape(
-                "Operator `~` has been disabled in this context via parser configuration."
+                "Missing operator between `y` and `1`. This may be due to the following operators being at least partially disabled by parser configuration: {~}."
             ),
         ):
             DefaultFormulaParser(feature_flags={}).get_terms("y ~ x")
@@ -266,7 +266,7 @@ class TestFormulaParser:
         with pytest.raises(
             FormulaSyntaxError,
             match=re.escape(
-                "Operator `|` has been disabled in this context via parser configuration."
+                "Operator `|` is at least partially disabled by parser configuration, and/or is incorrectly used."
             ),
         ):
             DefaultFormulaParser().set_feature_flags({}).get_terms("x | y")
@@ -287,32 +287,24 @@ class TestDefaultOperatorResolver:
         return DefaultOperatorResolver()
 
     def test_resolve(self, resolver):
-        assert len(resolver.resolve(Token("+++++"), 1, [])) == 1
-        assert resolver.resolve(Token("+++++"), 1, [])[0].symbol == "+"
-        assert resolver.resolve(Token("+++++"), 1, [])[0].arity == 2
+        resolved = list(resolver.resolve(Token("+++++")))
+        assert len(resolved) == 1
+        assert resolved[0][1][0].symbol == "+"
+        assert resolved[0][1][0].arity == 2
 
-        assert len(resolver.resolve(Token("+++-+"), 1, [])) == 1
-        assert resolver.resolve(Token("+++-+"), 1, [])[0].symbol == "-"
-        assert resolver.resolve(Token("+++-+"), 1, [])[0].arity == 2
+        resolved = list(resolver.resolve(Token("+++-+")))
+        assert len(resolved) == 1
+        assert resolved[0][1][0].symbol == "-"
+        assert resolved[0][1][0].arity == 2
 
-        assert len(resolver.resolve(Token("*+++-+"), 1, [])) == 2
-        assert resolver.resolve(Token("*+++-+"), 1, [])[0].symbol == "*"
-        assert resolver.resolve(Token("*+++-+"), 1, [])[0].arity == 2
-        assert resolver.resolve(Token("*+++-+"), 1, [])[1].symbol == "-"
-        assert resolver.resolve(Token("*+++-+"), 1, [])[1].arity == 1
-
-        with pytest.raises(
-            FormulaSyntaxError, match="Operator `/` is incorrectly used."
-        ):
-            resolver.resolve(Token("*/"), 2, [])
-
-    def test_accepts_context(self, resolver):
-        tilde_operator = resolver.resolve(Token("~"), 1, [])[0]
-
-        with pytest.raises(
-            FormulaSyntaxError, match=re.escape("Operator `~` is incorrectly used.")
-        ):
-            resolver.resolve(Token("~"), 1, [tilde_operator])
+        resolved = list(resolver.resolve(Token("*+++-+")))
+        assert len(resolved) == 2
+        assert resolved[0][1][0].symbol == "*"
+        assert resolved[0][1][0].arity == 2
+        assert resolved[1][1][0].symbol == "-"
+        assert resolved[1][1][0].arity == 2
+        assert resolved[1][1][1].symbol == "-"
+        assert resolved[1][1][1].arity == 1
 
     def test_pickleable(self, resolver):
         o = BytesIO()

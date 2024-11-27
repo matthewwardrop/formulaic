@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Iterable, List, Union
+from typing import Iterable, List, Set, Union
 
 from ..types import ASTNode, Operator, OperatorResolver, Token
 from ..utils import exc_for_missing_operator, exc_for_token
@@ -42,6 +42,7 @@ def tokens_to_ast(
     """
     output_queue: List[Union[Token, ASTNode]] = []
     operator_stack: List[OrderedOperator] = []
+    disabled_operators: Set[Token] = set()
 
     def stack_operator(operator: Union[Token, Operator], token: Token) -> None:
         operator_stack.append(OrderedOperator(operator, token, len(output_queue)))
@@ -98,30 +99,55 @@ def tokens_to_ast(
                     f"Context token `{token.token}` is unrecognized.",
                 )
         elif token.kind is token.Kind.OPERATOR:
-            max_prefix_arity = (
-                len(output_queue) - operator_stack[-1].index
-                if operator_stack
-                else len(output_queue)
-            )
-            operators = operator_resolver.resolve(
-                token,
-                max_prefix_arity=max_prefix_arity,
-                context=[s.operator for s in operator_stack],
-            )
+            for operator_token, operators in operator_resolver.resolve(token):
+                for operator in operators:
+                    if not operator.accepts_context(
+                        [s.operator for s in operator_stack]
+                    ):
+                        continue
+                    if operator.disabled:
+                        disabled_operators.add(operator_token)
+                        continue
+                    # Apply all operators with precedence greater than the current operator
+                    while (
+                        operator_stack
+                        and operator_stack[-1].token.kind is not Token.Kind.CONTEXT
+                        and (
+                            operator_stack[-1].operator.precedence > operator.precedence
+                            or operator_stack[-1].operator.precedence
+                            == operator.precedence
+                            and operator.associativity is Operator.Associativity.LEFT
+                        )
+                    ):
+                        output_queue = operate(operator_stack.pop(), output_queue)
 
-            for operator in operators:
-                while (
-                    operator_stack
-                    and operator_stack[-1].token.kind is not Token.Kind.CONTEXT
-                    and (
-                        operator_stack[-1].operator.precedence > operator.precedence
-                        or operator_stack[-1].operator.precedence == operator.precedence
-                        and operator.associativity is Operator.Associativity.LEFT
+                    # Determine maximum number of postfix arguments
+                    max_postfix_arity = (
+                        len(output_queue) - operator_stack[-1].index
+                        if operator_stack
+                        else len(output_queue)
                     )
-                ):
-                    output_queue = operate(operator_stack.pop(), output_queue)
 
-                stack_operator(operator, token)
+                    # Check if operator is valid in current context
+                    if (
+                        operator.arity == 0
+                        or operator.fixity is Operator.Fixity.PREFIX
+                        or max_postfix_arity == 1
+                        and operator.fixity is Operator.Fixity.INFIX
+                        or max_postfix_arity >= operator.arity
+                        and operator.fixity is Operator.Fixity.POSTFIX
+                    ):
+                        stack_operator(operator, token)
+                        break
+                else:
+                    if operator_token in disabled_operators:
+                        raise exc_for_token(
+                            token,
+                            f"Operator `{operator_token}` is at least partially disabled by parser configuration, and/or is incorrectly used.",
+                        )
+                    raise exc_for_token(
+                        token, f"Operator `{operator_token}` is incorrectly used."
+                    )
         else:
             output_queue.append(token)
 
@@ -134,7 +160,16 @@ def tokens_to_ast(
 
     if output_queue:
         if len(output_queue) > 1:
-            raise exc_for_missing_operator(output_queue[0], output_queue[1])
+            raise exc_for_missing_operator(
+                output_queue[0],
+                output_queue[1],
+                extra=(
+                    "This may be due to the following operators being at least "
+                    f"partially disabled by parser configuration: {disabled_operators}."
+                    if disabled_operators
+                    else None
+                ),
+            )
         return output_queue[0]
 
     return None

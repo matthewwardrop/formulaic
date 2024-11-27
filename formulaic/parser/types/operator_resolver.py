@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Dict, List, Sequence, Union
+from typing import Dict, Generator, Iterable, List, Tuple
 
 from ..utils import exc_for_token
 from .operator import Operator
@@ -53,11 +53,15 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         return operator_table
 
     def resolve(
-        self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> Sequence[Operator]:
+        self, token: Token
+    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
         """
-        Return a list of operators to apply for a given token in the AST
-        generation.
+        Generate the sets of operator candidates that may be viable for the
+        given token (which may include multiple adjacent operators concatenated
+        together). Each item generated must be a tuple for the token associated
+        with the operator, and an iterable of `Operator` instances which should
+        be considered by the AST generator. These `Operator` instances *MUST* be
+        sorted in descending order of precendence and arity.
 
         Args:
             token: The operator `Token` instance for which `Operator`(s) should
@@ -68,45 +72,19 @@ class OperatorResolver(metaclass=abc.ABCMeta):
                 resolved will be placed. This will be a list of `Operator`
                 instances or tokens (tokens are return for grouping operators).
         """
-        return [self._resolve(token, token.token, max_prefix_arity, context)]
+        yield self._resolve(token, token.token)
 
     def _resolve(
         self,
         token: Token,
         symbol: str,
-        max_prefix_arity: int,
-        context: List[Union[Token, Operator]],
-    ) -> Operator:
+    ) -> Tuple[Token, Iterable[Operator]]:
         """
         The default operator resolving logic.
         """
         if symbol not in self.operator_table:
             raise exc_for_token(token, f"Unknown operator '{symbol}'.")
-        candidates = [
-            candidate
-            for candidate in self.operator_table[symbol]
-            if (
-                max_prefix_arity == 0
-                and candidate.fixity is Operator.Fixity.PREFIX
-                or max_prefix_arity > 0
-                and candidate.fixity is not Operator.Fixity.PREFIX
-            )
-            and candidate.accepts_context(context)
-        ]
-        if not candidates:
-            raise exc_for_token(token, f"Operator `{symbol}` is incorrectly used.")
-        candidates = [candidate for candidate in candidates if not candidate.disabled]
-        if not candidates:
-            raise exc_for_token(
-                token,
-                f"Operator `{symbol}` has been disabled in this context via parser configuration.",
-            )
-        if len(candidates) > 1:
-            raise exc_for_token(
-                token,
-                f"Ambiguous operator `{symbol}`. This is not usually a user error. Please report this!",
-            )
-        return candidates[0]
+        return token, self.operator_table[symbol]
 
     # The operator table cache may not be pickleable, so let's drop it.
     def __getstate__(self) -> Dict:

@@ -6,7 +6,7 @@ import itertools
 import re
 from dataclasses import dataclass, field
 from enum import Flag, auto
-from typing import Iterable, List, Sequence, Set, Tuple, Union, cast
+from typing import Generator, Iterable, List, Set, Tuple, Union, cast
 
 from typing_extensions import Self
 
@@ -454,10 +454,12 @@ class DefaultOperatorResolver(OperatorResolver):
         ]
 
     def resolve(
-        self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> Sequence[Operator]:
+        self,
+        token: Token,
+    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
         if token.token in self.operator_table:
-            return super().resolve(token, max_prefix_arity, context)
+            yield from super().resolve(token)
+            return
 
         symbol = token.token
 
@@ -474,9 +476,8 @@ class DefaultOperatorResolver(OperatorResolver):
             )
 
         if symbol in self.operator_table:
-            return [self._resolve(token, symbol, max_prefix_arity, context)]
+            yield self._resolve(token, symbol)
+            return
 
-        return [
-            self._resolve(token, sym, max_prefix_arity if i == 0 else 0, context)
-            for i, sym in enumerate(symbol)
-        ]
+        for sym in symbol:
+            yield self._resolve(token, sym)

@@ -34,6 +34,7 @@ def exc_for_missing_operator(
     lhs: Union[Token, ASTNode],
     rhs: Union[Token, ASTNode],
     errcls: Type[Exception] = FormulaSyntaxError,
+    extra: Optional[str] = None,
 ) -> Exception:
     """
     Return an exception ready to be raised about a missing operator token
@@ -45,11 +46,12 @@ def exc_for_missing_operator(
         rhs: The `Token` or `ASTNode` instance to the right of where an operator
             should be placed.
         errcls: The type of the exception to be returned.
+        extra: Any additional information to be included in the exception message.
     """
     lhs_token, rhs_token, error_token = __get_tokens_for_gap(lhs, rhs)
     return exc_for_token(
         error_token,
-        f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.",
+        f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.{f' {extra}' if extra else ''}",
         errcls=errcls,
     )
 
