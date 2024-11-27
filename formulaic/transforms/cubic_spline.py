@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Literal, Optional, Tuple, Union, cast
+from functools import partial
+from typing import Any, Iterable, Literal, cast
 
 import numpy
 import pandas
@@ -8,6 +9,10 @@ import pandas
 from formulaic.materializers.types import FactorValues
 from formulaic.transforms.basis_spline import SplineExtrapolation
 from formulaic.utils.stateful_transforms import stateful_transform
+
+
+class ExtrapolationError(ValueError):
+    pass
 
 
 def safe_string_eq(obj: Any, value: str) -> bool:
@@ -46,7 +51,7 @@ def _find_knots_lower_bounds(x: numpy.ndarray, knots: numpy.ndarray) -> numpy.nd
 
 def _compute_base_functions(
     x: numpy.ndarray, knots: numpy.ndarray
-) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
     """Computes base functions used for building cubic splines basis.
 
     .. note:: See 'Generalized Additive Models', Simon N. Wood, 2006, p. 146
@@ -158,7 +163,8 @@ def _map_cyclic(x: numpy.ndarray, lbound: float, ubound: float) -> numpy.ndarray
     if lbound >= ubound:
         raise ValueError(
             f"Invalid argument: lbound ({lbound}) should be "
-            f"less than ubound ({ubound})."        )
+            f"less than ubound ({ubound})."
+        )
 
     x = numpy.copy(x)
     x[x > ubound] = lbound + (x[x > ubound] - ubound) % (ubound - lbound)
@@ -214,10 +220,10 @@ def _get_free_cubic_spline_matrix(
 
 def _get_all_sorted_knots(
     x: numpy.ndarray,
-    n_inner_knots: Optional[int] = None,
-    inner_knots: Optional[numpy.ndarray] = None,
-    lower_bound: Optional[float] = None,
-    upper_bound: Optional[float] = None,
+    n_inner_knots: int | None = None,
+    inner_knots: numpy.ndarray | None = None,
+    lower_bound: float | None = None,
+    upper_bound: float | None = None,
 ) -> numpy.ndarray:
     """Gets all knots locations with lower and upper exterior knots included.
 
@@ -236,26 +242,26 @@ def _get_all_sorted_knots(
     :raise ValueError: for various invalid parameters sets or if unable to
      compute ``n_inner_knots + 2`` distinct knots.
     """
-    if lower_bound is None and x.size == 0:
-        raise ValueError(
-            "Cannot set lower exterior knot location: empty "
-            "inumpy.t data and lower_bound not specified."
-        )
-    elif lower_bound is None and x.size != 0:
-        lower_bound = float(numpy.min(x))
+    if lower_bound is None:
+        if x.size == 0:
+            raise ValueError(
+                "Cannot set lower exterior knot location: empty "
+                "inumpy.t data and lower_bound not specified."
+            )
+        else:
+            lower_bound = float(numpy.min(x))
 
-    if upper_bound is None and x.size == 0:
-        raise ValueError(
-            "Cannot set upper exterior knot location: empty "
-            "data and upper_bound not specified."
-        )
-    elif upper_bound is None and x.size != 0:
-        upper_bound = float(numpy.max(x))
+    if upper_bound is None:
+        if x.size == 0:
+            raise ValueError(
+                "Cannot set upper exterior knot location: empty "
+                "data and upper_bound not specified."
+            )
+        else:
+            upper_bound = float(numpy.max(x))
 
     if upper_bound < lower_bound:
-        raise ValueError(
-            f"lower_bound > upper_bound ({lower_bound} > {upper_bound})"
-        )
+        raise ValueError(f"lower_bound > upper_bound ({lower_bound} > {upper_bound})")
 
     if inner_knots is None and n_inner_knots is not None:
         if n_inner_knots < 0:
@@ -352,7 +358,7 @@ def _absorb_constraints(
 def _get_cubic_spline_matrix(
     x: numpy.ndarray,
     knots: numpy.ndarray,
-    constraints: Optional[numpy.ndarray] = None,
+    constraints: numpy.ndarray | None = None,
     cyclic: bool = False,
 ) -> numpy.ndarray:
     """Builds a cubic regression spline design matrix.
@@ -379,7 +385,7 @@ def _get_cubic_spline_matrix(
     return mat
 
 
-class CubicRegressionSpline(object):
+class CubicRegressionSpline:
     """Base class for cubic regression spline stateful transforms
 
     This class contains all the functionality for the following stateful
@@ -424,18 +430,18 @@ class CubicRegressionSpline(object):
     def __init__(self, name: str, cyclic: bool):
         self._name = name
         self._cyclic = cyclic
-        self._tmp: Dict[str, Any] = {}
-        self._all_knots: Optional[numpy.ndarray] = None
-        self._constraints: Optional[numpy.ndarray] = None
+        self._tmp: dict[str, Any] = {}
+        self._all_knots: numpy.ndarray | None = None
+        self._constraints: numpy.ndarray | None = None
 
     def memorize_chunk(
         self,
-        x: Union[pandas.Series, numpy.ndarray],
-        df: Optional[int] = None,
-        knots: Optional[Iterable[float]] = None,
-        lower_bound: Optional[float] = None,
-        upper_bound: Optional[float] = None,
-        constraints: Optional[Union[numpy.ndarray, Literal["center"]]] = None,
+        x: pandas.Series | numpy.ndarray,
+        df: int | None = None,
+        knots: Iterable[float] | None = None,
+        lower_bound: float | None = None,
+        upper_bound: float | None = None,
+        constraints: numpy.ndarray | Literal["center"] | None = None,
     ) -> None:
         args = {
             "df": df,
@@ -520,13 +526,13 @@ class CubicRegressionSpline(object):
 
     def transform(
         self,
-        x: Union[pandas.Series, numpy.ndarray],
-        df: Optional[int] = None,
-        knots: Optional[Iterable[float]] = None,
-        lower_bound: Optional[float] = None,
-        upper_bound: Optional[float] = None,
-        constraints: Optional[Union[numpy.ndarray, Literal["center"]]] = None,
-    ) -> Union[numpy.ndarray, pandas.DataFrame]:
+        x: pandas.Series | numpy.ndarray,
+        df: int | None = None,
+        knots: Iterable[float] | None = None,
+        lower_bound: float | None = None,
+        upper_bound: float | None = None,
+        constraints: numpy.ndarray | Literal["center"] | None = None,
+    ) -> numpy.ndarray | pandas.DataFrame:
         x_orig = x
         x = numpy.atleast_1d(x)
         if x.ndim == 2 and x.shape[1] == 1:
@@ -535,12 +541,14 @@ class CubicRegressionSpline(object):
             raise ValueError(
                 "Inumpy.t to %r must be 1-d, " "or a 2-d column vector." % (self._name,)
             )
+        assert isinstance(self._all_knots, numpy.ndarray)  # noqa: S101
         mat = _get_cubic_spline_matrix(
             x, self._all_knots, self._constraints, cyclic=self._cyclic
         )
         if isinstance(x_orig, (pandas.Series, pandas.DataFrame)):
-            mat = pandas.DataFrame(mat)
-            mat.index = x_orig.index
+            mat_df = pandas.DataFrame(mat)
+            mat_df.index = x_orig.index
+            return mat_df
         return mat
 
 
@@ -601,15 +609,14 @@ class CC(CubicRegressionSpline):
         super().__init__(name="cc", cyclic=True)
 
 
-@stateful_transform
 def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
-    x: Union[pandas.Series, numpy.ndarray],
-    df: Optional[int] = None,
-    knots: Optional[Iterable[float]] = None,
-    lower_bound: Optional[float] = None,
-    upper_bound: Optional[float] = None,
-    constraints: Optional[Union[numpy.ndarray, Literal["center"]]] = None,
-    extrapolation: Union[str, SplineExtrapolation] = "raise",
+    x: pandas.Series | numpy.ndarray,
+    df: int | None = None,
+    knots: Iterable[float] | None = None,
+    lower_bound: float | None = None,
+    upper_bound: float | None = None,
+    constraints: numpy.ndarray | Literal["center"] | None = None,
+    extrapolation: str | SplineExtrapolation = "extend",
     cyclic: bool = True,
     _state: dict = {},
 ) -> FactorValues[dict]:
@@ -707,20 +714,20 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     extrapolation = SplineExtrapolation(extrapolation)
 
     # Check extrapolations and adjust x if necessary
+    # SplineExtrapolation.EXTEND is the natural default, so no need to do anything
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
         (x < lower_bound) | (x > upper_bound)
     ):
-        raise ValueError(
+        raise ExtrapolationError(
             "Some field values extend beyond upper and/or lower bounds, which can "
             "result in ill-conditioned bases. Pass a value for `extrapolation` to "
             "control how extrapolation should be performed."
         )
-    if extrapolation is SplineExtrapolation.CLIP:
+    elif extrapolation is SplineExtrapolation.CLIP:
         x = numpy.clip(x, lower_bound, upper_bound)
-    if extrapolation is SplineExtrapolation.NA:
-        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
-    if SplineExtrapolation.EXTEND:
-        raise NotImplementedError("Has not been implemented yes")
+    elif extrapolation in (SplineExtrapolation.NA, SplineExtrapolation.ZERO):
+        fill_value = numpy.nan if extrapolation is SplineExtrapolation.NA else 0.0
+        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, fill_value)
 
     # Prepare knots
     if "knots" not in _state:
@@ -736,7 +743,7 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             else:
                 constraints_arr = numpy.atleast_2d(constraints)
                 if constraints_arr.ndim != 2:
-                    raise ValueError("Constraints must be 2-d array or " "1-d vector.")
+                    raise ValueError("Constraints must be 2-d array or 1-d vector.")
                 n_constraints = constraints_arr.shape[0]
 
         n_inner_knots = None
@@ -783,10 +790,14 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     cs_mat = _get_cubic_spline_matrix(x, knots, constraints, cyclic=cyclic)
 
     return FactorValues(
-        {i: cs_mat[:, i] for i in range(cs_mat.shape[1])},
+        {i + 1: cs_mat[:, i] for i in range(cs_mat.shape[1])},
         kind="numerical",
         spans_intercept=False,
         drop_field=0,
         format="{name}[{field}]",
         encoded=False,
     )
+
+
+cyclic_cubic_spline = stateful_transform(partial(cubic_spline, cyclic=True))
+natural_cubic_spline = stateful_transform(partial(cubic_spline, cyclic=False))

@@ -4,6 +4,7 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 from .basis_spline import basis_spline
 from .contrasts import C, ContrastsRegistry, encode_contrasts
+from .cubic_spline import cyclic_cubic_spline, natural_cubic_spline
 from .hashed import hashed
 from .identity import identity
 from .lag import lag
@@ -36,6 +37,9 @@ TRANSFORMS = {
     "exp2": numpy.exp2,
     # Bespoke transforms
     "bs": basis_spline,
+    "cc": cyclic_cubic_spline,
+    "cr": natural_cubic_spline,
+    "cs": natural_cubic_spline,
     "center": center,
     "lag": lag,
     "poly": poly,

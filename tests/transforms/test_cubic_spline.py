@@ -10,8 +10,9 @@ from formulaic.transforms.cubic_spline import (
     CR,
     _get_all_sorted_knots,
     _map_cyclic,
-    cc,
-    cr,
+    cubic_spline,
+    cyclic_cubic_spline,
+    natural_cubic_spline,
 )
 
 TEST_DATA_DIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], "data")
@@ -158,7 +159,7 @@ def test_crs_compat(test_data):
         adjust_df += 1
 
     # Defaults
-    df = constraints = None
+    constraints = None
     if test_data["absorb_cons"]:
         constraints = "center"
         adjust_df += 1
@@ -241,3 +242,61 @@ def test_crs_with_specific_constraint():
     result2 = build_design_matrices([builder], new_data)[0]
 
     assert numpy.allclose(result1, result2, rtol=1e-12, atol=0.0)
+
+
+def test_crs_compat_smoke(test_data):
+    # Translate the R output into Python calling conventions
+    adjust_df = 0
+    if test_data["spline_type"] == "cr" or test_data["spline_type"] == "cs":
+        cyclic = False
+    else:  #  test_data["spline_type"] == "cc":
+        assert test_data["spline_type"] == "cc"
+        cyclic = True
+        adjust_df += 1
+
+    # Defaults
+    constraints = None
+    if test_data["absorb_cons"]:
+        constraints = "center"
+        adjust_df += 1
+
+    df = test_data["nb_knots"] - adjust_df
+    knots = test_data["knots"] if test_data["knots"] is not None else None
+    lower_bound = (
+        test_data["lower_bound"] if test_data["lower_bound"] is not None else None
+    )
+    upper_bound = (
+        test_data["upper_bound"] if test_data["upper_bound"] is not None else None
+    )
+    if knots is not None:
+        # df is not needed when knots are provided
+        df = None
+    expected_output = test_data["output"]
+
+    out = cubic_spline(
+        cubic_spline_test_x,
+        df=df,
+        knots=knots,
+        lower_bound=lower_bound,
+        upper_bound=upper_bound,
+        constraints=constraints,
+        cyclic=cyclic,
+        _state={},
+    )
+    out_arr = numpy.column_stack(list(out.values()))
+    numpy.testing.assert_allclose(out_arr, expected_output, atol=1e-10)
+
+    if cyclic:
+        func = cyclic_cubic_spline
+    else:
+        func = natural_cubic_spline
+    out_stateful = func(
+        cubic_spline_test_x,
+        df=df,
+        knots=knots,
+        lower_bound=lower_bound,
+        upper_bound=upper_bound,
+        constraints=constraints,
+    )
+    out_stateful_arr = numpy.column_stack(list(out_stateful.values()))
+    numpy.testing.assert_allclose(out_stateful_arr, out_arr, atol=1e-10)
