@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Iterable, Literal, cast
+from typing import Any, Iterable, cast
 
 import numpy
 import pandas
+from typing_extensions import Literal
 
 from formulaic.materializers.types import FactorValues
 from formulaic.transforms.basis_spline import SplineExtrapolation
