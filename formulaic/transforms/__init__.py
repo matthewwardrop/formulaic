@@ -14,6 +14,9 @@ from .scale import center, scale
 
 __all__ = [
     "basis_spline",
+    "cubic_spline",
+    "cyclic_cubic_spline",
+    "natural_cubic_spline",
     "identity",
     "C",
     "encode_contrasts",
