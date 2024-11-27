@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
 
 from .ordered_set import OrderedSet
 from .term import Term
@@ -91,7 +91,9 @@ class Factor:
             return self.expr < other.expr
         return NotImplemented
 
-    def to_terms(self) -> OrderedSet[Term]:
+    def to_terms(
+        self, *, context: Optional[Mapping[str, Any]] = None
+    ) -> OrderedSet[Term]:
         """
         Convert this `Factor` instance into a `Term` instance, and expose it as
         a single-element ordered set.

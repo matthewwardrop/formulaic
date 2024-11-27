@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import inspect
 from enum import Enum
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Mapping, Optional, Union
 
 from .token import Token
 
@@ -91,9 +92,11 @@ class Operator:
     def fixity(self, fixity: Union[str, Operator.Fixity]) -> None:
         self._fixity = Operator.Fixity(fixity)
 
-    def to_terms(self, *args: Any) -> Any:
+    def to_terms(self, *args: Any, context: Optional[Mapping[str, Any]] = None) -> Any:
         if self._to_terms is None:
             raise RuntimeError(f"`to_terms` is not implemented for '{self.symbol}'.")
+        if inspect.signature(self._to_terms).parameters.get("context"):
+            return self._to_terms(*args, context=context or {})
         return self._to_terms(*args)
 
     def accepts_context(self, context: List[Union[Token, Operator]]) -> bool:

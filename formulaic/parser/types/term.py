@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional
+
+from .ordered_set import OrderedSet
 
 if TYPE_CHECKING:
     from .factor import Factor  # pragma: no cover
@@ -64,6 +66,14 @@ class Term:
                 return True
             return False
         return NotImplemented
+
+    def to_terms(
+        self, *, context: Optional[Mapping[str, Any]] = None
+    ) -> OrderedSet[Term]:
+        """
+        Convert this `Term` instance into set of `Term`s.
+        """
+        return OrderedSet((self,))
 
     def __repr__(self) -> str:
         return ":".join(repr(factor) for factor in self.factors)

@@ -1,7 +1,19 @@
 from __future__ import annotations
 
+import functools
 import graphlib
-from typing import Any, Dict, Generic, Iterable, List, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from .operator import Operator
 from .structured import Structured
@@ -28,13 +40,19 @@ class ASTNode(Generic[ItemType]):
         self.operator = operator
         self.args = args
 
-    def to_terms(self) -> Union[List[Term], Structured[List[Term]], Tuple]:
+    def to_terms(
+        self, *, context: Optional[Mapping[str, Any]] = None
+    ) -> Union[List[Term], Structured[List[Term]], Tuple]:
         """
         Evaluate this AST node and return the resulting set of `Term` instances.
 
         Note: We use topological evaluation here to avoid recursion issues for
         long formula (exceeding ~700 terms, though this depends on the recursion
         limit set in the interpreter).
+
+        Args:
+            context: An optional context mapping that can be used by operators
+                to modify their behaviour (e.g. the `.` operator).
         """
         g = graphlib.TopologicalSorter(self.__generate_evaluation_graph())
         g.prepare()
@@ -43,16 +61,18 @@ class ASTNode(Generic[ItemType]):
 
         while g.is_active():
             for node in g.get_ready():
-                node_args = (
+                node_args = tuple(
                     (results[arg] if isinstance(arg, ASTNode) else arg.to_terms())
                     for arg in node.args
                 )
-                if node.operator.structural:
-                    results[node] = node.operator.to_terms(*node_args)
+                if node.operator.structural or not node_args:
+                    results[node] = node.operator.to_terms(*node_args, context=context)
                 else:
                     results[node] = Structured._merge(
                         *node_args,
-                        merger=node.operator.to_terms,
+                        merger=functools.partial(
+                            node.operator.to_terms, context=context
+                        ),
                     )
                 g.done(node)
 
