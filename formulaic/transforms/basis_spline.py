@@ -99,22 +99,28 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         raise ValueError("You cannot specify both `df` and `knots`.")
 
     if "lower_bound" in _state:
-        lower_bound = _state["lower_bound"]
+        lower_bound = float(_state["lower_bound"])
     else:
         lower_bound = _state["lower_bound"] = (
-            numpy.min(x) if lower_bound is None else lower_bound
+            float(numpy.nanmin(x)) if lower_bound is None else float(lower_bound)
         )
 
     if "upper_bound" in _state:
-        upper_bound = _state["upper_bound"]
+        upper_bound = float(_state["upper_bound"])
     else:
         upper_bound = _state["upper_bound"] = (
-            numpy.max(x) if upper_bound is None else upper_bound
+            float(numpy.nanmax(x)) if upper_bound is None else float(upper_bound)
         )
 
-    extrapolation = SplineExtrapolation(extrapolation)
+    if "extrapolation" in _state:
+        extrapolation = SplineExtrapolation(_state["extrapolation"])
+    else:
+        extrapolation = SplineExtrapolation(extrapolation)
+        _state["extrapolation"] = extrapolation.value
 
     # Prepare data
+    if not isinstance(x, (numpy.ndarray, pandas.Series)):
+        x = numpy.array(x)
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
         (x < lower_bound) | (x > upper_bound)
     ):
@@ -124,8 +130,9 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         )
     if extrapolation is SplineExtrapolation.CLIP:
         x = numpy.clip(x, lower_bound, upper_bound)
-    if extrapolation is SplineExtrapolation.NA:
-        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
+    if extrapolation in (SplineExtrapolation.NA, SplineExtrapolation.ZERO):
+        fill_value = 0.0 if extrapolation is SplineExtrapolation.ZERO else numpy.nan
+        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, fill_value)
 
     # Prepare knots
     if "knots" not in _state:
@@ -141,7 +148,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             )
         knots.insert(0, cast(float, lower_bound))
         knots.append(cast(float, upper_bound))
-        knots = list(numpy.pad(knots, degree, mode="edge"))
+        knots = numpy.pad(knots, degree, mode="edge").tolist()
         _state["knots"] = knots
     knots = _state["knots"]
 

@@ -498,6 +498,7 @@ class TestBasisSpline:
             "knots": [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0],
             "lower_bound": 0.0,
             "upper_bound": 1.0,
+            "extrapolation": "raise",
         }
 
         # Test retention of previous upper and lower bounds by passing in out of
@@ -509,4 +510,4 @@ class TestBasisSpline:
                 "Pass a value for `extrapolation` to control how extrapolation should be performed."
             ),
         ):
-            basis_spline([-2, 2], extrapolation="raise", _state=state)
+            basis_spline([-2, 2], _state=state)
