@@ -3,11 +3,12 @@ import os
 
 import numpy
 import pandas
+import pandas as pd
 import pytest
 
+from formulaic import model_matrix
 from formulaic.transforms.cubic_spline import (
-    CC,
-    CR,
+    ExtrapolationError,
     _get_all_sorted_knots,
     _map_cyclic,
     cubic_spline,
@@ -109,103 +110,42 @@ def test_get_all_sorted_knots():
 
 
 def test_crs_errors():
-    import pytest
-
     # Invalid 'x' shape
     # TODO: Not ready
     with pytest.raises(ValueError):
-        CR().transform(numpy.arange(16).reshape((4, 4)), df=4)
+        cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, cyclic=False, _state={})
     with pytest.raises(ValueError):
-        CR().transform(numpy.arange(16).reshape((4, 4)), df=4)
+        cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, cyclic=False, _state={})
     # Should provide at least 'df' or 'knots'
     with pytest.raises(ValueError):
-        _cr = CR()
-        _cr.memorize_chunk(numpy.arange(50))
-        _cr.memorize_finish()
+        cubic_spline(numpy.arange(50), cyclic=False)
     # Invalid constraints shape
     with pytest.raises(ValueError):
-        _cr = CR()
-        _cr.memorize_chunk(
+        cubic_spline(
             numpy.arange(50),
             df=4,
             constraints=numpy.arange(27).reshape((3, 3, 3)),
+            cyclic=False,
+            _state={},
         )
-        _cr.memorize_finish()
     # Invalid nb of columns in constraints
     # (should have df + 1 = 5, but 6 provided)
     with pytest.raises(ValueError):
-        _cr = CR()
-        _cr.memorize_chunk(numpy.arange(50), df=4, constraints=numpy.arange(6))
-        _cr.memorize_finish()
+        cubic_spline(
+            numpy.arange(50), df=4, constraints=numpy.arange(6), cyclic=False, _state={}
+        )
     # Too small 'df' for natural cubic spline
     with pytest.raises(ValueError):
-        _cr = CR()
-        _cr.memorize_chunk(numpy.arange(50), df=1)
-        _cr.memorize_finish()
+        cubic_spline(numpy.arange(50), df=1, cyclic=False, _state={})
     # Too small 'df' for cyclic cubic spline
     with pytest.raises(ValueError):
-        _cr = CR()
-        _cr.memorize_chunk(numpy.arange(50), df=0)
-        _cr.memorize_finish()
+        cubic_spline(numpy.arange(50), df=0, _state={})
 
 
-def test_crs_compat(test_data):
-    # Translate the R output into Python calling conventions
-    adjust_df = 0
-    if test_data["spline_type"] == "cr" or test_data["spline_type"] == "cs":
-        spline_type = CR
-    else:  #  test_data["spline_type"] == "cc":
-        spline_type = CC
-        adjust_df += 1
-
-    # Defaults
-    constraints = None
-    if test_data["absorb_cons"]:
-        constraints = "center"
-        adjust_df += 1
-
-    df = test_data["nb_knots"] - adjust_df
-    knots = test_data["knots"] if test_data["knots"] is not None else None
-    lower_bound = (
-        test_data["lower_bound"] if test_data["lower_bound"] is not None else None
-    )
-    upper_bound = (
-        test_data["upper_bound"] if test_data["upper_bound"] is not None else None
-    )
-    if knots is not None:
-        # df is not needed when knots are provided
-        df = None
-    expected_output = test_data["output"]
-    t = spline_type()
-    t.memorize_chunk(
-        cubic_spline_test_x,
-        df=df,
-        knots=knots,
-        lower_bound=lower_bound,
-        upper_bound=upper_bound,
-        constraints=constraints,
-    )
-    t.memorize_finish()
-    output = t.transform(
-        cubic_spline_test_x,
-        df=df,
-        knots=knots,
-        lower_bound=lower_bound,
-        upper_bound=upper_bound,
-        constraints=constraints,
-    )
-    assert output.shape[0] == len(cubic_spline_test_x)
-    numpy.testing.assert_allclose(output, expected_output, atol=1e-10)
-
-
-@pytest.mark.skip(reason="Not ready yet")
 def test_crs_with_specific_constraint():
-    from patsy.highlevel import build_design_matrices, dmatrix, incr_dbuilder
-
-    x = (-1.5) ** numpy.arange(20)
     # Hard coded R values for smooth: s(x, bs="cr", k=5)
     # R> knots <- smooth$xp
-    knots_R = numpy.array(
+    knots_r = numpy.array(
         [
             -2216.837820053100585937,
             -50.456909179687500000,
@@ -215,36 +155,35 @@ def test_crs_with_specific_constraint():
         ]
     )
     # R> centering.constraint <- t(qr.X(attr(smooth, "qrc")))
-    centering_constraint_R = numpy.array(
-        [
+    context = dict(
+        lower_bound=knots_r[0],
+        knots=knots_r[1:-1],
+        upper_bound=knots_r[-1],
+        centering_constraint_r=numpy.array(
             [
-                0.064910676323168478574,
-                1.4519875239407085132,
-                -2.1947446912471946234,
-                1.6129783104357671153,
-                0.064868180547550072235,
+                [
+                    0.064910676323168478574,
+                    1.4519875239407085132,
+                    -2.1947446912471946234,
+                    1.6129783104357671153,
+                    0.064868180547550072235,
+                ]
             ]
-        ]
+        ),
     )
     # values for which we want a prediction
-    new_x = numpy.array([-3000.0, -200.0, 300.0, 2000.0])
-    result1 = dmatrix(
-        "cr(new_x, knots=knots_R[1:-1], "
-        "lower_bound=knots_R[0], upper_bound=knots_R[-1], "
-        "constraints=centering_constraint_R)"
+    eval_data = pd.DataFrame({"x": numpy.array([-3000.0, -200.0, 300.0, 2000.0])})
+    formula = "cr(x, knots=knots,  lower_bound=lower_bound, upper_bound=upper_bound, constraints=centering_constraint_r)"
+    result = model_matrix(formula, data=eval_data, context=context)
+    train_data = pd.DataFrame({"x": (-1.5) ** numpy.arange(20)})
+    intermediate_result = model_matrix(
+        "cr(x, df=4, constraints='center')", data=train_data
     )
-
-    data_chunked = [{"x": x[:10]}, {"x": x[10:]}]
-    new_data = {"x": new_x}
-    builder = incr_dbuilder(
-        "cr(x, df=4, constraints='center')", lambda: iter(data_chunked)
-    )
-    result2 = build_design_matrices([builder], new_data)[0]
-
-    assert numpy.allclose(result1, result2, rtol=1e-12, atol=0.0)
+    result_alt = model_matrix(intermediate_result.model_spec, data=eval_data)
+    numpy.testing.assert_allclose(result, result_alt, rtol=1e-12, atol=1e-12)
 
 
-def test_crs_compat_smoke(test_data):
+def test_crs_compat_with_r(test_data):
     # Translate the R output into Python calling conventions
     adjust_df = 0
     if test_data["spline_type"] == "cr" or test_data["spline_type"] == "cs":
@@ -272,7 +211,7 @@ def test_crs_compat_smoke(test_data):
         # df is not needed when knots are provided
         df = None
     expected_output = test_data["output"]
-
+    state = {}
     out = cubic_spline(
         cubic_spline_test_x,
         df=df,
@@ -281,10 +220,23 @@ def test_crs_compat_smoke(test_data):
         upper_bound=upper_bound,
         constraints=constraints,
         cyclic=cyclic,
-        _state={},
+        _state=state,
     )
+    out_stateful = cubic_spline(
+        cubic_spline_test_x,
+        df=df,
+        knots=knots,
+        lower_bound=lower_bound,
+        upper_bound=upper_bound,
+        constraints=constraints,
+        cyclic=cyclic,
+        _state=state,
+    )
+
     out_arr = numpy.column_stack(list(out.values()))
     numpy.testing.assert_allclose(out_arr, expected_output, atol=1e-10)
+    out_arr_stateful = numpy.column_stack(list(out_stateful.values()))
+    numpy.testing.assert_allclose(out_arr, out_arr_stateful, atol=1e-10)
 
     if cyclic:
         func = cyclic_cubic_spline
@@ -300,3 +252,20 @@ def test_crs_compat_smoke(test_data):
     )
     out_stateful_arr = numpy.column_stack(list(out_stateful.values()))
     numpy.testing.assert_allclose(out_stateful_arr, out_arr, atol=1e-10)
+
+
+def test_statefulness():
+    state = {}
+    data = numpy.linspace(0.1, 0.9, 50)
+    cubic_spline(data, df=4, extrapolation="raise", _state=state)
+    assert state == {
+        "lower_bound": 0.1,
+        "upper_bound": 0.9,
+        "constraints": None,
+        "cyclic": True,
+        "knots": [0.1, 0.3, 0.5, 0.7, 0.9],
+        "extrapolation": "raise",
+    }
+
+    with pytest.raises(ExtrapolationError):
+        cubic_spline([-0.1, 1.1], _state=state)

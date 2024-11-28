@@ -1,3 +1,34 @@
+"""
+The code in this module is derived from similar code in the `patsy` package.
+The original license of the code is as follows:
+
+    Copyright (C) 2011-2012, Patsy Developers. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+       1. Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+
+       2. Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials provided
+          with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
 from __future__ import annotations
 
 from functools import partial
@@ -221,10 +252,10 @@ def _get_free_cubic_spline_matrix(
 
 def _get_all_sorted_knots(
     x: numpy.ndarray,
+    lower_bound: float,
+    upper_bound: float,
     n_inner_knots: int | None = None,
     inner_knots: numpy.ndarray | None = None,
-    lower_bound: float | None = None,
-    upper_bound: float | None = None,
 ) -> numpy.ndarray:
     """Gets all knots locations with lower and upper exterior knots included.
 
@@ -232,35 +263,15 @@ def _get_all_sorted_knots(
     inumpy.t data falling between given lower and upper bounds.
 
     :param x: The 1-d array data values.
+    :param lower_bound: The lower exterior knot location.
+    :param upper_bound: The upper exterior knot location.
     :param n_inner_knots: Number of inner knots to compute.
     :param inner_knots: Provided inner knots if any.
-    :param lower_bound: The lower exterior knot location. If unspecified, the
-     minimum of ``x`` values is used.
-    :param upper_bound: The upper exterior knot location. If unspecified, the
-     maximum of ``x`` values is used.
     :return: The array of ``n_inner_knots + 2`` distinct knots.
 
     :raise ValueError: for various invalid parameters sets or if unable to
      compute ``n_inner_knots + 2`` distinct knots.
     """
-    if lower_bound is None:
-        if x.size == 0:
-            raise ValueError(
-                "Cannot set lower exterior knot location: empty "
-                "inumpy.t data and lower_bound not specified."
-            )
-        else:
-            lower_bound = float(numpy.min(x))
-
-    if upper_bound is None:
-        if x.size == 0:
-            raise ValueError(
-                "Cannot set upper exterior knot location: empty "
-                "data and upper_bound not specified."
-            )
-        else:
-            upper_bound = float(numpy.max(x))
-
     if upper_bound < lower_bound:
         raise ValueError(f"lower_bound > upper_bound ({lower_bound} > {upper_bound})")
 
@@ -386,230 +397,6 @@ def _get_cubic_spline_matrix(
     return mat
 
 
-class CubicRegressionSpline:
-    """Base class for cubic regression spline stateful transforms
-
-    This class contains all the functionality for the following stateful
-    transforms:
-     - ``cr(x, df=None, knots=None, lower_bound=None, upper_bound=None, constraints=None)``
-       for natural cubic regression spline
-     - ``cc(x, df=None, knots=None, lower_bound=None, upper_bound=None, constraints=None)``
-       for cyclic cubic regression spline
-    """
-
-    common_doc = """
-    :arg df: The number of degrees of freedom to use for this spline. The
-      return value will have this many columns. You must specify at least one
-      of ``df`` and ``knots``.
-    :arg knots: The interior knots to use for the spline. If unspecified, then
-      equally spaced quantiles of the inumpy.t data are used. You must specify at
-      least one of ``df`` and ``knots``.
-    :arg lower_bound: The lower exterior knot location.
-    :arg upper_bound: The upper exterior knot location.
-    :arg constraints: Either a 2-d array defining general linear constraints
-     (that is ``numpy.dot(constraints, betas)`` is zero, where ``betas`` denotes
-     the array of *initial* parameters, corresponding to the *initial*
-     unconstrained design matrix), or the string
-     ``'center'`` indicating that we should apply a centering constraint
-     (this constraint will be computed from the inumpy.t data, remembered and
-     re-used for prediction from the fitted model).
-     The constraints are absorbed in the resulting design matrix which means
-     that the model is actually rewritten in terms of
-     *unconstrained* parameters. For more details see :ref:`spline-regression`.
-
-    This is a stateful transforms (for details see
-    :ref:`stateful-transforms`). If ``knots``, ``lower_bound``, or
-    ``upper_bound`` are not specified, they will be calculated from the data
-    and then the chosen values will be remembered and re-used for prediction
-    from the fitted model.
-
-    Using this function requires scipy be installed.
-
-    .. versionadded:: 0.3.0
-    """
-
-    def __init__(self, name: str, cyclic: bool):
-        self._name = name
-        self._cyclic = cyclic
-        self._tmp: dict[str, Any] = {}
-        self._all_knots: numpy.ndarray | None = None
-        self._constraints: numpy.ndarray | None = None
-
-    def memorize_chunk(
-        self,
-        x: pandas.Series | numpy.ndarray,
-        df: int | None = None,
-        knots: Iterable[float] | None = None,
-        lower_bound: float | None = None,
-        upper_bound: float | None = None,
-        constraints: numpy.ndarray | Literal["center"] | None = None,
-    ) -> None:
-        args = {
-            "df": df,
-            "knots": knots,
-            "lower_bound": lower_bound,
-            "upper_bound": upper_bound,
-            "constraints": constraints,
-        }
-        self._tmp["args"] = args
-
-        x = numpy.atleast_1d(x)
-        if x.ndim == 2 and x.shape[1] == 1:
-            x = x[:, 0]
-        if x.ndim > 1:
-            raise ValueError(
-                "Inumpy.t to %r must be 1-d, " "or a 2-d column vector." % (self._name,)
-            )
-
-        self._tmp.setdefault("xs", []).append(x)
-
-    def memorize_finish(self) -> None:
-        args = self._tmp["args"]
-        xs = self._tmp["xs"]
-        # Guards against invalid subsequent memorize_chunk() calls.
-        del self._tmp
-
-        x = numpy.concatenate(xs)
-        if args["df"] is None and args["knots"] is None:
-            raise ValueError("Must specify either 'df' or 'knots'.")
-
-        constraints = args["constraints"]
-        n_constraints = 0
-        if constraints is not None:
-            if safe_string_eq(constraints, "center"):
-                # Here we collect only number of constraints,
-                # actual centering constraint will be computed after all_knots
-                n_constraints = 1
-            else:
-                constraints = numpy.atleast_2d(constraints)
-                if constraints.ndim != 2:
-                    raise ValueError("Constraints must be 2-d array or " "1-d vector.")
-                n_constraints = constraints.shape[0]
-
-        n_inner_knots = None
-        if args["df"] is not None:
-            min_df = 1
-            if not self._cyclic and n_constraints == 0:
-                min_df = 2
-            if args["df"] < min_df:
-                raise ValueError(
-                    "'df'=%r must be greater than or equal to %r."
-                    % (args["df"], min_df)
-                )
-            n_inner_knots = args["df"] - 2 + n_constraints
-            if self._cyclic:
-                n_inner_knots += 1
-        self._all_knots = _get_all_sorted_knots(
-            x,
-            n_inner_knots=n_inner_knots,
-            inner_knots=args["knots"],
-            lower_bound=args["lower_bound"],
-            upper_bound=args["upper_bound"],
-        )
-        if constraints is not None:
-            if safe_string_eq(constraints, "center"):
-                # Now we can compute centering constraints
-                constraints = _get_centering_constraint_from_matrix(
-                    _get_free_cubic_spline_matrix(
-                        x, self._all_knots, cyclic=self._cyclic
-                    )
-                )
-
-            df_before_constraints = self._all_knots.size
-            if self._cyclic:
-                df_before_constraints -= 1
-            if constraints.shape[1] != df_before_constraints:
-                raise ValueError(
-                    "Constraints array should have %r columns but"
-                    " %r found." % (df_before_constraints, constraints.shape[1])
-                )
-            self._constraints = constraints
-
-    def transform(
-        self,
-        x: pandas.Series | numpy.ndarray,
-        df: int | None = None,
-        knots: Iterable[float] | None = None,
-        lower_bound: float | None = None,
-        upper_bound: float | None = None,
-        constraints: numpy.ndarray | Literal["center"] | None = None,
-    ) -> numpy.ndarray | pandas.DataFrame:
-        x_orig = x
-        x = numpy.atleast_1d(x)
-        if x.ndim == 2 and x.shape[1] == 1:
-            x = x[:, 0]
-        if x.ndim > 1:
-            raise ValueError(
-                "Inumpy.t to %r must be 1-d, " "or a 2-d column vector." % (self._name,)
-            )
-        assert isinstance(self._all_knots, numpy.ndarray)  # noqa: S101
-        mat = _get_cubic_spline_matrix(
-            x, self._all_knots, self._constraints, cyclic=self._cyclic
-        )
-        if isinstance(x_orig, (pandas.Series, pandas.DataFrame)):
-            mat_df = pandas.DataFrame(mat)
-            mat_df.index = x_orig.index
-            return mat_df
-        return mat
-
-
-class CR(CubicRegressionSpline):
-    """cr(x, df=None, knots=None, lower_bound=None, upper_bound=None, constraints=None)
-
-    Generates a natural cubic spline basis for ``x``
-    (with the option of absorbing centering or more general parameters
-    constraints), allowing non-linear fits. The usual usage is something like::
-
-      y ~ 1 + cr(x, df=5, constraints='center')
-
-    to fit ``y`` as a smooth function of ``x``, with 5 degrees of freedom
-    given to the smooth, and centering constraint absorbed in
-    the resulting design matrix. Note that in this example, due to the centering
-    constraint, 6 knots will get computed from the inumpy.t data ``x``
-    to achieve 5 degrees of freedom.
-
-
-    .. note:: This function reproduce the cubic regression splines 'cr' and 'cs'
-      as implemented in the R package 'mgcv' (GAM modelling).
-
-    """
-
-    # Under python -OO, __doc__ will be defined but set to None
-    if __doc__:
-        __doc__ += CubicRegressionSpline.common_doc
-
-    def __init__(self) -> None:
-        super().__init__(name="cr", cyclic=False)
-
-
-class CC(CubicRegressionSpline):
-    """cc(x, df=None, knots=None, lower_bound=None, upper_bound=None, constraints=None)
-
-    Generates a cyclic cubic spline basis for ``x``
-    (with the option of absorbing centering or more general parameters
-    constraints), allowing non-linear fits. The usual usage is something like::
-
-      y ~ 1 + cc(x, df=7, constraints='center')
-
-    to fit ``y`` as a smooth function of ``x``, with 7 degrees of freedom
-    given to the smooth, and centering constraint absorbed in
-    the resulting design matrix. Note that in this example, due to the centering
-    and cyclic constraints, 9 knots will get computed from the inumpy.t data ``x``
-    to achieve 7 degrees of freedom.
-
-    .. note:: This function reproduce the cubic regression splines 'cc'
-      as implemented in the R package 'mgcv' (GAM modelling).
-
-    """
-
-    # Under python -OO, __doc__ will be defined but set to None
-    if __doc__:
-        __doc__ += CubicRegressionSpline.common_doc
-
-    def __init__(self) -> None:
-        super().__init__(name="cc", cyclic=True)
-
-
 def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
     x: pandas.Series | numpy.ndarray,
     df: int | None = None,
@@ -681,17 +468,17 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         raise ValueError("You cannot specify both `df` and `knots`.")
 
     if "lower_bound" in _state:
-        lower_bound = _state["lower_bound"]
+        lower_bound = float(_state["lower_bound"])
     else:
         lower_bound = _state["lower_bound"] = (
-            numpy.min(x) if lower_bound is None else lower_bound
+            float(numpy.min(x)) if lower_bound is None else float(lower_bound)
         )
 
     if "upper_bound" in _state:
-        upper_bound = _state["upper_bound"]
+        upper_bound = float(_state["upper_bound"])
     else:
         upper_bound = _state["upper_bound"] = (
-            numpy.max(x) if upper_bound is None else upper_bound
+            float(numpy.max(x)) if upper_bound is None else float(upper_bound)
         )
 
     if "constraints" in _state:
@@ -712,7 +499,11 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             "Inumpy.t to cubic_spline must be 1-d, or a 2-d column vector."
         )
 
-    extrapolation = SplineExtrapolation(extrapolation)
+    if "extrapolation" in _state:
+        extrapolation = SplineExtrapolation(_state["extrapolation"])
+    else:
+        extrapolation = SplineExtrapolation(extrapolation)
+        _state["extrapolation"] = extrapolation.value
 
     # Check extrapolations and adjust x if necessary
     # SplineExtrapolation.EXTEND is the natural default, so no need to do anything
@@ -762,10 +553,10 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         _knots = numpy.array(knots) if knots is not None else None
         all_knots = _get_all_sorted_knots(
             x,
+            lower_bound,
+            upper_bound,
             n_inner_knots=n_inner_knots,
             inner_knots=_knots,
-            lower_bound=lower_bound,
-            upper_bound=upper_bound,
         )
         if constraints is not None:
             if safe_string_eq(constraints, "center"):
@@ -783,9 +574,9 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                     f"but {constraints_arr.shape[1]} found."
                 )
             _state["constraints"] = constraints_arr
-        _state["knots"] = all_knots
+        _state["knots"] = all_knots.tolist()
     constraints = _state["constraints"]
-    knots = _state["knots"]
+    knots = numpy.array(_state["knots"])
 
     # Compute cubic splines
     cs_mat = _get_cubic_spline_matrix(x, knots, constraints, cyclic=cyclic)
