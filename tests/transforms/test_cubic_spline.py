@@ -265,15 +265,18 @@ def test_statefulness():
     state = {}
     data = numpy.linspace(0.1, 0.9, 50)
     cubic_spline(data, df=4, extrapolation="raise", _state=state)
+    assert "knots" in state
+    knots = state["knots"]
+    del state["knots"]
     assert state == {
         "lower_bound": 0.1,
         "upper_bound": 0.9,
         "constraints": None,
         "cyclic": True,
-        "knots": [0.1, 0.3, 0.5, 0.7, 0.9],
         "extrapolation": "raise",
     }
-
+    # Test separately to avoid exact float comparison
+    numpy.testing.assert_allclose(knots, [0.1, 0.3, 0.5, 0.7, 0.9])
     with pytest.raises(ExtrapolationError):
         cubic_spline([-0.1, 1.1], _state=state)
 
