@@ -306,13 +306,13 @@ def _get_all_sorted_knots(
         n_inner_knots = inner_knots.size
         if numpy.any(inner_knots < lower_bound):
             raise ValueError(
-                "Some knot values (%s) fall below lower bound "
-                "(%r)." % (inner_knots[inner_knots < lower_bound], lower_bound)
+                f"Some knot values ({inner_knots[inner_knots < lower_bound]}) fall "
+                f"below lower bound ({lower_bound})."
             )
         if numpy.any(inner_knots > upper_bound):
             raise ValueError(
-                "Some knot values (%s) fall above upper bound "
-                "(%r)." % (inner_knots[inner_knots > upper_bound], upper_bound)
+                f"Some knot values ({inner_knots[inner_knots > upper_bound]}) fall "
+                f"above upper bound ({upper_bound})."
             )
     else:
         raise ValueError("Must specify either 'n_inner_knots' or 'inner_knots'.")
@@ -323,10 +323,9 @@ def _get_all_sorted_knots(
     all_knots = numpy.unique(all_knots)
     if all_knots.size != n_inner_knots + 2:
         raise ValueError(
-            "Unable to compute n_inner_knots(=%r) + 2 distinct "
-            "knots: %r data value(s) found between "
-            "lower_bound(=%r) and upper_bound(=%r)."
-            % (n_inner_knots, x.size, lower_bound, upper_bound)
+            f"Unable to compute n_inner_knots({n_inner_knots}) + 2 distinct "
+            f"knots: {x.size} data value(s) found between "
+            f"lower_bound({lower_bound}) and upper_bound({upper_bound})."
         )
 
     return all_knots
@@ -471,14 +470,14 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         lower_bound = float(_state["lower_bound"])
     else:
         lower_bound = _state["lower_bound"] = (
-            float(numpy.min(x)) if lower_bound is None else float(lower_bound)
+            float(numpy.nanmin(x)) if lower_bound is None else float(lower_bound)
         )
 
     if "upper_bound" in _state:
         upper_bound = float(_state["upper_bound"])
     else:
         upper_bound = _state["upper_bound"] = (
-            float(numpy.max(x)) if upper_bound is None else float(upper_bound)
+            float(numpy.nanmax(x)) if upper_bound is None else float(upper_bound)
         )
 
     if "constraints" in _state:

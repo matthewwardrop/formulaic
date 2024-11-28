@@ -2,6 +2,7 @@ import json
 import os
 
 import numpy
+import numpy as np
 import pandas
 import pandas as pd
 import pytest
@@ -58,55 +59,61 @@ def test_get_all_sorted_knots():
     import pytest
 
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), -1)
+        _get_all_sorted_knots(
+            numpy.array([]), n_inner_knots=-1, lower_bound=-1, upper_bound=2
+        )
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), 0)
-    with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), 0, lower_bound=1)
-    with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), 0, upper_bound=5)
-    with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), 0, lower_bound=3, upper_bound=1)
+        _get_all_sorted_knots(
+            numpy.array([]), n_inner_knots=0, lower_bound=10, upper_bound=-2
+        )
 
     numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(numpy.array([]), 0, lower_bound=1, upper_bound=5), [1, 5]
+        _get_all_sorted_knots(
+            numpy.array([]), n_inner_knots=0, lower_bound=1, upper_bound=5
+        ),
+        [1, 5],
     )
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(numpy.array([]), 0, lower_bound=1, upper_bound=1)
+        _get_all_sorted_knots(
+            numpy.array([]), n_inner_knots=0, lower_bound=1, upper_bound=1
+        )
 
     x = numpy.arange(6) * 2
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, -2)
-    numpy.testing.assert_array_equal(_get_all_sorted_knots(x, 0), [0, 10])
+        _get_all_sorted_knots(x, lower_bound=0, upper_bound=100, n_inner_knots=-2)
+    lower_bound = x.min()
+    upper_bound = x.max()
     numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(x, 0, lower_bound=3, upper_bound=8), [3, 8]
+        _get_all_sorted_knots(x, lower_bound, upper_bound, 0), [0, 10]
     )
-    numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(x, 2, lower_bound=1, upper_bound=9), [1, 4, 6, 9]
-    )
+    numpy.testing.assert_array_equal(_get_all_sorted_knots(x, 3, 8, 0), [3, 8])
+    numpy.testing.assert_array_equal(_get_all_sorted_knots(x, 1, 9, 2), [1, 4, 6, 9])
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, 2, lower_bound=1, upper_bound=3)
+        _get_all_sorted_knots(x, 1, 3, 2)
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, 1, lower_bound=1.3, upper_bound=1.4)
-    numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(x, 1, lower_bound=1, upper_bound=3), [1, 2, 3]
-    )
+        _get_all_sorted_knots(x, 1.3, 1.4, 1)
+    numpy.testing.assert_array_equal(_get_all_sorted_knots(x, 1, 3, 1), [1, 2, 3])
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, 1, lower_bound=2, upper_bound=3)
+        _get_all_sorted_knots(x, 2, 3, 1)
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, 1, inner_knots=[2, 3])
+        _get_all_sorted_knots(x, lower_bound, upper_bound, 1, inner_knots=[2, 3])
     with pytest.raises(ValueError):
         _get_all_sorted_knots(x, lower_bound=2, upper_bound=3)
     numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(x, inner_knots=[3, 7]), [0, 3, 7, 10]
+        _get_all_sorted_knots(x, lower_bound, upper_bound, inner_knots=[3, 7]),
+        [0, 3, 7, 10],
     )
     numpy.testing.assert_array_equal(
-        _get_all_sorted_knots(x, inner_knots=[3, 7], lower_bound=2), [2, 3, 7, 10]
+        _get_all_sorted_knots(x, 2, upper_bound, inner_knots=[3, 7]), [2, 3, 7, 10]
     )
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, inner_knots=[3, 7], lower_bound=4)
+        _get_all_sorted_knots(
+            x, inner_knots=[3, 7], lower_bound=4, upper_bound=upper_bound
+        )
     with pytest.raises(ValueError):
-        _get_all_sorted_knots(x, inner_knots=[3, 7], upper_bound=6)
+        _get_all_sorted_knots(
+            x, inner_knots=[3, 7], upper_bound=6, lower_bound=lower_bound
+        )
 
 
 def test_crs_errors():
@@ -269,3 +276,68 @@ def test_statefulness():
 
     with pytest.raises(ExtrapolationError):
         cubic_spline([-0.1, 1.1], _state=state)
+
+
+def test_cubic_spline_edges():
+    data = numpy.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    data2d = data[:, None]
+    state = {}
+    res_2d = cubic_spline(data2d, df=2, _state={})
+    res = cubic_spline(data, df=2, _state=state)
+    numpy.testing.assert_allclose(res_2d[1], res[1])
+    numpy.testing.assert_allclose(res_2d[2], res[2])
+
+    with pytest.raises(ValueError):
+        cubic_spline(data, knots=state["knots"], df=2, lower_bound=0.1, upper_bound=0.9)
+
+
+def test_alternative_extrapolation():
+    data = np.linspace(-10.0, 10.0, 21)
+
+    extrap = cubic_spline(
+        data, df=2, extrapolation="extend", lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+
+    res = cubic_spline(
+        data, df=2, extrapolation="clip", lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+    data_clipped = numpy.clip(data, -5.5, 5.5)
+    direct_res = cubic_spline(
+        data_clipped, df=2, lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+    numpy.testing.assert_allclose(res[1], direct_res[1])
+    numpy.testing.assert_allclose(res[2], direct_res[2])
+    assert not numpy.allclose(extrap[1], res[1])
+    assert not numpy.allclose(extrap[2], res[2])
+
+    res = cubic_spline(
+        data, df=2, extrapolation="zero", lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+    data_zeroed = numpy.where((data > -5.5) & (data < 5.5), data, 0.0)
+    direct_res = cubic_spline(
+        data_zeroed, df=2, lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+    numpy.testing.assert_allclose(res[1], direct_res[1])
+    numpy.testing.assert_allclose(res[2], direct_res[2])
+    assert not numpy.allclose(extrap[1], res[1])
+    assert not numpy.allclose(extrap[2], res[2])
+
+    res = cubic_spline(
+        data, df=2, extrapolation="na", lower_bound=-5.0, upper_bound=5.0, _state={}
+    )
+    data_na = numpy.where((data > -5.5) & (data < 5.5), data, np.nan)
+    direct_res = cubic_spline(data_na, df=2, _state={})
+    numpy.testing.assert_allclose(res[1], direct_res[1])
+    numpy.testing.assert_allclose(res[2], direct_res[2])
+    assert not numpy.allclose(extrap[1], res[1])
+    assert not numpy.allclose(extrap[2], res[2])
+
+    with pytest.raises(ExtrapolationError):
+        cubic_spline(
+            data,
+            df=2,
+            extrapolation="raise",
+            lower_bound=-5.5,
+            upper_bound=5.5,
+            _state={},
+        )
