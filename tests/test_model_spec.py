@@ -107,28 +107,21 @@ class TestModelSpec:
         }
         assert model_spec.variables_by_source == {"data": {"a", "A"}}
 
-    def test_get_model_matrix(self, model_spec, data2):
-        m = model_spec.get_model_matrix(data2)
+    def test_get_column_indices(self, model_spec):
+        assert model_spec.get_column_indices("a") == [1]
+        assert model_spec.get_column_indices("A[T.b]:a") == [4]
+        assert model_spec.get_column_indices(["a", "A[T.b]:a"]) == [1, 4]
 
-        assert isinstance(m, pandas.DataFrame)
-        assert model_spec.column_names == tuple(m.columns)
+    def test_get_term_indices(self, model_spec):
+        assert model_spec.get_term_indices("a") == [0, 1]
+        assert model_spec.get_term_indices(["a"]) == [1]
+        assert model_spec.get_term_indices("a + a:A") == [0, 1, 4, 5]
+        assert model_spec.get_term_indices(["a", "a:A"]) == [1, 4, 5]
+        assert model_spec.get_term_indices(["a:A", "a"], ordering="none") == [4, 5, 1]
 
-        model_spec = model_spec.update(materializer=None)
-        m2 = model_spec.get_model_matrix(data2)
-        assert isinstance(m2, pandas.DataFrame)
-        assert model_spec.column_names == tuple(m2.columns)
-
-        m3 = model_spec.get_model_matrix(data2, output="sparse")
-        assert isinstance(m3, scipy.sparse.spmatrix)
-
-    def test_get_linear_constraints(self, model_spec):
-        lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
-        assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])
-        assert lc.constraint_values == [3]
-        assert lc.variable_names == model_spec.column_names
-
-    def test_differentiate(self, model_spec, formula):
-        assert model_spec.differentiate("a").formula == formula.differentiate("a")
+    def test_get_variable_indices(self, model_spec):
+        assert model_spec.get_variable_indices("a") == [1, 4, 5]
+        assert model_spec.get_variable_indices("A") == [2, 3, 4, 5]
 
     def test_get_slice(self, model_spec):
         s = slice(0, 1)
@@ -154,47 +147,28 @@ class TestModelSpec:
         ):
             model_spec.get_slice("missing")
 
-    def test_model_specs(self, model_spec, data2):
-        model_specs = ModelSpecs(a=model_spec)
+    def test_get_model_matrix(self, model_spec, data2):
+        m = model_spec.get_model_matrix(data2)
 
-        assert isinstance(model_specs.get_model_matrix(data2), ModelMatrices)
-        assert isinstance(model_specs.get_model_matrix(data2).a, ModelMatrix)
-        assert numpy.all(
-            model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
-        )
-        sparse_matrices = model_specs.get_model_matrix(data2, output="sparse")
-        assert isinstance(sparse_matrices, ModelMatrices)
-        assert isinstance(sparse_matrices.a, scipy.sparse.spmatrix)
+        assert isinstance(m, pandas.DataFrame)
+        assert model_spec.column_names == tuple(m.columns)
 
-        # Validate missing materializer and output type behaviour
-        model_specs2 = ModelSpecs(
-            lhs=ModelSpec(formula="A"), rhs=ModelSpec(formula="a")
-        )
-        assert numpy.all(
-            model_specs2.get_model_matrix(data2).lhs
-            == ModelSpec(formula="A").get_model_matrix(data2)
-        )
+        model_spec = model_spec.update(materializer=None)
+        m2 = model_spec.get_model_matrix(data2)
+        assert isinstance(m2, pandas.DataFrame)
+        assert model_spec.column_names == tuple(m2.columns)
 
-        # Validate non-joint generation of model matrices
-        class MyPandasMaterializer(PandasMaterializer):
-            REGISTER_NAME = "my_pandas_materializer"
+        m3 = model_spec.get_model_matrix(data2, output="sparse")
+        assert isinstance(m3, scipy.sparse.spmatrix)
 
-        incompatible_specs = ModelSpecs(
-            a=model_spec, b=model_spec.update(materializer=MyPandasMaterializer)
-        )
-        matrices = incompatible_specs.get_model_matrix(data2)
-        assert isinstance(matrices, ModelMatrices)
-        assert numpy.all(matrices.a == model_spec.get_model_matrix(data2))
-        assert numpy.all(matrices.b == model_spec.get_model_matrix(data2))
+    def test_get_linear_constraints(self, model_spec):
+        lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
+        assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])
+        assert lc.constraint_values == [3]
+        assert lc.variable_names == model_spec.column_names
 
-        FormulaMaterializerMeta.REGISTERED_NAMES.pop("my_pandas_materializer")
-
-        # Validate differentiation
-        assert model_specs.differentiate("a").a == model_spec.differentiate("a")
-
-        # Validate invalid type checking
-        with pytest.raises(TypeError, match="`ModelSpecs` instances expect all.*"):
-            ModelSpecs("invalid type!")
+    def test_differentiate(self, model_spec, formula):
+        assert model_spec.differentiate("a").formula == formula.differentiate("a")
 
     def test_empty(self):
         model_spec = ModelSpec([])
@@ -256,3 +230,96 @@ class TestModelSpec:
             "1": slice(0, 1),
             "A": slice(0, 0),
         }
+
+    def test_subset(self, model_spec, data2):
+        subset = model_spec.subset(["a"])
+        assert subset.formula.root == ["a"]
+        assert subset.variables == {"a"}
+        assert numpy.allclose(
+            model_spec.get_model_matrix(data2).values[:, model_spec.get_slice("a")],
+            subset.get_model_matrix(data2).values,
+        )
+
+        subset = model_spec.subset(["a:A", "A"])
+        assert subset.formula.root == ["A", "a:A"]
+        assert subset.variables == {"a", "A"}
+        assert numpy.allclose(
+            model_spec.get_model_matrix(data2).values[
+                :, model_spec.get_term_indices(["A", "a:A"])
+            ],
+            subset.get_model_matrix(data2).values,
+        )
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Cannot subset a `ModelSpec` using a formula that has structure."
+            ),
+        ):
+            model_spec.subset("a | b")
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                r"Cannot subset a model spec with terms not present in the original model spec: {new_var}"
+            ),
+        ):
+            model_spec.subset("new_var")
+
+    def test_model_specs(self, model_spec, data2):
+        model_specs = ModelSpecs(a=model_spec)
+
+        assert isinstance(model_specs.get_model_matrix(data2), ModelMatrices)
+        assert isinstance(model_specs.get_model_matrix(data2).a, ModelMatrix)
+        assert numpy.all(
+            model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
+        )
+        sparse_matrices = model_specs.get_model_matrix(data2, output="sparse")
+        assert isinstance(sparse_matrices, ModelMatrices)
+        assert isinstance(sparse_matrices.a, scipy.sparse.spmatrix)
+
+        # Validate missing materializer and output type behaviour
+        model_specs2 = ModelSpecs(
+            lhs=ModelSpec(formula="A"), rhs=ModelSpec(formula="a")
+        )
+        assert numpy.all(
+            model_specs2.get_model_matrix(data2).lhs
+            == ModelSpec(formula="A").get_model_matrix(data2)
+        )
+
+        # Validate non-joint generation of model matrices
+        class MyPandasMaterializer(PandasMaterializer):
+            REGISTER_NAME = "my_pandas_materializer"
+
+        incompatible_specs = ModelSpecs(
+            a=model_spec, b=model_spec.update(materializer=MyPandasMaterializer)
+        )
+        matrices = incompatible_specs.get_model_matrix(data2)
+        assert isinstance(matrices, ModelMatrices)
+        assert numpy.all(matrices.a == model_spec.get_model_matrix(data2))
+        assert numpy.all(matrices.b == model_spec.get_model_matrix(data2))
+
+        FormulaMaterializerMeta.REGISTERED_NAMES.pop("my_pandas_materializer")
+
+        # Validate differentiation
+        assert model_specs.differentiate("a").a == model_spec.differentiate("a")
+
+        # Validate invalid type checking
+        with pytest.raises(TypeError, match="`ModelSpecs` instances expect all.*"):
+            ModelSpecs("invalid type!")
+
+    def test_model_specs_subset(self, data, data2):
+        ms = Formula("a ~ A + A:a").get_model_matrix(data).model_spec
+
+        mss = ms.subset("a ~ A")
+
+        assert mss.lhs.formula.root == ["a"]
+        assert mss.rhs.formula.root == ["1", "A"]
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Cannot subset a `ModelSpecs` instance using a formula with a different structure [indexing path `('rhs', 0)` not found]."
+            ),
+        ):
+            ms.subset("a ~ A | A:a")

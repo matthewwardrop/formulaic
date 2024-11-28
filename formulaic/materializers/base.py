@@ -215,10 +215,19 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         terms = self._cluster_terms(spec.formula.root, cluster_by=spec.cluster_by)
 
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
-        scoped_terms_for_terms = self._get_scoped_terms(
-            terms,
-            ensure_full_rank=spec.ensure_full_rank,
-        )
+        # (reusing pre-generated structure if it is available)
+        if spec.structure:
+            scoped_terms_for_terms: Generator[
+                Tuple[Term, Iterable[ScopedTerm]], None, None
+            ] = (
+                (s.term, [st.rehydrate(self.factor_cache) for st in s.scoped_terms])
+                for s in spec.structure
+            )
+        else:
+            scoped_terms_for_terms = self._get_scoped_terms(
+                terms,
+                ensure_full_rank=spec.ensure_full_rank,
+            )
 
         # Step 2: Generate the columns which will be collated into the full matrix
         cols = []
@@ -249,9 +258,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             cols.append((term, scoped_terms, scoped_cols))
 
         # Step 3: Populate remaining model spec fields
-        if spec.structure:
-            cols = self._enforce_structure(cols, spec, drop_rows)  # type: ignore
-        else:
+        if not spec.structure:
             spec = spec.update(
                 structure=[
                     EncodedTermStructure(
@@ -494,9 +501,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         | (  # type: ignore
                             ScopedTerm(
                                 (
-                                    ScopedFactor(factor_new.factor, reduced=False)
-                                    if factor == factor_new
-                                    else factor
+                                    (
+                                        ScopedFactor(factor_new.factor, reduced=False)
+                                        if factor == factor_new
+                                        else factor
+                                    )
                                     for factor in scoped_term.factors
                                 ),
                                 scale=existing_term.scale * scoped_term.scale,

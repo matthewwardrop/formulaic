@@ -145,9 +145,13 @@ class Structured(Generic[ItemType]):
 
     def _map(
         self,
-        func: Callable[[ItemType], Any],
+        func: Union[
+            Callable[[ItemType], Any],
+            Callable[[ItemType, Tuple[Union[str, int], ...]], Any],
+        ],
         recurse: bool = True,
         as_type: Optional[Type[Structured]] = None,
+        _context: Tuple[Union[str, int], ...] = (),
     ) -> Structured[Any]:
         """
         Map a callable object onto all the structured objects, returning a
@@ -171,15 +175,21 @@ class Structured(Generic[ItemType]):
             but with all objects transformed under `func`.
         """
 
-        def apply_func(obj: Any) -> Any:
+        def apply_func(obj: Any, context: Tuple[Union[str, int], ...]) -> Any:
             if recurse and isinstance(obj, Structured):
-                return obj._map(func, recurse=True, as_type=as_type)
+                return obj._map(func, recurse=True, as_type=as_type, _context=context)
             if isinstance(obj, tuple):
-                return tuple(apply_func(o) for o in obj)
-            return func(obj)
+                return tuple(apply_func(o, context + (i,)) for i, o in enumerate(obj))
+            try:
+                return func(obj, context)  # type: ignore
+            except TypeError:
+                return func(obj)  # type: ignore
 
         return (as_type or Structured)(
-            **{key: apply_func(obj) for key, obj in self._structure.items()}
+            **{
+                key: apply_func(obj, _context + (key,))
+                for key, obj in self._structure.items()
+            }
         )
 
     def _flatten(self) -> Generator[ItemType, None, None]:
@@ -436,6 +446,15 @@ class Structured(Generic[ItemType]):
             return self.root
         if isinstance(key, str) and not key.startswith("_") and key in self._structure:
             return self._structure[key]
+        if isinstance(key, tuple) and len(key) >= 1 and key[0] in self._structure:
+            obj = self[key[0]]
+            if len(key) == 1:
+                return obj
+            if isinstance(obj, Structured):
+                return obj[key[1:]]
+            raise KeyError(
+                f"{key} extends beyond structure of `{self.__class__.__name__}`."
+            )
         raise KeyError(
             f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(key)}`."
         )
@@ -448,6 +467,16 @@ class Structured(Generic[ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in self._structure if key.startswith('_'))}."
             )
+        if isinstance(key, tuple) and len(key) > 1 and key[0] in self._structure:
+            obj = self[key[0]]
+            if isinstance(obj, Structured):
+                obj[key[1:]] = value
+                return
+            raise KeyError(
+                f"{key} extends beyond structure of `{self.__class__.__name__}`."
+            )
+        if isinstance(key, tuple) and len(key) == 1:
+            key = key[0]
         self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Any, None, None]:
