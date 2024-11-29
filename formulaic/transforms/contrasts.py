@@ -208,6 +208,7 @@ class Contrasts(metaclass=InterfaceMeta):
     INTERFACE_RAISE_ON_VIOLATION = True
 
     FACTOR_FORMAT = "{name}[{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[{field}]"
 
     def apply(
         self,
@@ -251,9 +252,11 @@ class Contrasts(metaclass=InterfaceMeta):
         if not levels or len(levels) == 1 and reduced_rank:
             if output == "pandas":
                 encoded = pandas.DataFrame(
-                    index=dummies.index
-                    if isinstance(dummies, pandas.DataFrame)
-                    else range(dummies.shape[0])
+                    index=(
+                        dummies.index
+                        if isinstance(dummies, pandas.DataFrame)
+                        else range(dummies.shape[0])
+                    )
                 )
             elif output == "numpy":
                 encoded = numpy.ones((dummies.shape[0], 0))
@@ -269,6 +272,7 @@ class Contrasts(metaclass=InterfaceMeta):
                 column_names=cast(Tuple[Hashable], ()),
                 spans_intercept=False,
                 format=self.get_factor_format(levels, reduced_rank=reduced_rank),
+                format_reduced=self.get_factor_format(levels, reduced_rank=True),
                 encoded=True,
             )
 
@@ -295,6 +299,7 @@ class Contrasts(metaclass=InterfaceMeta):
             spans_intercept=self.get_spans_intercept(levels, reduced_rank=reduced_rank),
             drop_field=self.get_drop_field(levels, reduced_rank=reduced_rank),
             format=self.get_factor_format(levels, reduced_rank=reduced_rank),
+            format_reduced=self.get_factor_format(levels, reduced_rank=True),
             encoded=True,
         )
 
@@ -480,7 +485,7 @@ class Contrasts(metaclass=InterfaceMeta):
             levels: The names of the levels/categories in the data.
             reduced_rank: Whether the contrast encoding used had reduced rank.
         """
-        return self.FACTOR_FORMAT
+        return self.FACTOR_FORMAT_REDUCED if reduced_rank else self.FACTOR_FORMAT
 
 
 @dataclass
@@ -493,7 +498,7 @@ class TreatmentContrasts(Contrasts):
     is taken to be the first level.
     """
 
-    FACTOR_FORMAT = "{name}[T.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[T.{field}]"
 
     base: Hashable = UNSET
 
@@ -609,7 +614,7 @@ class SumContrasts(Contrasts):
     (except the last, which is redundant) to the global average of all levels.
     """
 
-    FACTOR_FORMAT = "{name}[S.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[S.{field}]"
 
     @Contrasts.override
     def _get_coding_matrix(
@@ -659,7 +664,7 @@ class HelmertContrasts(Contrasts):
             integer one).
     """
 
-    FACTOR_FORMAT = "{name}[H.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[H.{field}]"
 
     reverse: bool = True
     scale: bool = False
@@ -729,7 +734,7 @@ class DiffContrasts(Contrasts):
             Level 1 cf. Level 1 - Level 2).
     """
 
-    FACTOR_FORMAT = "{name}[D.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[D.{field}]"
 
     backward: bool = True
 
@@ -792,7 +797,6 @@ class PolyContrasts(Contrasts):
             have the same cardinality as the categories being coded.
     """
 
-    FACTOR_FORMAT = "{name}{field}"
     NAME_ALIASES = {
         1: ".L",
         2: ".Q",

@@ -43,9 +43,6 @@ class FactorValuesMetadata:
 
     Attributes:
         kind: The kind of the evaluated values.
-        spans_intercept: Whether the values span the intercept or not.
-        drop_field: If the values do span the intercept, and we want to reduce
-            the rank, which field should be dropped.
         format: The format to use when exploding factors into multiple columns
             (e.g. when encoding categories via dummy-encoding).
         encoded: Whether the values should be treated as pre-encoded.
@@ -55,17 +52,36 @@ class FactorValuesMetadata:
             materializer. Note that this should only be used in cases where
             direct evaluation would yield different results in reduced vs.
             non-reduced rank scenarios.
+
+        Rank-Reduction Attributes:
+            spans_intercept: Whether the values span the intercept or not.
+            drop_field: If the values do span the intercept, and we want to reduce
+                the rank, which field should be dropped.
+            reduced: Whether the rank has already been reduced by dropping the
+                `drop_field` above.
+            format_reduced: The format to use when exploding factors (as above), but
+                in the case where the rank has been reduced by dropping a field.
+                (This defaults to `format`.)
     """
 
     kind: Factor.Kind = Factor.Kind.UNKNOWN
     column_names: Optional[Tuple[str]] = None
-    spans_intercept: bool = False
-    drop_field: Optional[str] = None
     format: str = "{name}[{field}]"
     encoded: bool = False
     encoder: Optional[
         Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any]
     ] = None
+
+    # Rank-Reduction Attributes
+    spans_intercept: bool = False
+    drop_field: Optional[str] = None
+    reduced: bool = False
+    format_reduced: Optional[str] = None
+
+    def get_format(self) -> str:
+        return (
+            self.format_reduced if self.reduced and self.format_reduced else self.format
+        )
 
     def replace(self, **kwargs: Any) -> FactorValuesMetadata:
         """
@@ -91,8 +107,6 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         *,
         kind: Union[str, Factor.Kind, _MissingType] = MISSING,
         column_names: Union[Tuple[Hashable, ...], _MissingType] = MISSING,
-        spans_intercept: Union[bool, _MissingType] = MISSING,
-        drop_field: Union[None, Hashable, _MissingType] = MISSING,
         format: Union[str, _MissingType] = MISSING,  # pylint: disable=redefined-builtin
         encoded: Union[bool, _MissingType] = MISSING,
         encoder: Union[
@@ -100,16 +114,22 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any],
             _MissingType,
         ] = MISSING,
+        spans_intercept: Union[bool, _MissingType] = MISSING,
+        drop_field: Union[None, Hashable, _MissingType] = MISSING,
+        reduced: Union[bool, _MissingType] = MISSING,
+        format_reduced: Union[str, _MissingType] = MISSING,
     ):
         metadata_constructor: Callable = FactorValuesMetadata
         metadata_kwargs = dict(
             kind=Factor.Kind(kind) if kind is not MISSING else kind,
             column_names=column_names,
-            spans_intercept=spans_intercept,
-            drop_field=drop_field,
             format=format,
             encoded=encoded,
             encoder=encoder,
+            spans_intercept=spans_intercept,
+            drop_field=drop_field,
+            reduced=reduced,
+            format_reduced=format_reduced,
         )
         for key in set(metadata_kwargs):
             if metadata_kwargs[key] is MISSING:
