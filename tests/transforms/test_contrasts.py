@@ -61,7 +61,8 @@ class TestContrastsTransform:
                 spans_intercept=True,
                 column_names=("a", "b", "c"),
                 drop_field="a",
-                format="{name}[T.{field}]",
+                format="{name}[{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -87,7 +88,8 @@ class TestContrastsTransform:
                     spans_intercept=True,
                     column_names=("a", "b", "c"),
                     drop_field="a",
-                    format="{name}[T.{field}]",
+                    format="{name}[{field}]",
+                    format_reduced="{name}[T.{field}]",
                     encoded=True,
                 ),
             )
@@ -113,6 +115,7 @@ class TestContrastsTransform:
                 column_names=("b", "c"),
                 drop_field=None,
                 format="{name}[T.{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -140,7 +143,8 @@ class TestContrastsTransform:
                 spans_intercept=True,
                 column_names=("a", "b", "c"),
                 drop_field="a",
-                format="{name}[T.{field}]",
+                format="{name}[{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -166,6 +170,7 @@ class TestContrastsTransform:
                 column_names=("b", "c"),
                 drop_field=None,
                 format="{name}[T.{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -191,7 +196,8 @@ class TestContrastsTransform:
                     spans_intercept=True,
                     column_names=("a", "b", "c"),
                     drop_field="a",
-                    format="{name}[T.{field}]",
+                    format="{name}[{field}]",
+                    format_reduced="{name}[T.{field}]",
                     encoded=True,
                 ),
             )
@@ -226,7 +232,8 @@ class TestContrastsTransform:
                 spans_intercept=True,
                 column_names=("a", "b", "c"),
                 drop_field="c",
-                format="{name}[T.{field}]",
+                format="{name}[{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -253,7 +260,8 @@ class TestContrastsTransform:
                 spans_intercept=True,
                 column_names=("a", "b", "c"),
                 drop_field="a",
-                format="{name}[T.{field}]",
+                format="{name}[{field}]",
+                format_reduced="{name}[T.{field}]",
                 encoded=True,
             ),
         )
@@ -279,6 +287,7 @@ class TestContrastsTransform:
                 column_names=("ordinal",),
                 drop_field=None,
                 format="{name}[{field}]",
+                format_reduced="{name}[{field}]",
                 encoded=True,
             ),
         )
@@ -347,6 +356,7 @@ class TestTreatmentContrasts:
         encoded = contrasts.apply(category_dummies, ["a", "b", "c"])
         assert list(encoded.columns) == ["b", "c"]
         assert encoded.__formulaic_metadata__.drop_field is None
+        assert encoded.__formulaic_metadata__.format == "{name}[T.{field}]"
         assert encoded.to_dict("list") == {
             "b": [0, 1, 0, 0, 1, 0],
             "c": [0, 0, 1, 0, 0, 1],
@@ -357,6 +367,7 @@ class TestTreatmentContrasts:
         )
         assert list(encoded_spanning.columns) == ["a", "b", "c"]
         assert encoded_spanning.__formulaic_metadata__.drop_field == "a"
+        assert encoded_spanning.__formulaic_metadata__.format == "{name}[{field}]"
         assert encoded_spanning.to_dict("list") == {
             "a": [1, 0, 0, 1, 0, 0],
             "b": [0, 1, 0, 0, 1, 0],
@@ -605,6 +616,16 @@ class TestSumContrasts:
         assert SumContrasts().get_drop_field(["a", "b", "c"]) is None
         assert SumContrasts().get_drop_field(["a", "b", "c"], reduced_rank=False) == "a"
 
+    def test_get_factor_format(self):
+        assert (
+            SumContrasts().get_factor_format(None, reduced_rank=False)
+            == "{name}[{field}]"
+        )
+        assert (
+            SumContrasts().get_factor_format(None, reduced_rank=True)
+            == "{name}[S.{field}]"
+        )
+
 
 class TestHelmertContrasts:
     def test_coding_matrix(self):
@@ -691,6 +712,16 @@ class TestHelmertContrasts:
         )
         assert numpy.allclose(coefficient_matrix_reduced, reference_reduced)
 
+    def test_get_factor_format(self):
+        assert (
+            contr.helmert().get_factor_format(None, reduced_rank=False)
+            == "{name}[{field}]"
+        )
+        assert (
+            contr.helmert().get_factor_format(None, reduced_rank=True)
+            == "{name}[H.{field}]"
+        )
+
 
 class TestDiffContrasts:
     def test_coding_matrix(self):
@@ -764,6 +795,16 @@ class TestDiffContrasts:
             ["a", "b", "c"], reduced_rank=True
         )
         assert numpy.allclose(coefficient_matrix_reduced, reference_reduced)
+
+    def test_get_factor_format(self):
+        assert (
+            contr.diff().get_factor_format(None, reduced_rank=False)
+            == "{name}[{field}]"
+        )
+        assert (
+            contr.diff().get_factor_format(None, reduced_rank=True)
+            == "{name}[D.{field}]"
+        )
 
 
 class TestPolyContrasts:
@@ -847,6 +888,15 @@ class TestPolyContrasts:
         )
         assert numpy.allclose(coefficient_matrix_reduced, reference_reduced)
 
+    def test_get_factor_format(self):
+        assert (
+            contr.poly().get_factor_format(None, reduced_rank=False)
+            == "{name}[{field}]"
+        )
+        assert (
+            contr.poly().get_factor_format(None, reduced_rank=True) == "{name}[{field}]"
+        )
+
 
 class TestCustomContrasts:
     def test_coding_matrix(self):
@@ -928,9 +978,9 @@ def test_full_rankness_opt_out():
         "C(A, spans_intercept=False)", data
     ).model_spec.column_names == (
         "Intercept",
-        "C(A, spans_intercept=False)[T.a]",
-        "C(A, spans_intercept=False)[T.b]",
-        "C(A, spans_intercept=False)[T.c]",
+        "C(A, spans_intercept=False)[a]",
+        "C(A, spans_intercept=False)[b]",
+        "C(A, spans_intercept=False)[c]",
     )
 
 

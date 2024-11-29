@@ -758,6 +758,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             encoded = FactorValues(
                 encoded.copy(),
                 metadata=encoded.__formulaic_metadata__,  # type: ignore
+                reduced=True,
             )
             del encoded[encoded.__formulaic_metadata__.drop_field]
 
@@ -782,7 +783,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Some nested dictionaries may not be a `FactorValues[dict]` instance,
         # in which case we impute the default formatter in `FactorValues.format`.
         if hasattr(values, "__formulaic_metadata__"):
-            name_format = values.__formulaic_metadata__.format
+            name_format = values.__formulaic_metadata__.get_format()
         else:
             name_format = FactorValuesMetadata.format
 

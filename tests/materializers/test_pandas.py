@@ -24,20 +24,20 @@ PANDAS_TESTS = {
     "a": (["Intercept", "a"], ["Intercept", "a"], ["Intercept", "a"], 2),
     "A": (
         ["Intercept", "A[T.b]", "A[T.c]"],
-        ["Intercept", "A[T.a]", "A[T.b]", "A[T.c]"],
+        ["Intercept", "A[a]", "A[b]", "A[c]"],
         ["Intercept", "A[T.c]"],
         2,
     ),
     "C(A)": (
         ["Intercept", "C(A)[T.b]", "C(A)[T.c]"],
-        ["Intercept", "C(A)[T.a]", "C(A)[T.b]", "C(A)[T.c]"],
+        ["Intercept", "C(A)[a]", "C(A)[b]", "C(A)[c]"],
         ["Intercept", "C(A)[T.c]"],
         2,
     ),
     "A:a": (
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
-        ["Intercept", "A[T.a]:a"],
+        ["Intercept", "A[a]:a", "A[b]:a", "A[c]:a"],
+        ["Intercept", "A[a]:a", "A[b]:a", "A[c]:a"],
+        ["Intercept", "A[a]:a"],
         1,
     ),
     "A:B": (
@@ -45,24 +45,24 @@ PANDAS_TESTS = {
             "Intercept",
             "B[T.b]",
             "B[T.c]",
-            "A[T.b]:B[T.a]",
-            "A[T.c]:B[T.a]",
-            "A[T.b]:B[T.b]",
-            "A[T.c]:B[T.b]",
-            "A[T.b]:B[T.c]",
-            "A[T.c]:B[T.c]",
+            "A[T.b]:B[a]",
+            "A[T.c]:B[a]",
+            "A[T.b]:B[b]",
+            "A[T.c]:B[b]",
+            "A[T.b]:B[c]",
+            "A[T.c]:B[c]",
         ],
         [
             "Intercept",
-            "A[T.a]:B[T.a]",
-            "A[T.b]:B[T.a]",
-            "A[T.c]:B[T.a]",
-            "A[T.a]:B[T.b]",
-            "A[T.b]:B[T.b]",
-            "A[T.c]:B[T.b]",
-            "A[T.a]:B[T.c]",
-            "A[T.b]:B[T.c]",
-            "A[T.c]:B[T.c]",
+            "A[a]:B[a]",
+            "A[b]:B[a]",
+            "A[c]:B[a]",
+            "A[a]:B[b]",
+            "A[b]:B[b]",
+            "A[c]:B[b]",
+            "A[a]:B[c]",
+            "A[b]:B[c]",
+            "A[c]:B[c]",
         ],
         ["Intercept"],
         1,
@@ -324,7 +324,7 @@ class TestPandasMaterializer:
                 spec=ModelSpec(formula=[]),
                 drop_rows=[],
             )
-        ) == ["B[a][T.a]", "B[a][T.b]", "B[a][T.c]"]
+        ) == ["B[a][a]", "B[a][b]", "B[a][c]"]
 
     def test_empty(self, materializer):
         mm = materializer.get_model_matrix("0", ensure_full_rank=True)
@@ -366,27 +366,27 @@ class TestPandasMaterializer:
         )
 
         m = PandasMaterializer(data).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m.columns) == ["A[a]", "A[b]", "A[c]"]
         assert list(m.model_spec.get_model_matrix(data3).columns) == [
-            "A[T.a]",
-            "A[T.b]",
-            "A[T.c]",
+            "A[a]",
+            "A[b]",
+            "A[c]",
         ]
 
         m2 = PandasMaterializer(data2).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m2.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m2.columns) == ["A[a]", "A[b]", "A[c]"]
         assert list(m2.model_spec.get_model_matrix(data3).columns) == [
-            "A[T.a]",
-            "A[T.b]",
-            "A[T.c]",
+            "A[a]",
+            "A[b]",
+            "A[c]",
         ]
 
         m3 = PandasMaterializer(data3).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m3.columns) == ["A[T.c]", "A[T.b]", "A[T.a]"]
+        assert list(m3.columns) == ["A[c]", "A[b]", "A[a]"]
         assert list(m3.model_spec.get_model_matrix(data).columns) == [
-            "A[T.c]",
-            "A[T.b]",
-            "A[T.a]",
+            "A[c]",
+            "A[b]",
+            "A[a]",
         ]
 
     def test_term_clustering(self, materializer):
