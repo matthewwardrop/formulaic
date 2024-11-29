@@ -98,6 +98,9 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
 
+    # Ensure ndarray to avoid conversion overhead
+    x = numpy.asarray(x)
+
     if "lower_bound" in _state:
         lower_bound = float(_state["lower_bound"])
     else:
@@ -115,7 +118,6 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     extrapolation = SplineExtrapolation(extrapolation)
 
     # Prepare data
-    x = numpy.asarray(x)
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
         (x < lower_bound) | (x > upper_bound)
     ):
