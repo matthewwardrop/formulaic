@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Dict, Iterable, Optional, Union, cast
+from typing import Dict, Iterable, List, Optional, Union, cast
 
 import numpy
 import pandas
@@ -115,8 +115,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     extrapolation = SplineExtrapolation(extrapolation)
 
     # Prepare data
-    if not isinstance(x, (numpy.ndarray, pandas.Series)):
-        x = numpy.array(x)
+    x = numpy.asarray(x)
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
         (x < lower_bound) | (x > upper_bound)
     ):
@@ -124,10 +123,18 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             "Some field values extend beyond upper and/or lower bounds, which can result in ill-conditioned bases. "
             "Pass a value for `extrapolation` to control how extrapolation should be performed."
         )
-    if extrapolation is SplineExtrapolation.CLIP:
-        x = numpy.clip(x, lower_bound, upper_bound)
-    if extrapolation is SplineExtrapolation.NA:
-        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
+    if extrapolation in (
+        SplineExtrapolation.CLIP,
+        SplineExtrapolation.NA,
+        SplineExtrapolation.ZERO,
+    ):
+        valid_x = (x >= lower_bound) & (x <= upper_bound)
+        if extrapolation is SplineExtrapolation.CLIP:
+            x = numpy.clip(x, lower_bound, upper_bound)
+        elif extrapolation is SplineExtrapolation.NA:
+            x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
+    else:
+        valid_x = numpy.ones_like(x, dtype=bool)
 
     # Prepare knots
     if "knots" not in _state:
@@ -138,11 +145,18 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                 raise ValueError(
                     f"Invalid value for `df`. `df` must be greater than {degree + (1 if include_intercept else 0)} [`degree` (+ 1 if `include_intercept` is `True`)]."
                 )
-            knots = list(
-                numpy.quantile(x, numpy.linspace(0, 1, nknots + 2))[1:-1].ravel()
+            if valid_x.sum(0) < nknots:
+                raise ValueError(
+                    f"Insufficient valid data points to compute {nknots} knots."
+                )
+            knots = cast(
+                List[float],
+                numpy.nanquantile(x[valid_x], numpy.linspace(0, 1, nknots + 2))[
+                    1:-1
+                ].tolist(),
             )
-        knots.insert(0, cast(float, lower_bound))
-        knots.append(cast(float, upper_bound))
+        knots.insert(0, lower_bound)
+        knots.append(upper_bound)
         knots = numpy.pad(knots, degree, mode="edge").tolist()
         _state["knots"] = knots
     knots = _state["knots"]
