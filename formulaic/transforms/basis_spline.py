@@ -98,22 +98,21 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
 
-    # Ensure ndarray to avoid conversion overhead
     x = numpy.asarray(x)
 
     if "lower_bound" in _state:
         lower_bound = float(_state["lower_bound"])
+    elif lower_bound is not None:
+        _state["lower_bound"] = lower_bound
     else:
-        lower_bound = _state["lower_bound"] = (
-            float(numpy.nanmin(x)) if lower_bound is None else float(lower_bound)
-        )
+        _state["lower_bound"] = lower_bound = float(numpy.nanmin(x))
 
     if "upper_bound" in _state:
         upper_bound = float(_state["upper_bound"])
+    elif upper_bound is not None:
+        _state["upper_bound"] = upper_bound
     else:
-        upper_bound = _state["upper_bound"] = (
-            float(numpy.nanmax(x)) if upper_bound is None else float(upper_bound)
-        )
+        _state["upper_bound"] = upper_bound = float(numpy.nanmax(x))
 
     extrapolation = SplineExtrapolation(extrapolation)
 
@@ -130,13 +129,17 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         SplineExtrapolation.NA,
         SplineExtrapolation.ZERO,
     ):
-        valid_x = (x >= lower_bound) & (x <= upper_bound)
-        if extrapolation is SplineExtrapolation.CLIP:
-            x = numpy.clip(x, lower_bound, upper_bound)
-        elif extrapolation is SplineExtrapolation.NA:
-            x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, numpy.nan)
+        locs = (x >= lower_bound) & (x <= upper_bound)
+        if not numpy.all(locs):
+            knots_x = x[locs]
+            if extrapolation is SplineExtrapolation.CLIP:
+                x = numpy.clip(x, lower_bound, upper_bound)
+            elif extrapolation is SplineExtrapolation.NA:
+                x = numpy.where(locs, x, numpy.nan)
+        else:
+            knots_x = x
     else:
-        valid_x = numpy.ones_like(x, dtype=bool)
+        knots_x = x
 
     # Prepare knots
     if "knots" not in _state:
@@ -147,13 +150,13 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                 raise ValueError(
                     f"Invalid value for `df`. `df` must be greater than {degree + (1 if include_intercept else 0)} [`degree` (+ 1 if `include_intercept` is `True`)]."
                 )
-            if valid_x.sum(0) < nknots:
+            if knots_x.shape[0] < nknots:
                 raise ValueError(
                     f"Insufficient valid data points to compute {nknots} knots."
                 )
             knots = cast(
                 List[float],
-                numpy.nanquantile(x[valid_x], numpy.linspace(0, 1, nknots + 2))[
+                numpy.nanquantile(knots_x, numpy.linspace(0, 1, nknots + 2))[
                     1:-1
                 ].tolist(),
             )
