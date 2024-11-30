@@ -420,7 +420,7 @@ class TestPandasMaterializer:
         o.seek(0)
         ms2 = pickle.load(o)
         assert isinstance(ms, Structured)
-        assert ms2.lhs.formula.root == ["a"]
+        assert ms2.lhs.formula == ["a"]
 
     def test_no_levels_encoding(self, data):
         mm = PandasMaterializer(data, output="pandas").get_model_matrix("a + D")
