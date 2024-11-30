@@ -396,6 +396,33 @@ def _get_cubic_spline_matrix(
     return mat
 
 
+def parse_bounds(
+    x: pandas.Series | numpy.ndarray,
+    default: float | None,
+    edge: Literal["lower", "upper"],
+    state: dict,
+) -> float:
+    """
+    Gets the lower or upper bound from either the value passed, the data, or the state dictionary.
+
+    :param x: The 1-d array values for which bounds should be computed.
+    :param default: The default value to use if the bound is not in the state.
+    :param edge: "lower" or "upper" for lower and upper bounds.
+    :param state: The state dictionary. Bounds are read from the state if
+    present, or set in the state if not.
+    :return: A float containing the lower or upper bound.
+    """
+    key = f"{edge}_bound"
+    if key in state:
+        bound = float(state[key])
+    elif default is not None:
+        bound = state[key] = default
+    else:
+        func = numpy.nanmin if edge == "lower" else numpy.nanmax
+        bound = state[key] = float(func(x))
+    return bound
+
+
 def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced by stateful-transform
     x: pandas.Series | numpy.ndarray,
     df: int | None = None,
@@ -466,19 +493,15 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     if df is not None and knots is not None:
         raise ValueError("You cannot specify both `df` and `knots`.")
 
-    if "lower_bound" in _state:
-        lower_bound = float(_state["lower_bound"])
-    else:
-        lower_bound = _state["lower_bound"] = (
-            float(numpy.nanmin(x)) if lower_bound is None else float(lower_bound)
-        )
+    # Check and reformat x
+    x = numpy.atleast_1d(x)
+    if x.ndim == 2 and x.shape[1] == 1:
+        x = x[:, 0]
+    if x.ndim > 1:
+        raise ValueError("Input to cubic_spline must be 1-d, or a 2-d column vector.")
 
-    if "upper_bound" in _state:
-        upper_bound = float(_state["upper_bound"])
-    else:
-        upper_bound = _state["upper_bound"] = (
-            float(numpy.nanmax(x)) if upper_bound is None else float(upper_bound)
-        )
+    lower_bound = parse_bounds(x, lower_bound, "lower", _state)
+    upper_bound = parse_bounds(x, upper_bound, "upper", _state)
 
     if "constraints" in _state:
         constraints = _state["constraints"]
@@ -489,14 +512,6 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         cyclic = _state["cyclic"]
     else:
         _state["cyclic"] = cyclic
-    # Check and reformat x
-    x = numpy.atleast_1d(x)
-    if x.ndim == 2 and x.shape[1] == 1:
-        x = x[:, 0]
-    if x.ndim > 1:
-        raise ValueError(
-            "Inumpy.t to cubic_spline must be 1-d, or a 2-d column vector."
-        )
 
     if "extrapolation" in _state:
         extrapolation = SplineExtrapolation(_state["extrapolation"])
