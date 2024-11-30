@@ -534,3 +534,16 @@ class TestBasisSpline:
                 numpy.testing.assert_allclose(
                     res[key][out_of_range], reference, atol=1e-14
                 )
+
+    @pytest.mark.parametrize("extrapolation", ["na", "zero"])
+    def test_basis_spline_all_out_of_bounds(self, data, extrapolation):
+        state = {}
+        with pytest.raises(ValueError, match="After adjusting the sample"):
+            basis_spline(
+                data,
+                df=3,
+                lower_bound=0.56,
+                upper_bound=0.59,
+                extrapolation=extrapolation,
+                _state=state,
+            )

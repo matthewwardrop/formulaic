@@ -150,9 +150,11 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                 raise ValueError(
                     f"Invalid value for `df`. `df` must be greater than {degree + (1 if include_intercept else 0)} [`degree` (+ 1 if `include_intercept` is `True`)]."
                 )
-            if knots_x.shape[0] < nknots:
+            if knots_x.shape[0] == 0:
                 raise ValueError(
-                    f"Insufficient valid data points to compute {nknots} knots."
+                    "After adjusting the sample using extrapolation="
+                    f"{extrapolation.value} with bounds ({lower_bound}, "
+                    f"{upper_bound}), no data points are available for knot selection."
                 )
             knots = cast(
                 List[float],
