@@ -18,8 +18,9 @@ from typing import (
     Union,
 )
 
+from formulaic.utils.sentinels import MISSING
+
 ItemType = TypeVar("ItemType")
-_MISSING = object()
 
 
 class Structured(Generic[ItemType]):
@@ -87,7 +88,7 @@ class Structured(Generic[ItemType]):
 
     def __init__(
         self,
-        root: Any = _MISSING,
+        root: Any = MISSING,
         *,
         _metadata: Optional[Dict[str, Any]] = None,
         **structure: Any,
@@ -97,7 +98,7 @@ class Structured(Generic[ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in structure if key.startswith('_'))}."
             )
-        if root is not _MISSING:
+        if root is not MISSING:
             structure["root"] = root
         self._metadata = _metadata
 
@@ -306,7 +307,7 @@ class Structured(Generic[ItemType]):
         self._structure = structure
         return self
 
-    def _update(self, root: Any = _MISSING, **structure: Any) -> Structured[ItemType]:
+    def _update(self, root: Any = MISSING, **structure: Any) -> Structured[ItemType]:
         """
         Return a new `Structured` instance that is identical to this one but
         the root and/or keys replaced with the nominated values.
@@ -315,7 +316,7 @@ class Structured(Generic[ItemType]):
             root: The (optional) replacement of the root node.
             structure: Any additional key/values to update in the structure.
         """
-        if root is not _MISSING:
+        if root is not MISSING:
             structure["root"] = root
         return self.__class__(
             **{
