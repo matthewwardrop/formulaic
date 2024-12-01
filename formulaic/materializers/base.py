@@ -212,7 +212,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # This must happen before Step 1 otherwise the greedy rank reduction
         # below would result in a different outcome than if the columns had
         # always been in the generated order.
-        terms = self._cluster_terms(spec.formula.root, cluster_by=spec.cluster_by)
+        terms = self._cluster_terms(spec.formula, cluster_by=spec.cluster_by)
 
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
         # (reusing pre-generated structure if it is available)

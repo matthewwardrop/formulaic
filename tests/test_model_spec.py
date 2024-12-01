@@ -233,7 +233,7 @@ class TestModelSpec:
 
     def test_subset(self, model_spec, data2):
         subset = model_spec.subset(["a"])
-        assert subset.formula.root == ["a"]
+        assert subset.formula == ["a"]
         assert subset.variables == {"a"}
         assert numpy.allclose(
             model_spec.get_model_matrix(data2).values[:, model_spec.get_slice("a")],
@@ -241,7 +241,7 @@ class TestModelSpec:
         )
 
         subset = model_spec.subset(["a:A", "A"])
-        assert subset.formula.root == ["A", "a:A"]
+        assert subset.formula == ["A", "a:A"]
         assert subset.variables == {"a", "A"}
         assert numpy.allclose(
             model_spec.get_model_matrix(data2).values[
@@ -313,8 +313,8 @@ class TestModelSpec:
 
         mss = ms.subset("a ~ A")
 
-        assert mss.lhs.formula.root == ["a"]
-        assert mss.rhs.formula.root == ["1", "A"]
+        assert mss.lhs.formula == ["a"]
+        assert mss.rhs.formula == ["1", "A"]
 
         with pytest.raises(
             ValueError,
@@ -323,3 +323,11 @@ class TestModelSpec:
             ),
         ):
             ms.subset("a ~ A | A:a")
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Formula has no structure, and hence does not match the structure of the `ModelSpec` instance."
+            ),
+        ):
+            ms.subset("a + b")

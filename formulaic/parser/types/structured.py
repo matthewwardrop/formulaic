@@ -20,10 +20,11 @@ from typing import (
 
 from formulaic.utils.sentinels import MISSING
 
-ItemType = TypeVar("ItemType")
+_ItemType = TypeVar("_ItemType")
+_SelfType = TypeVar("_SelfType", bound="Structured")
 
 
-class Structured(Generic[ItemType]):
+class Structured(Generic[_ItemType]):
     """
     Layers structure onto an arbitrary type.
 
@@ -118,7 +119,7 @@ class Structured(Generic[ItemType]):
             return tuple(self.__prepare_item(key, v) for v in item)
         return self._prepare_item(key, item)
 
-    def _prepare_item(self, key: str, item: Any) -> ItemType:
+    def _prepare_item(self, key: str, item: Any) -> _ItemType:
         return item
 
     @property
@@ -147,8 +148,8 @@ class Structured(Generic[ItemType]):
     def _map(
         self,
         func: Union[
-            Callable[[ItemType], Any],
-            Callable[[ItemType, Tuple[Union[str, int], ...]], Any],
+            Callable[[_ItemType], Any],
+            Callable[[_ItemType, Tuple[Union[str, int], ...]], Any],
         ],
         recurse: bool = True,
         as_type: Optional[Type[Structured]] = None,
@@ -193,7 +194,7 @@ class Structured(Generic[ItemType]):
             }
         )
 
-    def _flatten(self) -> Generator[ItemType, None, None]:
+    def _flatten(self) -> Generator[_ItemType, None, None]:
         """
         Flatten any nested structure into a sequence of all values stored in
         this `Structured` instance. The order is currently that yielded by a
@@ -236,8 +237,12 @@ class Structured(Generic[ItemType]):
         return {key: do_recursion(value) for key, value in self._structure.items()}
 
     def _simplify(
-        self, *, recurse: bool = True, unwrap: bool = True, inplace: bool = False
-    ) -> Union[Any, Structured[ItemType]]:
+        self: _SelfType,
+        *,
+        recurse: bool = True,
+        unwrap: bool = True,
+        inplace: bool = False,
+    ) -> Union[_ItemType, _SelfType]:
         """
         Simplify this `Structured` instance by:
             - returning the object stored at the root node if there is no other
@@ -278,7 +283,9 @@ class Structured(Generic[ItemType]):
 
         if recurse:
 
-            def simplify_obj(obj: Any) -> Tuple[Any, bool]:
+            def simplify_obj(
+                obj: Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]],
+            ) -> Tuple[Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]], bool]:
                 """
                 Return the simplified object, and a flag indicating whether the
                 object was modified.
@@ -307,7 +314,7 @@ class Structured(Generic[ItemType]):
         self._structure = structure
         return self
 
-    def _update(self, root: Any = MISSING, **structure: Any) -> Structured[ItemType]:
+    def _update(self, root: Any = MISSING, **structure: Any) -> Structured[_ItemType]:
         """
         Return a new `Structured` instance that is identical to this one but
         the root and/or keys replaced with the nominated values.
@@ -335,7 +342,7 @@ class Structured(Generic[ItemType]):
         *objects: Any,
         merger: Optional[Callable] = None,
         _context: Tuple[str, ...] = (),
-    ) -> Union[ItemType, Structured[ItemType], Tuple]:
+    ) -> Union[_ItemType, Structured[_ItemType], Tuple]:
         """
         Merge arbitrarily many objects into a single `Structured` instance.
 

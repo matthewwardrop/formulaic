@@ -1,4 +1,4 @@
-from .formula import Formula, FormulaSpec
+from .formula import Formula, FormulaSpec, SimpleFormula, StructuredFormula
 from .materializers import FactorValues
 from .model_matrix import ModelMatrices, ModelMatrix
 from .model_spec import ModelSpec, ModelSpecs
@@ -19,6 +19,8 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     "Formula",
+    "SimpleFormula",
+    "StructuredFormula",
     "FormulaSpec",
     "ModelMatrix",
     "ModelMatrices",

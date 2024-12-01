@@ -21,7 +21,7 @@ from formulaic.parser.types import Factor, Structured, Term
 from formulaic.utils.constraints import LinearConstraints, LinearConstraintSpec
 from formulaic.utils.variables import Variable
 
-from .formula import Formula, FormulaSpec
+from .formula import Formula, FormulaSpec, SimpleFormula, StructuredFormula
 from .materializers import ClusterBy, FormulaMaterializer, NAAction
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -93,24 +93,24 @@ class ModelSpec:
         """
         from .model_matrix import ModelMatrix
 
-        def prepare_model_spec(obj: Any) -> ModelSpec:
+        def prepare_model_spec(obj: Any) -> Union[ModelSpec, ModelSpecs]:
             if isinstance(obj, ModelMatrix):
                 obj = obj.model_spec
             if isinstance(obj, ModelSpec):
                 return obj.update(**attrs)
             formula = Formula.from_spec(obj)
-            if not formula._has_root or formula._has_structure:
+            if isinstance(formula, StructuredFormula):
                 return cast(
-                    ModelSpec, formula._map(prepare_model_spec, as_type=ModelSpecs)
+                    ModelSpecs, formula._map(prepare_model_spec, as_type=ModelSpecs)
                 )
             return ModelSpec(formula=formula, **attrs)
 
-        if isinstance(spec, Formula) or not isinstance(spec, Structured):
+        if isinstance(spec, SimpleFormula) or not isinstance(spec, Structured):
             return prepare_model_spec(spec)
         return cast(ModelSpecs, spec._map(prepare_model_spec, as_type=ModelSpecs))
 
     # Configuration attributes
-    formula: Formula
+    formula: SimpleFormula
     materializer: Optional[str] = None
     materializer_params: Optional[Dict[str, Any]] = None
     ensure_full_rank: bool = True
@@ -124,9 +124,9 @@ class ModelSpec:
     encoder_state: Dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.__dict__["formula"] = Formula.from_spec(self.formula)
+        self.__dict__["formula"] = SimpleFormula.from_spec(self.formula)
 
-        if not self.formula._has_root or self.formula._has_structure:
+        if isinstance(self.formula, StructuredFormula):
             raise ValueError(
                 "Nominated `Formula` instance has structure, which is not permitted when attaching to a `ModelSpec` instance."
             )
@@ -191,7 +191,7 @@ class ModelSpec:
         The terms used to generate model matrices from this `ModelSpec`
         instance.
         """
-        return self.formula.root
+        return list(self.formula)
 
     @cached_property
     def term_indices(self) -> Dict[Term, List[int]]:
@@ -236,9 +236,9 @@ class ModelSpec:
             formula_kwargs: Additional keyword arguments to pass to the
                 `Formula.from_spec` constructor to control (e.g.) ordering.
         """
-        terms: List[Term] = self.__get_restricted_formula(
-            terms_spec, **formula_kwargs
-        ).root
+        terms: List[Term] = list(
+            self.__get_restricted_formula(terms_spec, **formula_kwargs)
+        )
         return [idx for term in terms for idx in self.term_indices[term]]
 
     @cached_property
@@ -546,8 +546,10 @@ class ModelSpec:
                 `Formula.from_spec` constructor to control (e.g.) ordering.
         """
 
-        formula: Formula = self.__get_restricted_formula(terms_spec, **formula_kwargs)
-        terms: List[Term] = formula.root
+        formula: SimpleFormula = self.__get_restricted_formula(
+            terms_spec, **formula_kwargs
+        )
+        terms: List[Term] = list(formula)
         terms_set: Set[Term] = set(terms)
         term_structure = {s.term: s for s in self.__structure if s.term in terms_set}
 
@@ -586,7 +588,7 @@ class ModelSpec:
 
     def __get_restricted_formula(
         self, spec: FormulaSpec, **formula_kwargs: Any
-    ) -> Formula:
+    ) -> SimpleFormula:
         """
         Construct a `Formula` instance from the provided `spec` that is a
         restriction of the formula associated with this `ModelSpec` instance. A
@@ -599,15 +601,13 @@ class ModelSpec:
             formula_kwargs: Additional keyword arguments to pass to the
                 `Formula.from_spec` constructor to control (e.g.) ordering.
         """
-        formula = Formula.from_spec(spec, **formula_kwargs)
-        if formula._has_structure:
+        formula = SimpleFormula.from_spec(spec, **formula_kwargs)
+        if isinstance(formula, StructuredFormula):
             raise ValueError(
                 "Cannot subset a `ModelSpec` using a formula that has structure."
             )
 
-        terms = formula.root
-
-        missing_terms: Set[Term] = set(terms).difference(self.terms)
+        missing_terms: Set[Term] = set(formula).difference(self.terms)
         if missing_terms:
             raise ValueError(
                 f"Cannot subset a model spec with terms not present in the original model spec: {missing_terms}."
@@ -721,18 +721,21 @@ class ModelSpecs(Structured[ModelSpec]):
                 model spec.
         """
 
-        formula = Formula.from_spec(terms_spec)
-
         def map_formula_structure_onto_model_spec(
-            terms: List[Term], context: Tuple[Union[int, str], ...]
+            formula: SimpleFormula, context: Tuple[Union[int, str], ...]
         ) -> ModelSpec:
             try:
-                return self[context].subset(terms)
+                return self[context].subset(formula)
             except KeyError:
                 raise ValueError(
                     f"Cannot subset a `ModelSpecs` instance using a formula with a different structure [indexing path `{context}` not found]."
                 )
 
+        formula = SimpleFormula.from_spec(terms_spec)
+        if isinstance(formula, SimpleFormula):
+            raise ValueError(
+                "Formula has no structure, and hence does not match the structure of the `ModelSpec` instance."
+            )
         return cast(
             ModelSpecs,
             formula._map(map_formula_structure_onto_model_spec, as_type=ModelSpecs),
