@@ -258,7 +258,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             cols.append((term, scoped_terms, scoped_cols))
 
         # Step 3: Populate remaining model spec fields
-        if not spec.structure:
+        if spec.structure:
+            cols = list(self._enforce_structure(cols, spec, drop_rows))
+        else:
             spec = spec.update(
                 structure=[
                     EncodedTermStructure(
@@ -837,10 +839,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _enforce_structure(
         self,
-        cols: List[Tuple[Term, List[ScopedTerm], Dict[str, Any]]],
+        cols: List[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]]],
         spec: ModelSpec,
         drop_rows: Sequence[int],
-    ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]], None, None]:
+    ) -> Generator[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]], None, None]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
         structure = cast(List[EncodedTermStructure], spec.structure)
         if not len(cols) == len(structure):  # pragma: no cover
