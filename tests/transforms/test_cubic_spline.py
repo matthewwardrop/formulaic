@@ -120,15 +120,15 @@ def test_crs_errors():
     # Invalid 'x' shape
     # TODO: Not ready
     with pytest.raises(ValueError):
-        cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, cyclic=False, _state={})
+        natural_cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, _state={})
     with pytest.raises(ValueError):
-        cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, cyclic=False, _state={})
+        natural_cubic_spline(numpy.arange(16).reshape((4, 4)), df=4, _state={})
     # Should provide at least 'df' or 'knots'
     with pytest.raises(ValueError):
-        cubic_spline(numpy.arange(50), cyclic=False)
+        natural_cubic_spline(numpy.arange(50), cyclic=False)
     # Invalid constraints shape
     with pytest.raises(ValueError):
-        cubic_spline(
+        natural_cubic_spline(
             numpy.arange(50),
             df=4,
             constraints=numpy.arange(27).reshape((3, 3, 3)),
@@ -138,17 +138,22 @@ def test_crs_errors():
     # Invalid nb of columns in constraints
     # (should have df + 1 = 5, but 6 provided)
     with pytest.raises(ValueError):
-        cubic_spline(
-            numpy.arange(50), df=4, constraints=numpy.arange(6), cyclic=False, _state={}
+        natural_cubic_spline(
+            numpy.arange(50), df=4, constraints=numpy.arange(6), _state={}
         )
     # Too small 'df' for natural cubic spline
     with pytest.raises(ValueError):
-        cubic_spline(numpy.arange(50), df=1, cyclic=False, _state={})
+        natural_cubic_spline(numpy.arange(50), df=1, _state={})
     # Too small 'df' for cyclic cubic spline
     with pytest.raises(ValueError):
-        cubic_spline(numpy.arange(50), df=0, _state={})
+        cyclic_cubic_spline(numpy.arange(50), df=0, _state={})
     with pytest.raises(ValueError, match="Constraints must be"):
-        cubic_spline(numpy.linspace(0, 1, 200), df=3, constraints="unknown", _state={})
+        cyclic_cubic_spline(
+            numpy.linspace(0, 1, 200),
+            df=3,
+            constraints="unknown",
+            _state={},
+        )
 
 
 def test_crs_with_specific_constraint():
@@ -266,7 +271,7 @@ def test_crs_compat_with_r(test_data):
 def test_statefulness():
     state = {}
     data = numpy.linspace(0.1, 0.9, 50)
-    cubic_spline(data, df=4, extrapolation="raise", _state=state)
+    cyclic_cubic_spline(data, df=4, extrapolation="raise", _state=state)
     assert "knots" in state
     knots = state["knots"]
     del state["knots"]
@@ -284,8 +289,8 @@ def test_cubic_spline_edges():
     data = numpy.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
     data2d = data[:, None]
     state = {}
-    res_2d = cubic_spline(data2d, df=2, _state={})
-    res = cubic_spline(data, df=2, _state=state)
+    res_2d = cyclic_cubic_spline(data2d, df=2, _state={})
+    res = cyclic_cubic_spline(data, df=2, _state=state)
     numpy.testing.assert_allclose(res_2d[1], res[1])
     numpy.testing.assert_allclose(res_2d[2], res[2])
 
@@ -296,15 +301,15 @@ def test_cubic_spline_edges():
 def test_alternative_extrapolation():
     data = np.linspace(-10.0, 10.0, 21)
 
-    extrap = cubic_spline(
+    extrap = cyclic_cubic_spline(
         data, df=2, extrapolation="extend", lower_bound=-5.5, upper_bound=5.5, _state={}
     )
 
-    res = cubic_spline(
+    res = cyclic_cubic_spline(
         data, df=2, extrapolation="clip", lower_bound=-5.5, upper_bound=5.5, _state={}
     )
     data_clipped = numpy.clip(data, -5.5, 5.5)
-    direct_res = cubic_spline(
+    direct_res = cyclic_cubic_spline(
         data_clipped, df=2, lower_bound=-5.5, upper_bound=5.5, _state={}
     )
     numpy.testing.assert_allclose(res[1], direct_res[1])
@@ -312,18 +317,18 @@ def test_alternative_extrapolation():
     assert not numpy.allclose(extrap[1], res[1])
     assert not numpy.allclose(extrap[2], res[2])
 
-    res = cubic_spline(
+    res = cyclic_cubic_spline(
         data, df=2, extrapolation="na", lower_bound=-5.0, upper_bound=5.0, _state={}
     )
     data_na = numpy.where((data > -5.5) & (data < 5.5), data, np.nan)
-    direct_res = cubic_spline(data_na, df=2, _state={})
+    direct_res = cyclic_cubic_spline(data_na, df=2, _state={})
     numpy.testing.assert_allclose(res[1], direct_res[1])
     numpy.testing.assert_allclose(res[2], direct_res[2])
     assert not numpy.allclose(extrap[1], res[1])
     assert not numpy.allclose(extrap[2], res[2])
 
     with pytest.raises(ExtrapolationError):
-        cubic_spline(
+        cyclic_cubic_spline(
             data,
             df=2,
             extrapolation="raise",
@@ -337,7 +342,7 @@ def test_alternative_extrapolation():
     in_bounds = (data >= lower_bound) & (data <= upper_bound)
     valid_data = data[in_bounds]
     state = {}
-    res = cubic_spline(
+    res = cyclic_cubic_spline(
         valid_data,
         df=2,
         extrapolation="zero",
@@ -345,13 +350,13 @@ def test_alternative_extrapolation():
         upper_bound=5.5,
         _state=state,
     )
-    re_res = cubic_spline(data, extrapolation="zero", _state=state)
+    re_res = cyclic_cubic_spline(data, extrapolation="zero", _state=state)
     for i in res:
         numpy.testing.assert_allclose(res[i], re_res[i][in_bounds])
         numpy.testing.assert_allclose(
             re_res[i][~in_bounds], numpy.zeros((~in_bounds).sum())
         )
-    res2 = cubic_spline(
+    res2 = cyclic_cubic_spline(
         data, df=2, extrapolation="zero", lower_bound=-5.5, upper_bound=5.5, _state={}
     )
     for i in res:

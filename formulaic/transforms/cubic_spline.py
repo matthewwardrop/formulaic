@@ -1,7 +1,8 @@
 """
-The code in this module is derived from similar code in the `patsy` package.
+The code in this module is derived from code in the `patsy` package.
 The original license of the code is as follows:
 
+    Copyright (C) 2014 GDF Suez, http://www.gdfsuez.com/
     Copyright (C) 2011-2012, Patsy Developers. All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,7 +49,8 @@ class ExtrapolationError(ValueError):
 
 
 def _find_knots_lower_bounds(x: numpy.ndarray, knots: numpy.ndarray) -> numpy.ndarray:
-    """Finds knots lower bounds for given values.
+    """
+    Find knot lower bounds for given values.
 
     Returns an array of indices ``I`` such that
     ``0 <= I[i] <= knots.size - 2`` for all ``i``
@@ -58,10 +60,10 @@ def _find_knots_lower_bounds(x: numpy.ndarray, knots: numpy.ndarray) -> numpy.nd
     ``I[i] = 0`` if ``x[i] <= numpy.min(knots)``
     ``I[i] = knots.size - 2`` if ``numpy.max(knots) < x[i]``
 
-    :param x: The 1-d array values whose knots lower bounds are to be found.
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :return: An array of knots lower bounds indices.
+    Args:
+        x: The 1-d array values whose knots lower bounds are to be found.
+        knots: The 1-d array knots used for cubic spline parametrization,
+            must be sorted in ascending order.
     """
     lb = numpy.searchsorted(knots, x) - 1
 
@@ -77,18 +79,21 @@ def _find_knots_lower_bounds(x: numpy.ndarray, knots: numpy.ndarray) -> numpy.nd
 def _compute_base_functions(
     x: numpy.ndarray, knots: numpy.ndarray
 ) -> tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-    """Computes base functions used for building cubic splines basis.
+    """
+    Compute the base functions used for building the cubic splines basis.
 
-    .. note:: See 'Generalized Additive Models', Simon N. Wood, 2006, p. 146
-      and for the special treatment of ``x`` values outside ``knots`` range
-      see 'mgcv' source code, file 'mgcv.c', function 'crspl()', l.249
+    This function computes the 4 base functions ajm, ajp, cjm, and cjp; and the
+    1-d array of knot lower bounds indices corresponding to the given `x`
+    values.
 
-    :param x: The 1-d array values for which base functions should be computed.
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :return: 4 arrays corresponding to the 4 base functions ajm, ajp, cjm, cjp
-     + the 1-d array of knots lower bounds indices corresponding to
-     the given ``x`` values.
+    Args:
+        x: The 1-d array values for which base functions should be computed.
+        knots: The 1-d array knots used for cubic spline parametrization,
+            must be sorted in ascending order.
+
+    Note: See 'Generalized Additive Models', Simon N. Wood, 2006, p. 146
+        and for the special treatment of ``x`` values outside ``knots`` range
+        see 'mgcv' source code, file 'mgcv.c', function 'crspl()', l.249
     """
     j = _find_knots_lower_bounds(x, knots)
 
@@ -114,14 +119,15 @@ def _compute_base_functions(
 
 
 def _get_cyclic_f(knots: numpy.ndarray) -> numpy.ndarray:
-    """Returns mapping of cyclic cubic spline values to 2nd derivatives.
+    """
+    Generate the mapping of cyclic cubic spline values to 2nd derivatives as a
+    2-d array.
 
-    .. note:: See 'Generalized Additive Models', Simon N. Wood, 2006, pp 146-147
+    Args:
+        knots: The 1-d array knots used for cubic spline parametrization,
+            must be sorted in ascending order.
 
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :return: A 2-d array mapping cyclic cubic spline values at
-     knots to second derivatives.
+    Note: See 'Generalized Additive Models', Simon N. Wood, 2006, pp 146-147
     """
     h = knots[1:] - knots[:-1]
     n = knots.size - 1
@@ -149,14 +155,15 @@ def _get_cyclic_f(knots: numpy.ndarray) -> numpy.ndarray:
 
 
 def _get_natural_f(knots: numpy.ndarray) -> numpy.ndarray:
-    """Returns mapping of natural cubic spline values to 2nd derivatives.
+    """
+    Generate the mapping of natural cubic spline values to 2nd derivatives as a
+    2-d array.
 
-    .. note:: See 'Generalized Additive Models', Simon N. Wood, 2006, pp 145-146
+    Args:
+        knots: The 1-d array knots used for cubic spline parametrization,
+            must be sorted in ascending order.
 
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :return: A 2-d array mapping natural cubic spline values at
-     knots to second derivatives.
+    Note: See 'Generalized Additive Models', Simon N. Wood, 2006, pp 145-146
     """
     from scipy import linalg
 
@@ -176,14 +183,13 @@ def _get_natural_f(knots: numpy.ndarray) -> numpy.ndarray:
 
 
 def _map_cyclic(x: numpy.ndarray, lbound: float, ubound: float) -> numpy.ndarray:
-    """Maps values into the interval [lbound, ubound] in a cyclic fashion.
+    """
+    Map values into the interval [lbound, ubound] in a cyclic fashion.
 
-    :param x: The 1-d array values to be mapped.
-    :param lbound: The lower bound of the interval.
-    :param ubound: The upper bound of the interval.
-    :return: A new 1-d array containing mapped x values.
-
-    :raise ValueError: if lbound >= ubound.
+    Args:
+        x: The 1-d array values to be mapped.
+        lbound: The lower bound of the interval.
+        ubound: The upper bound of the interval.
     """
     if lbound >= ubound:
         raise ValueError(
@@ -201,22 +207,22 @@ def _map_cyclic(x: numpy.ndarray, lbound: float, ubound: float) -> numpy.ndarray
 def _get_free_cubic_spline_matrix(
     x: numpy.ndarray, knots: numpy.ndarray, cyclic: bool = False
 ) -> numpy.ndarray:
-    """Builds an unconstrained cubic regression spline design matrix.
+    """
+    Build an unconstrained cubic regression spline design matrix.
 
-    Returns design matrix with dimensions ``len(x) x n``
-    for a cubic regression spline smoother
-    where
-     - ``n = len(knots)`` for natural CRS
-     - ``n = len(knots) - 1`` for cyclic CRS
+    The returned design matrix has dimensions `len(x) * n` for a cubic
+    regression spline smoother where
+     - `n = len(knots)` for natural CRS
+     - `n = len(knots) - 1` for cyclic CRS
 
-    .. note:: See 'Generalized Additive Models', Simon N. Wood, 2006, p. 145
+    Args:
+        x: The 1-d array values.
+        knots: The 1-d array knots used for cubic spline parameterization,
+            must be sorted in ascending order.
+        cyclic: Indicates whether used cubic regression splines should
+            be cyclic or not.
 
-    :param x: The 1-d array values.
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :param cyclic: Indicates whether used cubic regression splines should
-     be cyclic or not. Default is ``False``.
-    :return: The (2-d array) design matrix.
+    Note: See 'Generalized Additive Models', Simon N. Wood, 2006, p. 145
     """
     n = knots.size
     if cyclic:
@@ -250,20 +256,19 @@ def _get_all_sorted_knots(
     n_inner_knots: int | None = None,
     inner_knots: numpy.ndarray | None = None,
 ) -> numpy.ndarray:
-    """Gets all knots locations with lower and upper exterior knots included.
+    """
+    Get all knots locations with lower and upper exterior knots included
+    (resulting in an array of size `n_inner_knots + 2`).
 
     If needed, inner knots are computed as equally spaced quantiles of the
-    inumpy.t data falling between given lower and upper bounds.
+    input data falling between given lower and upper bounds.
 
-    :param x: The 1-d array data values.
-    :param lower_bound: The lower exterior knot location.
-    :param upper_bound: The upper exterior knot location.
-    :param n_inner_knots: Number of inner knots to compute.
-    :param inner_knots: Provided inner knots if any.
-    :return: The array of ``n_inner_knots + 2`` distinct knots.
-
-    :raise ValueError: for various invalid parameters sets or if unable to
-     compute ``n_inner_knots + 2`` distinct knots.
+    Args:
+        x: The 1-d array data values.
+        lower_bound: The lower exterior knot location.
+        upper_bound: The upper exterior knot location.
+        n_inner_knots: Number of inner knots to compute.
+        inner_knots: Provided inner knots if any.
     """
     if upper_bound < lower_bound:
         raise ValueError(f"lower_bound > upper_bound ({lower_bound} > {upper_bound})")
@@ -325,16 +330,16 @@ def _get_all_sorted_knots(
 
 
 def _get_centering_constraint_from_matrix(matrix: numpy.ndarray) -> numpy.ndarray:
-    """Computes the centering constraint from the given design matrix.
+    """
+    Compute the centering constraint from the given design matrix.
 
-    We want to ensure that if ``b`` is the array of parameters, our
-    model is centered, ie ``numpy.mean(numpy.dot(matrix, b))`` is zero.
-    We can rewrite this as ``numpy.dot(c, b)`` being zero with ``c`` a 1-row
-    constraint matrix containing the mean of each column of ``matrix``.
+    We want to ensure that if `b` is the array of parameters, our
+    model is centered, ie `numpy.mean(numpy.dot(matrix, b))` is zero.
+    We can rewrite this as `numpy.dot(c, b)` being zero with `c` a 1-row
+    constraint matrix containing the mean of each column of `matrix`.
 
-    :param matrix: The 2-d array design matrix.
-    :return: A 2-d array (1 x ncols(matrix)) defining the
-     centering constraint.
+    Args:
+        matrix: The 2-d array design matrix.
     """
     return matrix.mean(axis=0).reshape((1, matrix.shape[1]))
 
@@ -342,16 +347,13 @@ def _get_centering_constraint_from_matrix(matrix: numpy.ndarray) -> numpy.ndarra
 def _absorb_constraints(
     matrix: numpy.ndarray, constraints: numpy.ndarray
 ) -> numpy.ndarray:
-    """Absorb model parameters constraints into the design matrix.
+    """
+    Absorb model parameters constraints into a new design matrix.
 
-    :param matrix: The (2-d array) initial design matrix.
-    :param constraints: The 2-d array defining initial model parameters
+    Args:
+        matrix: The (2-d array) initial design matrix.
+        constraints: The 2-d array defining initial model parameters
      (``betas``) constraints (``numpy.dot(constraints, betas) = 0``).
-    :return: The new design matrix with absorbed parameters constraints.
-
-    :raise ImportError: if scipy is not found, used for ``scipy.linalg.qr()``
-      which is cleaner than numpy's version requiring a call like
-      ``qr(..., mode='complete')`` to get a full QR decomposition.
     """
     m = constraints.shape[0]
     q, r = numpy.linalg.qr(numpy.transpose(constraints), mode="complete")
@@ -365,22 +367,21 @@ def _get_cubic_spline_matrix(
     constraints: numpy.ndarray | None = None,
     cyclic: bool = False,
 ) -> numpy.ndarray:
-    """Builds a cubic regression spline design matrix.
+    """
+    Build a constrained cubic regression spline design matrix with dimensions
+    `len(x) * n` where:
+     - `n = len(knots) - nrows(constraints)` for natural CRS
+     - `n = len(knots) - nrows(constraints) - 1` for cyclic CRS
+    for a cubic regression spline smoother.
 
-    Returns design matrix with dimensions len(x) x n
-    where:
-     - ``n = len(knots) - nrows(constraints)`` for natural CRS
-     - ``n = len(knots) - nrows(constraints) - 1`` for cyclic CRS
-    for a cubic regression spline smoother
-
-    :param x: The 1-d array values.
-    :param knots: The 1-d array knots used for cubic spline parametrization,
-     must be sorted in ascending order.
-    :param constraints: The 2-d array defining model parameters (``betas``)
-     constraints (``numpy.dot(constraints, betas) = 0``).
-    :param cyclic: Indicates whether used cubic regression splines should
-     be cyclic or not. Default is ``False``.
-    :return: The (2-d array) design matrix.
+    Args:
+        x: The 1-d array values.
+        knots: The 1-d array knots used for cubic spline parametrization,
+            must be sorted in ascending order.
+        constraints: The 2-d array defining model parameters (``betas``)
+            constraints (``numpy.dot(constraints, betas) = 0``).
+        cyclic: Indicates whether used cubic regression splines should
+            be cyclic or not. Default is ``False``.
     """
     mat = _get_free_cubic_spline_matrix(x, knots, cyclic)
     if constraints is not None:
@@ -396,14 +397,15 @@ def parse_bounds(
     state: dict,
 ) -> float:
     """
-    Gets the lower or upper bound from either the value passed, the data, or the state dictionary.
+    Extract the lower or upper bound from either the value passed, the data, or
+    the state dictionary.
 
-    :param x: The 1-d array values for which bounds should be computed.
-    :param default: The default value to use if the bound is not in the state.
-    :param edge: "lower" or "upper" for lower and upper bounds.
-    :param state: The state dictionary. Bounds are read from the state if
-    present, or set in the state if not.
-    :return: A float containing the lower or upper bound.
+    Args:
+        x: The 1-d array values for which bounds should be computed.
+        default: The default value to use if the bound is not in the state.
+        edge: "lower" or "upper" for lower and upper bounds.
+        state: The state dictionary. Bounds are read from the state if
+            present, or set in the state if not.
     """
     key = f"{edge}_bound"
     if key in state:
@@ -423,18 +425,14 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     lower_bound: float | None = None,
     upper_bound: float | None = None,
     constraints: numpy.ndarray | Literal["center"] | None = None,
+    cyclic: bool = False,
     extrapolation: str | SplineExtrapolation = "extend",
-    cyclic: bool = True,
     _state: dict = {},
 ) -> FactorValues[dict]:
     """
-    Evaluates the B-Spline basis vectors for given inumpy.ts `x`.
-
-    This is especially useful in the context of allowing non-linear fits to data
-    in linear regression. Except for the addition of the `extrapolation`
-    parameter, this implementation shares its API with `patsy.splines.bs`, and
-    should behave identically to both `patsy.splines.bs` and R's `splines::bs`
-    where functionality overlaps.
+    Evaluates cubic spline vectors for given inputs `x`, satisfying nominated
+    constraints. This implementation is compatible with natural (`cr`, `cc`) and
+    cyclic (`cs`) from R's `mgcv` package.
 
     Args:
         x: The vector for which the B-Spline basis should be computed.
@@ -458,6 +456,8 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             prediction from the fitted model). The constraints are absorbed
             in the resulting design matrix which means that the model is
             actually rewritten in terms of *unconstrained* parameters.
+        cyclic: Whether the spline should be constrained such that smoothness
+            conditions hold with cyclic boundary conditions.
         extrapolation: Selects how extrapolation should be performed when values
             in `x` extend beyond the lower and upper bounds. Valid values are:
             - 'raise': Raises a `ValueError` if there are any values in `x`
@@ -474,22 +474,6 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
         A dictionary representing the encoded vectors ready for ingestion
         by materializers (wrapped in a `FactorValues` instance providing
         relevant metadata).
-
-    Notes:
-        The implementation employed here uses a slightly generalised version of
-        the ["Cox-de Boor" algorithm](https://en.wikipedia.org/wiki/B-spline#Definition),
-        extended by this author to allow for extrapolations (although this
-        author doubts this is terribly novel). We have not used the `splev`
-        methods from `scipy` since in benchmarks this implementation outperforms
-        them for our use-cases.
-
-        If you would like to learn more about B-Splines, the primer put together
-        by Jeffrey Racine is an excellent resource:
-        https://cran.r-project.org/web/packages/crs/vignettes/spline_primer.pdf
-
-        As a stateful transform, we only keep track of `knots`, `lower_bound`
-        and `upper_bound`, which are sufficient given that all other information
-        must be explicitly specified.
     """
     # Prepare and check arguments
     if df is not None and knots is not None:
@@ -617,5 +601,5 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     )
 
 
-cyclic_cubic_spline = stateful_transform(partial(cubic_spline, cyclic=True))
 natural_cubic_spline = stateful_transform(partial(cubic_spline, cyclic=False))
+cyclic_cubic_spline = stateful_transform(partial(cubic_spline, cyclic=True))
