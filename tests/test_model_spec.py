@@ -123,6 +123,13 @@ class TestModelSpec:
         assert model_spec.get_variable_indices("a") == [1, 4, 5]
         assert model_spec.get_variable_indices("A") == [2, 3, 4, 5]
 
+    def test_required_variables(self, model_spec):
+        assert model_spec.structure
+        assert model_spec.required_variables == {"a", "A"}
+
+        # Derived using formula instead of structure
+        assert model_spec.update(structure=None).required_variables == {"a", "A"}
+
     def test_get_slice(self, model_spec):
         s = slice(0, 1)
         assert model_spec.get_slice(s) is s
@@ -274,6 +281,7 @@ class TestModelSpec:
         assert numpy.all(
             model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
         )
+        assert model_specs.required_variables == {"a", "A"}
         sparse_matrices = model_specs.get_model_matrix(data2, output="sparse")
         assert isinstance(sparse_matrices, ModelMatrices)
         assert isinstance(sparse_matrices.a, scipy.sparse.spmatrix)

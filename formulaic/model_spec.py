@@ -424,6 +424,21 @@ class ModelSpec:
             variables_by_source[variable.source].add(variable)
         return dict(variables_by_source)
 
+    @property
+    def required_variables(self) -> Set[Variable]:
+        """
+        The set of variables required to be in the data to materialize this
+        model specification.
+
+        If `.structure` has not been populated (which contains metadata about
+        which columns where ultimate drawn from the data during
+        materialization), then this will fallback to the variables inferred to
+        be required by `.formula`.
+        """
+        if self.structure is None:
+            return self.formula.required_variables
+        return self.variables_by_source.get("data", set())
+
     def get_slice(self, columns_identifier: Union[int, str, Term, slice]) -> slice:
         """
         Generate a `slice` instance corresponding to the columns associated with
@@ -655,6 +670,16 @@ class ModelSpecs(Structured[ModelSpec]):
                 f"for key {repr(key)}."
             )
         return item
+
+    @property
+    def required_variables(self) -> Set[Variable]:
+        """
+        The set of variables required to be in the data to materialize all of
+        the model specifications in this `ModelSpecs` instance.
+        """
+        variables: Set[Variable] = set()
+        self._map(lambda ms: variables.update(ms.required_variables))
+        return variables
 
     def get_model_matrix(
         self,

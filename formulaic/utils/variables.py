@@ -46,7 +46,9 @@ class Variable(str):
 
 
 def get_expression_variables(
-    expr: Union[str, ast.AST], context: Mapping, aliases: Optional[Mapping] = None
+    expr: Union[str, ast.AST],
+    context: Optional[Mapping] = None,
+    aliases: Optional[Mapping] = None,
 ) -> Set[Variable]:
     """
     Extract the variables that are used in the nominated Python expression.
