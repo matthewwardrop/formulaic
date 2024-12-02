@@ -3,7 +3,7 @@ import re
 import pytest
 
 from formulaic.parser.types import Factor, Term
-from formulaic.utils.calculus import differentiate_term, _differentiate_factors
+from formulaic.utils.calculus import _differentiate_factors, differentiate_term
 
 
 def test_differentiate_term():
@@ -30,5 +30,8 @@ def test__differentiate_factors():
 
     assert _differentiate_factors(t.factors, "a", use_sympy=True) == {"(log(a) + 1)"}
 
-    with pytest.raises(RuntimeError, match=re.escape("Cannot differentiate non-trivial factors without `sympy`.")):
+    with pytest.raises(
+        RuntimeError,
+        match=re.escape("Cannot differentiate non-trivial factors without `sympy`."),
+    ):
         _differentiate_factors(t.factors, "a", use_sympy=False)
