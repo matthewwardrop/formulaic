@@ -379,3 +379,11 @@ class TestSimpleFormula:
 
         with pytest.warns(DeprecationWarning):
             assert f._update(nested="a") == StructuredFormula(f, nested="a")
+
+
+class TestStructuredFormula:
+    def test_pickling(self):
+        s = StructuredFormula("a + b", _context={})
+        s2 = pickle.loads(pickle.dumps(s))
+        assert s == s2
+        assert s2._context is None

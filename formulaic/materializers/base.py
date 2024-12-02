@@ -163,7 +163,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
-        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(spec, **spec_overrides)
+        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(
+            spec, context=self.layered_context, **spec_overrides
+        )
         should_simplify = isinstance(spec, ModelSpec)
         model_specs: ModelSpecs = self._prepare_model_specs(spec)
 
