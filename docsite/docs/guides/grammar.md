@@ -68,8 +68,9 @@ that have *not* been implemented by `formulaic` are explicitly noted also.
 | `lag(...[, <k>])` | Generate lagging or leading columns (useful for datasets collected at regular intervals). | ✓ | ✗ | ✓ |
 | `poly(...)` | Generates a polynomial basis, allowing non-linear fits. | ✓ | ✗ | ✓ |
 | `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
-| `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
-| `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
+| `cs(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
+| `cr(...)` | Alias for `cs` above. | ✓ | ✗ | ✓ |
+| `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
 | `te(...)` | Generates a tensor product smooth. | ✗ | ✓ | ✓ |
 | `hashed(...)` | Categorically encode a deterministic hash of a column. | ✓ | ✗ | ✗ |
 | ...       | Others? Contributions welcome!     | ? | ? | ? |
