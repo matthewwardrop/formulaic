@@ -32,7 +32,7 @@ The original license of the code is as follows:
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Iterable, cast
+from typing import Iterable, cast
 
 import numpy
 import pandas
@@ -45,13 +45,6 @@ from formulaic.utils.stateful_transforms import stateful_transform
 
 class ExtrapolationError(ValueError):
     pass
-
-
-def safe_string_eq(obj: Any, value: str) -> bool:
-    if isinstance(obj, str):
-        return obj == value
-    else:
-        return False
 
 
 def _find_knots_lower_bounds(x: numpy.ndarray, knots: numpy.ndarray) -> numpy.ndarray:
@@ -287,7 +280,7 @@ def _get_all_sorted_knots(
         if x.size != 0:
             inner_knots_q = numpy.linspace(0, 100, n_inner_knots + 2)[1:-1]
             # .tolist() is necessary to work around a bug in numpy 1.8
-            inner_knots = numpy.asarray(numpy.percentile(x, inner_knots_q.tolist()))
+            inner_knots = numpy.asarray(numpy.nanpercentile(x, inner_knots_q.tolist()))
         elif n_inner_knots == 0:
             inner_knots = numpy.array([])
         else:
@@ -456,6 +449,15 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             not specified this is determined from `x`.
         upper_bound: The upper bound for the domain for the B-Spline basis. If
             not specified this is determined from `x`.
+        constraints: Either a 2-d array defining general linear constraints
+            (that is ``np.dot(constraints, betas)`` is zero, where ``betas`` denotes
+             the array of *initial* parameters, corresponding to the *initial*
+            unconstrained design matrix), or the string ``'center'`` indicating
+            that we should apply a centering constraint (this constraint
+            will be computed from the input data, remembered and re-used for
+            prediction from the fitted model). The constraints are absorbed
+            in the resulting design matrix which means that the model is
+            actually rewritten in terms of *unconstrained* parameters.
         extrapolation: Selects how extrapolation should be performed when values
             in `x` extend beyond the lower and upper bounds. Valid values are:
             - 'raise': Raises a `ValueError` if there are any values in `x`
@@ -513,27 +515,33 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     else:
         _state["cyclic"] = cyclic
 
-    if "extrapolation" in _state:
-        extrapolation = SplineExtrapolation(_state["extrapolation"])
-    else:
-        extrapolation = SplineExtrapolation(extrapolation)
-        _state["extrapolation"] = extrapolation.value
+    extrapolation = SplineExtrapolation(extrapolation)
 
     # Check extrapolations and adjust x if necessary
     # SplineExtrapolation.EXTEND is the natural default, so no need to do anything
+    knots_x = x
+    below_lower = x < lower_bound
+    above_upper = x > upper_bound
     if extrapolation is SplineExtrapolation.RAISE and numpy.any(
-        (x < lower_bound) | (x > upper_bound)
+        below_lower | above_upper
     ):
         raise ExtrapolationError(
             "Some field values extend beyond upper and/or lower bounds, which can "
             "result in ill-conditioned bases. Pass a value for `extrapolation` to "
             "control how extrapolation should be performed."
         )
-    elif extrapolation is SplineExtrapolation.CLIP:
-        x = numpy.clip(x, lower_bound, upper_bound)
-    elif extrapolation in (SplineExtrapolation.NA, SplineExtrapolation.ZERO):
-        fill_value = numpy.nan if extrapolation is SplineExtrapolation.NA else 0.0
-        x = numpy.where((x >= lower_bound) & (x <= upper_bound), x, fill_value)
+    elif extrapolation in (
+        SplineExtrapolation.CLIP,
+        SplineExtrapolation.ZERO,
+        SplineExtrapolation.NA,
+    ):
+        out_of_bounds = below_lower | above_upper
+        if "knots" not in _state and numpy.any(out_of_bounds):
+            knots_x = x[~out_of_bounds]
+        if extrapolation is SplineExtrapolation.CLIP:
+            x = numpy.clip(x, lower_bound, upper_bound)
+        elif extrapolation is SplineExtrapolation.NA:
+            x = numpy.where(~out_of_bounds, x, numpy.nan)
 
     # Prepare knots
     if "knots" not in _state:
@@ -541,16 +549,20 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
             raise ValueError("Must specify either 'df' or 'knots'.")
 
         n_constraints = 0
-        if constraints is not None:
-            if safe_string_eq(constraints, "center"):
-                # Here we collect only number of constraints,
-                # actual centering constraint will be computed after all_knots
-                n_constraints = 1
-            else:
-                constraints_arr = numpy.atleast_2d(constraints)
-                if constraints_arr.ndim != 2:
-                    raise ValueError("Constraints must be 2-d array or 1-d vector.")
-                n_constraints = constraints_arr.shape[0]
+        centering_constraint = isinstance(constraints, str) and constraints == "center"
+        if centering_constraint:
+            # Here we collect only number of constraints,
+            # actual centering constraint will be computed after all_knots
+            n_constraints = 1
+        elif isinstance(constraints, str):
+            raise ValueError(
+                "Constraints must be 'center' when not passed as an array."
+            )
+        elif constraints is not None:
+            constraints_arr = numpy.atleast_2d(constraints)
+            if constraints_arr.ndim != 2:
+                raise ValueError("Constraints must be 2-d array or 1-d vector.")
+            n_constraints = constraints_arr.shape[0]
 
         n_inner_knots = None
         if df is not None:
@@ -566,19 +578,18 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                 n_inner_knots += 1
         _knots = numpy.array(knots) if knots is not None else None
         all_knots = _get_all_sorted_knots(
-            x,
+            knots_x,
             lower_bound,
             upper_bound,
             n_inner_knots=n_inner_knots,
             inner_knots=_knots,
         )
         if constraints is not None:
-            if safe_string_eq(constraints, "center"):
+            if centering_constraint:
                 # Now we can compute centering constraints
                 constraints_arr = _get_centering_constraint_from_matrix(
                     _get_free_cubic_spline_matrix(x, all_knots, cyclic=cyclic)
                 )
-
             df_before_constraints = all_knots.size
             if cyclic:
                 df_before_constraints -= 1
@@ -594,7 +605,8 @@ def cubic_spline(  # pylint: disable=dangerous-default-value  # always replaced 
 
     # Compute cubic splines
     cs_mat = _get_cubic_spline_matrix(x, knots, constraints, cyclic=cyclic)
-
+    if extrapolation is SplineExtrapolation.ZERO:
+        cs_mat[below_lower | above_upper] = 0.0
     return FactorValues(
         {i + 1: cs_mat[:, i] for i in range(cs_mat.shape[1])},
         kind="numerical",

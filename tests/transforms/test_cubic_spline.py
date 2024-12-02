@@ -147,6 +147,8 @@ def test_crs_errors():
     # Too small 'df' for cyclic cubic spline
     with pytest.raises(ValueError):
         cubic_spline(numpy.arange(50), df=0, _state={})
+    with pytest.raises(ValueError, match="Constraints must be"):
+        cubic_spline(numpy.linspace(0, 1, 200), df=3, constraints="unknown", _state={})
 
 
 def test_crs_with_specific_constraint():
@@ -252,10 +254,10 @@ def test_crs_compat_with_r(test_data):
     out_stateful = func(
         cubic_spline_test_x,
         df=df,
-        knots=knots,
         lower_bound=lower_bound,
         upper_bound=upper_bound,
         constraints=constraints,
+        _state=state,
     )
     out_stateful_arr = numpy.column_stack(list(out_stateful.values()))
     numpy.testing.assert_allclose(out_stateful_arr, out_arr, atol=1e-10)
@@ -273,12 +275,9 @@ def test_statefulness():
         "upper_bound": 0.9,
         "constraints": None,
         "cyclic": True,
-        "extrapolation": "raise",
     }
     # Test separately to avoid exact float comparison
     numpy.testing.assert_allclose(knots, [0.1, 0.3, 0.5, 0.7, 0.9])
-    with pytest.raises(ExtrapolationError):
-        cubic_spline([-0.1, 1.1], _state=state)
 
 
 def test_cubic_spline_edges():
@@ -314,18 +313,6 @@ def test_alternative_extrapolation():
     assert not numpy.allclose(extrap[2], res[2])
 
     res = cubic_spline(
-        data, df=2, extrapolation="zero", lower_bound=-5.5, upper_bound=5.5, _state={}
-    )
-    data_zeroed = numpy.where((data > -5.5) & (data < 5.5), data, 0.0)
-    direct_res = cubic_spline(
-        data_zeroed, df=2, lower_bound=-5.5, upper_bound=5.5, _state={}
-    )
-    numpy.testing.assert_allclose(res[1], direct_res[1])
-    numpy.testing.assert_allclose(res[2], direct_res[2])
-    assert not numpy.allclose(extrap[1], res[1])
-    assert not numpy.allclose(extrap[2], res[2])
-
-    res = cubic_spline(
         data, df=2, extrapolation="na", lower_bound=-5.0, upper_bound=5.0, _state={}
     )
     data_na = numpy.where((data > -5.5) & (data < 5.5), data, np.nan)
@@ -344,3 +331,28 @@ def test_alternative_extrapolation():
             upper_bound=5.5,
             _state={},
         )
+
+    lower_bound = -5.5
+    upper_bound = 5.5
+    in_bounds = (data >= lower_bound) & (data <= upper_bound)
+    valid_data = data[in_bounds]
+    state = {}
+    res = cubic_spline(
+        valid_data,
+        df=2,
+        extrapolation="zero",
+        lower_bound=-5.5,
+        upper_bound=5.5,
+        _state=state,
+    )
+    re_res = cubic_spline(data, extrapolation="zero", _state=state)
+    for i in res:
+        numpy.testing.assert_allclose(res[i], re_res[i][in_bounds])
+        numpy.testing.assert_allclose(
+            re_res[i][~in_bounds], numpy.zeros((~in_bounds).sum())
+        )
+    res2 = cubic_spline(
+        data, df=2, extrapolation="zero", lower_bound=-5.5, upper_bound=5.5, _state={}
+    )
+    for i in res:
+        numpy.testing.assert_allclose(res2[i], re_res[i])
