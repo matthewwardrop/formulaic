@@ -119,7 +119,7 @@ check = [
 ]
 format = [
     "ruff check --fix",
-    "ruff format"
+    "ruff format",
 ]
 
 # Linting configuration
