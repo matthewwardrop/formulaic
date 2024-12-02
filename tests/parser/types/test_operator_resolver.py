@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from formulaic.errors import FormulaParsingError, FormulaSyntaxError
@@ -28,3 +30,6 @@ class TestOperatorResolver:
     def test_resolve(self, resolver):
         assert list(resolver.resolve(Token("+")))[0][1][0] is OPERATOR_PLUS
         assert list(resolver.resolve(Token("-")))[0][1][0] is OPERATOR_UNARY_MINUS
+
+        with pytest.raises(FormulaSyntaxError, match=re.escape("Unknown operator '&'")):
+            list(resolver.resolve(Token("&")))

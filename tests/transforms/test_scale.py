@@ -1,3 +1,5 @@
+import re
+
 import numpy
 import pytest
 import scipy.sparse as spsparse
@@ -40,6 +42,13 @@ def test_scale():
         scale(data=[1, 2, 3], center=1, scale=2, _state=state), [0, 0.5, 1]
     )
     assert state == {"center": 1, "scale": 2, "ddof": 1}
+
+    # Make sure we raise for sparse matrices with more than one column
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Cannot scale a sparse matrix with more than one column."),
+    ):
+        scale(data=spsparse.csc_matrix([[1, 2, 3], [4, 5, 6]]), center=[1, 2, 3])
 
 
 def test_center():
