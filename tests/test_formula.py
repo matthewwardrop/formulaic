@@ -82,6 +82,14 @@ class TestFormula:
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
 
+        # Test wildcards
+        assert Formula(
+            ".", _context={"__formulaic_variables_available__": ["a", "b"]}
+        ) == ["1", "a", "b"]
+        assert Formula(
+            "a ~ .", _context={"__formulaic_variables_available__": ["a", "b"]}
+        )._to_dict() == {"lhs": ["a"], "rhs": ["1", "b"]}
+
     def test_terms(self, formula_expr):
         assert [str(t) for t in formula_expr] == [
             "1",

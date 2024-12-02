@@ -29,3 +29,7 @@ class TestSugar:
 
         with pytest.raises(FactorEvaluationError):
             model_matrix("0 + global_test(a) + local_test(b)", data, context=None)
+
+        # test wild-cards
+        r3 = model_matrix("a ~ .", data)
+        assert r3.rhs.model_spec.column_names == ("Intercept", "b", "c")

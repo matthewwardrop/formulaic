@@ -11,6 +11,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    Mapping,
     MutableMapping,
     Set,
     Tuple,
@@ -20,11 +21,13 @@ from typing import (
 
 from typing_extensions import Self
 
-from formulaic.parser.types.ast_node import ASTNode
+from formulaic.errors import FormulaParsingError
+from formulaic.utils.layered_mapping import LayeredMapping
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
 from .types import (
+    ASTNode,
     Factor,
     FormulaParser,
     Operator,
@@ -149,6 +152,7 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 )
             )
 
@@ -191,7 +195,14 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 ),
+            ]
+
+            context["__formulaic_variables_used_lhs__"] = [
+                variable
+                for token in tokens[:rhs_index]
+                for variable in token.required_variables
             ]
 
         # Collapse inserted "+" and "-" operators to prevent unary issues.
@@ -356,6 +367,37 @@ class DefaultOperatorResolver(OperatorResolver):
 
             return Structured(get_terms(lhs), deps=(Structured(lhs=lhs, rhs=rhs),))
 
+        def insert_unused_terms(context: Mapping[str, Any]) -> OrderedSet[Term]:
+            available_variables: OrderedSet[str]
+            used_variables: Set[str] = set(context["__formulaic_variables_used_lhs__"])
+
+            # Populate `available_variables` or raise.
+            if "__formulaic_variables_available__" in context:
+                available_variables = OrderedSet(
+                    context["__formulaic_variables_available__"]
+                )
+            elif isinstance(context, LayeredMapping) and "data" in context.named_layers:
+                available_variables = OrderedSet(context.named_layers["data"])
+            else:
+                raise FormulaParsingError(
+                    "The `.` operator requires additional context about which "
+                    "variables are available to use. This can be provided by "
+                    "passing in a value for `__formulaic_variables_available__`"
+                    "in the context while parsing the formula; by passing the "
+                    "formula to the materializer's `.get_model_matrix()` method; "
+                    "or by passing a `LayeredMapping` instance as the context "
+                    "with a `data` layer containing the available variables "
+                    "(such as the `.layered_context` from a "
+                    "`FormulaMaterializer` instance)."
+                )
+
+            unused_variables = available_variables - used_variables
+
+            return OrderedSet(
+                Term([Factor(variable, eval_method="lookup")])
+                for variable in unused_variables
+            )
+
         return [
             Operator(
                 "~",
@@ -473,6 +515,13 @@ class DefaultOperatorResolver(OperatorResolver):
             ),
             Operator(
                 "^", arity=2, precedence=500, associativity="right", to_terms=power
+            ),
+            Operator(
+                ".",
+                arity=0,
+                precedence=1000,
+                fixity="postfix",
+                to_terms=insert_unused_terms,
             ),
         ]
 

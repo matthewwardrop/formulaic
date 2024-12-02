@@ -10,6 +10,7 @@ from formulaic.errors import FormulaParsingError, FormulaSyntaxError
 from formulaic.parser import DefaultFormulaParser, DefaultOperatorResolver
 from formulaic.parser.types import Structured, Token
 from formulaic.parser.types.term import Term
+from formulaic.utils.layered_mapping import LayeredMapping
 
 FORMULA_TO_TOKENS = {
     "": ["1"],
@@ -133,12 +134,21 @@ FORMULA_TO_TERMS = {
     # Quoting
     "`a|b~c*d`": ["1", "a|b~c*d"],
     "{a | b | c}": ["1", "a | b | c"],
+    # Wildcards
+    ".": ["1", "a", "b", "c"],
+    ".^2": ["1", "a", "a:b", "a:c", "b", "b:c", "c"],
+    ".^2 - a:b": ["1", "a", "a:c", "b", "b:c", "c"],
+    "a ~ .": {
+        "lhs": ["a"],
+        "rhs": ["1", "b", "c"],
+    },
 }
 
 PARSER = DefaultFormulaParser(feature_flags={"all"})
 PARSER_NO_INTERCEPT = DefaultFormulaParser(
     include_intercept=False, feature_flags={"all"}
 )
+PARSER_CONTEXT = {"__formulaic_variables_available__": ["a", "b", "c"]}
 
 
 class TestFormulaParser:
@@ -148,7 +158,9 @@ class TestFormulaParser:
 
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
-        generated_terms: Structured[List[Term]] = PARSER.get_terms(formula)
+        generated_terms: Structured[List[Term]] = PARSER.get_terms(
+            formula, context=PARSER_CONTEXT
+        )
         if generated_terms._has_keys:
             comp = generated_terms._map(list)._to_dict()
         elif generated_terms._has_root and isinstance(generated_terms.root, tuple):
@@ -279,6 +291,19 @@ class TestFormulaParser:
             ),
         ):
             DefaultFormulaParser(feature_flags={"all"}).get_terms("[[a ~ b] ~ c]")
+
+    def test_alternative_wildcard_usage(self):
+        PARSER.get_terms(
+            ".", context=LayeredMapping({"a": 1, "b": 2}, name="data")
+        ) == ["1", "a", "b"]
+
+        with pytest.raises(
+            FormulaParsingError,
+            match=re.escape(
+                "The `.` operator requires additional context about which "
+            ),
+        ):
+            PARSER.get_terms(".")
 
 
 class TestDefaultOperatorResolver:
