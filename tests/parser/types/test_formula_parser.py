@@ -28,3 +28,12 @@ class TestFormulaParser:
     @pytest.mark.parametrize("formula,tokens", FORMULA_TO_TOKENS.items())
     def test_get_tokens(self, formula, tokens):
         assert list(PARSER.get_tokens(formula)) == tokens
+
+    def test_parse_target_equivalence(self):
+        target = FormulaParser.Target.TOKENS
+        assert (
+            list(PARSER.parse("a ~ b", target=target))
+            == list(PARSER.parse("a ~ b", target=target.value))
+            == list(PARSER.parse("a ~ b", target=target.name))
+            == list(PARSER.parse("a ~ b", target=target.name.lower()))
+        )

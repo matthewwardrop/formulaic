@@ -6,9 +6,21 @@ import itertools
 import re
 from dataclasses import dataclass, field
 from enum import Flag, auto
-from typing import Generator, Iterable, List, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Generator,
+    Iterable,
+    List,
+    MutableMapping,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from typing_extensions import Self
+
+from formulaic.parser.types.ast_node import ASTNode
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
@@ -97,13 +109,17 @@ class DefaultFormulaParser(FormulaParser):
         self.__post_init__()
         return self
 
-    def get_tokens(self, formula: str) -> Iterable[Token]:
+    def get_tokens_from_formula(
+        self, formula: str, *, context: MutableMapping[str, Any]
+    ) -> Iterable[Token]:
         """
         Return an iterable of `Token` instances for the nominated `formula`
         string.
 
         Args:
             formula: The formula string to be tokenized.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
 
         # Transform formula to add intercepts and replace 0 with -1. We do this
@@ -183,7 +199,9 @@ class DefaultFormulaParser(FormulaParser):
 
         return tokens
 
-    def get_terms(self, formula: str) -> Structured[List[Term]]:
+    def get_terms_from_ast(
+        self, ast: Union[None, Token, ASTNode], *, context: MutableMapping[str, Any]
+    ) -> Structured[OrderedSet[Term]]:
         """
         Assemble the `Term` instances for a formula string. Depending on the
         operators involved, this may be an iterable of `Term` instances, or
@@ -195,8 +213,11 @@ class DefaultFormulaParser(FormulaParser):
 
         Args:
             formula: The formula for which an AST should be generated.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
-        terms = super().get_terms(formula)
+
+        terms = super().get_terms_from_ast(ast, context=context)
 
         def check_terms(terms: Iterable[Term]) -> None:
             seen_terms = set()
@@ -209,11 +230,13 @@ class DefaultFormulaParser(FormulaParser):
                     ):
                         raise exc_for_token(
                             factor.token or Token(),
-                            "Numeric literals other than `1` can only be used "
-                            "to scale other terms. (tip: Use `:` rather than "
-                            "`*` when scaling terms)"
-                            if factor.expr.replace(".", "", 1).isnumeric()
-                            else "String literals are not valid in formulae.",
+                            (
+                                "Numeric literals other than `1` can only be used "
+                                "to scale other terms. (tip: Use `:` rather than "
+                                "`*` when scaling terms)"
+                                if factor.expr.replace(".", "", 1).isnumeric()
+                                else "String literals are not valid in formulae."
+                            ),
                         )
                 else:
                     for factor in term.factors:

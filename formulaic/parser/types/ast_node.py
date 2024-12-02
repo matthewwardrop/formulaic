@@ -16,6 +16,7 @@ from typing import (
 )
 
 from .operator import Operator
+from .ordered_set import OrderedSet
 from .structured import Structured
 from .term import Term
 
@@ -42,7 +43,7 @@ class ASTNode(Generic[ItemType]):
 
     def to_terms(
         self, *, context: Optional[Mapping[str, Any]] = None
-    ) -> Union[List[Term], Structured[List[Term]], Tuple]:
+    ) -> Union[OrderedSet[Term], Structured[OrderedSet[Term]], Tuple]:
         """
         Evaluate this AST node and return the resulting set of `Term` instances.
 
@@ -98,9 +99,11 @@ class ASTNode(Generic[ItemType]):
         return [
             str(self.operator) if str_args else self.operator,
             *[
-                arg.flatten(str_args=str_args)
-                if isinstance(arg, ASTNode)
-                else (str(arg) if str_args else arg)
+                (
+                    arg.flatten(str_args=str_args)
+                    if isinstance(arg, ASTNode)
+                    else (str(arg) if str_args else arg)
+                )
                 for arg in self.args
             ],
         ]
