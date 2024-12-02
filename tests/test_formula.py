@@ -82,6 +82,14 @@ class TestFormula:
         assert Formula.from_spec(f) is f
         assert Formula.from_spec(["a"]) == f
 
+        # Test wildcards
+        assert Formula(
+            ".", _context={"__formulaic_variables_available__": ["a", "b"]}
+        ) == ["1", "a", "b"]
+        assert Formula(
+            "a ~ .", _context={"__formulaic_variables_available__": ["a", "b"]}
+        )._to_dict() == {"lhs": ["a"], "rhs": ["1", "b"]}
+
     def test_terms(self, formula_expr):
         assert [str(t) for t in formula_expr] == [
             "1",
@@ -379,3 +387,11 @@ class TestSimpleFormula:
 
         with pytest.warns(DeprecationWarning):
             assert f._update(nested="a") == StructuredFormula(f, nested="a")
+
+
+class TestStructuredFormula:
+    def test_pickling(self):
+        s = StructuredFormula("a + b", _context={})
+        s2 = pickle.loads(pickle.dumps(s))
+        assert s == s2
+        assert s2._context is None

@@ -6,13 +6,28 @@ import itertools
 import re
 from dataclasses import dataclass, field
 from enum import Flag, auto
-from typing import Iterable, List, Sequence, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from typing_extensions import Self
+
+from formulaic.errors import FormulaParsingError
+from formulaic.utils.layered_mapping import LayeredMapping
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
 from .types import (
+    ASTNode,
     Factor,
     FormulaParser,
     Operator,
@@ -97,13 +112,17 @@ class DefaultFormulaParser(FormulaParser):
         self.__post_init__()
         return self
 
-    def get_tokens(self, formula: str) -> Iterable[Token]:
+    def get_tokens_from_formula(
+        self, formula: str, *, context: MutableMapping[str, Any]
+    ) -> Iterable[Token]:
         """
         Return an iterable of `Token` instances for the nominated `formula`
         string.
 
         Args:
             formula: The formula string to be tokenized.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
 
         # Transform formula to add intercepts and replace 0 with -1. We do this
@@ -133,6 +152,7 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 )
             )
 
@@ -175,7 +195,14 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 ),
+            ]
+
+            context["__formulaic_variables_used_lhs__"] = [
+                variable
+                for token in tokens[:rhs_index]
+                for variable in token.required_variables
             ]
 
         # Collapse inserted "+" and "-" operators to prevent unary issues.
@@ -183,7 +210,9 @@ class DefaultFormulaParser(FormulaParser):
 
         return tokens
 
-    def get_terms(self, formula: str) -> Structured[List[Term]]:
+    def get_terms_from_ast(
+        self, ast: Union[None, Token, ASTNode], *, context: MutableMapping[str, Any]
+    ) -> Structured[OrderedSet[Term]]:
         """
         Assemble the `Term` instances for a formula string. Depending on the
         operators involved, this may be an iterable of `Term` instances, or
@@ -195,8 +224,11 @@ class DefaultFormulaParser(FormulaParser):
 
         Args:
             formula: The formula for which an AST should be generated.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
-        terms = super().get_terms(formula)
+
+        terms = super().get_terms_from_ast(ast, context=context)
 
         def check_terms(terms: Iterable[Term]) -> None:
             seen_terms = set()
@@ -209,11 +241,13 @@ class DefaultFormulaParser(FormulaParser):
                     ):
                         raise exc_for_token(
                             factor.token or Token(),
-                            "Numeric literals other than `1` can only be used "
-                            "to scale other terms. (tip: Use `:` rather than "
-                            "`*` when scaling terms)"
-                            if factor.expr.replace(".", "", 1).isnumeric()
-                            else "String literals are not valid in formulae.",
+                            (
+                                "Numeric literals other than `1` can only be used "
+                                "to scale other terms. (tip: Use `:` rather than "
+                                "`*` when scaling terms)"
+                                if factor.expr.replace(".", "", 1).isnumeric()
+                                else "String literals are not valid in formulae."
+                            ),
                         )
                 else:
                     for factor in term.factors:
@@ -333,6 +367,37 @@ class DefaultOperatorResolver(OperatorResolver):
 
             return Structured(get_terms(lhs), deps=(Structured(lhs=lhs, rhs=rhs),))
 
+        def insert_unused_terms(context: Mapping[str, Any]) -> OrderedSet[Term]:
+            available_variables: OrderedSet[str]
+            used_variables: Set[str] = set(context["__formulaic_variables_used_lhs__"])
+
+            # Populate `available_variables` or raise.
+            if "__formulaic_variables_available__" in context:
+                available_variables = OrderedSet(
+                    context["__formulaic_variables_available__"]
+                )
+            elif isinstance(context, LayeredMapping) and "data" in context.named_layers:
+                available_variables = OrderedSet(context.named_layers["data"])
+            else:
+                raise FormulaParsingError(
+                    "The `.` operator requires additional context about which "
+                    "variables are available to use. This can be provided by "
+                    "passing in a value for `__formulaic_variables_available__`"
+                    "in the context while parsing the formula; by passing the "
+                    "formula to the materializer's `.get_model_matrix()` method; "
+                    "or by passing a `LayeredMapping` instance as the context "
+                    "with a `data` layer containing the available variables "
+                    "(such as the `.layered_context` from a "
+                    "`FormulaMaterializer` instance)."
+                )
+
+            unused_variables = available_variables - used_variables
+
+            return OrderedSet(
+                Term([Factor(variable, eval_method="lookup")])
+                for variable in unused_variables
+            )
+
         return [
             Operator(
                 "~",
@@ -451,13 +516,22 @@ class DefaultOperatorResolver(OperatorResolver):
             Operator(
                 "^", arity=2, precedence=500, associativity="right", to_terms=power
             ),
+            Operator(
+                ".",
+                arity=0,
+                precedence=1000,
+                fixity="postfix",
+                to_terms=insert_unused_terms,
+            ),
         ]
 
     def resolve(
-        self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> Sequence[Operator]:
+        self,
+        token: Token,
+    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
         if token.token in self.operator_table:
-            return super().resolve(token, max_prefix_arity, context)
+            yield from super().resolve(token)
+            return
 
         symbol = token.token
 
@@ -474,9 +548,8 @@ class DefaultOperatorResolver(OperatorResolver):
             )
 
         if symbol in self.operator_table:
-            return [self._resolve(token, symbol, max_prefix_arity, context)]
+            yield self._resolve(token, symbol)
+            return
 
-        return [
-            self._resolve(token, sym, max_prefix_arity if i == 0 else 0, context)
-            for i, sym in enumerate(symbol)
-        ]
+        for sym in symbol:
+            yield self._resolve(token, sym)

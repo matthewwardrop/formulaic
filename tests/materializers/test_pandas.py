@@ -67,6 +67,23 @@ PANDAS_TESTS = {
         ["Intercept"],
         1,
     ),
+    ".": (
+        ["Intercept", "a", "b", "A[T.b]", "A[T.c]", "B[T.b]", "B[T.c]"],
+        [
+            "Intercept",
+            "a",
+            "b",
+            "A[a]",
+            "A[b]",
+            "A[c]",
+            "B[a]",
+            "B[b]",
+            "B[c]",
+            "D[a]",
+        ],
+        ["Intercept", "a", "b"],
+        1,
+    ),
 }
 
 
@@ -86,7 +103,13 @@ class TestPandasMaterializer:
     @pytest.fixture
     def data_with_nulls(self):
         return pandas.DataFrame(
-            {"a": [1, 2, None], "A": ["a", None, "c"], "B": ["a", "b", None]}
+            {
+                "a": [1, 2, None],
+                "b": [1, 2, 3],
+                "A": ["a", None, "c"],
+                "B": ["a", "b", None],
+                "D": ["a", "a", "a"],
+            }
         )
 
     @pytest.fixture
@@ -182,7 +205,10 @@ class TestPandasMaterializer:
             formula, na_action="ignore"
         )
         assert isinstance(mm, pandas.DataFrame)
-        assert mm.shape == (3, len(tests[0]) + (-1 if "A" in formula else 0))
+        if formula == ".":
+            assert mm.shape == (3, 5)
+        else:
+            assert mm.shape == (3, len(tests[0]) + (-1 if "A" in formula else 0))
 
         if formula != "C(A)":  # C(A) pre-encodes the data, stripping out nulls.
             with pytest.raises(ValueError):

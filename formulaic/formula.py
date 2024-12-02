@@ -74,6 +74,7 @@ class _FormulaMeta(ABCMeta):
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
+        _context: Optional[Mapping[str, Any]] = None,
         **structure: FormulaSpec,
     ) -> Formula:
         """
@@ -82,7 +83,7 @@ class _FormulaMeta(ABCMeta):
         `SimpleFormula` instance will be returned; otherwise, a
         `StructuredFormula`.
 
-        Some arguments a prefixed with underscores to prevent collision with
+        Some arguments are prefixed with underscores to prevent collision with
         formula structure.
 
         Args:
@@ -108,6 +109,7 @@ class _FormulaMeta(ABCMeta):
                 _ordering=_ordering,
                 _parser=_parser,
                 _nested_parser=_nested_parser,
+                _context=_context,
                 **structure,
             )
             return self
@@ -120,13 +122,15 @@ class _FormulaMeta(ABCMeta):
                 _parser=_parser,
                 _nested_parser=_nested_parser,
                 _ordering=_ordering,
-                **structure,
-            )
+                _context=_context,
+                **structure,  # type: ignore[arg-type]
+            )._simplify()
         return cls.from_spec(
             cast(FormulaSpec, root),
             ordering=_ordering,
             parser=_parser,
             nested_parser=_nested_parser,
+            context=_context,
         )
 
     def from_spec(
@@ -136,6 +140,7 @@ class _FormulaMeta(ABCMeta):
         ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         parser: Optional[FormulaParser] = None,
         nested_parser: Optional[FormulaParser] = None,
+        context: Optional[Mapping[str, Any]] = None,
     ) -> Union[SimpleFormula, StructuredFormula]:
         """
         Construct a `SimpleFormula` or `StructuredFormula` instance from a
@@ -164,18 +169,25 @@ class _FormulaMeta(ABCMeta):
         if isinstance(spec, str):
             spec = cast(
                 FormulaSpec,
-                (parser or DefaultFormulaParser()).get_terms(spec)._simplify(),
+                (parser or DefaultFormulaParser())
+                .get_terms(spec, context=context)
+                ._simplify(),
             )
 
         if isinstance(spec, dict):
             return StructuredFormula(
-                _parser=parser, _nested_parser=nested_parser, _ordering=ordering, **spec
+                _parser=parser,
+                _nested_parser=nested_parser,
+                _ordering=ordering,
+                _context=context,
+                **spec,  # type: ignore[arg-type]
             )
         if isinstance(spec, Structured):
             return StructuredFormula(
                 _ordering=ordering,
                 _parser=nested_parser,
                 _nested_parser=nested_parser,
+                _context=context,
                 **spec._structure,
             )._simplify()
         if isinstance(spec, tuple):
@@ -184,13 +196,14 @@ class _FormulaMeta(ABCMeta):
                 _ordering=ordering,
                 _parser=parser,
                 _nested_parser=nested_parser,
+                _context=context,
             )._simplify()
         if isinstance(spec, (list, set, OrderedSet)):
             terms = [
                 term
                 for value in spec
                 for term in (
-                    nested_parser.get_terms(value)  # type: ignore[attr-defined]
+                    nested_parser.get_terms(value, context=context)  # type: ignore[attr-defined]
                     if isinstance(value, str)
                     else [value]
                 )
@@ -248,9 +261,11 @@ class Formula(metaclass=_FormulaMeta):
     def __init__(
         self,
         root: Union[FormulaSpec, _MissingType] = MISSING,
+        *,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
+        _context: Optional[Mapping[str, Any]] = None,
         **structure: FormulaSpec,
     ):
         """
@@ -288,7 +303,7 @@ class Formula(metaclass=_FormulaMeta):
     @abstractmethod
     def required_variables(self) -> Set[Variable]:
         """
-        The set of variables required in the data order to materialize this
+        The set of variables required to be in the data to materialize this
         formula.
 
         Attempts are made to restrict these variables only to those expected in
@@ -354,6 +369,7 @@ class SimpleFormula(
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
+        _context: Optional[Mapping[str, Any]] = None,
         **structure: FormulaSpec,
     ):
         if root is MISSING:
@@ -667,19 +683,22 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
             formula specifications. Can be: "none", "degree" (default), or "sort".
     """
 
-    __slots__ = ("_parser", "_nested_parser", "_ordering")
+    __slots__ = ("_parser", "_nested_parser", "_ordering", "_context")
 
     def __init__(
         self,
         root: Union[FormulaSpec, _MissingType] = MISSING,
+        *,
+        _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
-        _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
+        _context: Optional[Mapping[str, Any]] = None,
         **structure: FormulaSpec,
     ):
+        self._ordering = OrderingMethod(_ordering)
         self._parser = _parser or DEFAULT_PARSER
         self._nested_parser = _nested_parser or _parser or DEFAULT_NESTED_PARSER
-        self._ordering = OrderingMethod(_ordering)
+        self._context = _context
         super().__init__(root, **structure)  # type: ignore
         self._simplify(unwrap=False, inplace=True)
 
@@ -704,6 +723,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
             ordering=self._ordering,
             parser=(self._parser if key == "root" else self._nested_parser),
             nested_parser=self._nested_parser,
+            context=self._context,
         )
 
     def get_model_matrix(
@@ -781,4 +801,15 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
         return cast(
             SimpleFormula,
             self._map(lambda formula: formula.differentiate(*wrt, use_sympy=use_sympy)),
+        )
+
+    # Ensure pickling never includes context
+    def __getstate__(self) -> Tuple[None, Dict[str, Any]]:
+        slots = self.__slots__ + Structured.__slots__
+        return (
+            None,
+            {
+                slot: getattr(self, slot) if slot != "_context" else None
+                for slot in slots
+            },
         )

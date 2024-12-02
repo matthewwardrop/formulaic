@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -320,7 +321,9 @@ class ConstraintToken(Token):
             }
         )
 
-    def to_terms(self) -> Set[ScaledFactor]:  # type: ignore[override]
+    def to_terms(  # type: ignore[override]
+        self, *, context: Optional[Mapping[str, Any]] = None
+    ) -> Set[ScaledFactor]:
         if self.kind is Token.Kind.VALUE:
             factor = ast.literal_eval(self.token)
             if isinstance(factor, (int, float)):

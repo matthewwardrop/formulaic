@@ -78,6 +78,8 @@ class ModelSpec:
     def from_spec(
         cls,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        *,
+        context: Optional[Mapping[str, Any]] = None,
         **attrs: Any,
     ) -> Union[ModelSpec, ModelSpecs]:
         """
@@ -90,6 +92,11 @@ class ModelSpec:
                 instance or structured set of `ModelSpec` instances.
             attrs: Any `ModelSpec` attributes to set and/or override on all
                 generated `ModelSpec` instances.
+            context: Optional additional context to pass through to the formula
+                parsing algorithms. This is not normally required, and if
+                involved operators place additional constraints on the type
+                and/or structure of this context, they will raise exceptions
+                when they are not satisfied with instructions for how to fix it.
         """
         from .model_matrix import ModelMatrix
 
@@ -98,7 +105,7 @@ class ModelSpec:
                 obj = obj.model_spec
             if isinstance(obj, ModelSpec):
                 return obj.update(**attrs)
-            formula = Formula.from_spec(obj)
+            formula = Formula.from_spec(obj, context=context)
             if isinstance(formula, StructuredFormula):
                 return cast(
                     ModelSpecs, formula._map(prepare_model_spec, as_type=ModelSpecs)
@@ -417,6 +424,21 @@ class ModelSpec:
             variables_by_source[variable.source].add(variable)
         return dict(variables_by_source)
 
+    @property
+    def required_variables(self) -> Set[Variable]:
+        """
+        The set of variables required to be in the data to materialize this
+        model specification.
+
+        If `.structure` has not been populated (which contains metadata about
+        which columns where ultimate drawn from the data during
+        materialization), then this will fallback to the variables inferred to
+        be required by `.formula`.
+        """
+        if self.structure is None:
+            return self.formula.required_variables
+        return self.variables_by_source.get("data", set())
+
     def get_slice(self, columns_identifier: Union[int, str, Term, slice]) -> slice:
         """
         Generate a `slice` instance corresponding to the columns associated with
@@ -459,6 +481,24 @@ class ModelSpec:
 
     # Utility methods
 
+    def get_materializer(
+        self, data: Any, context: Optional[Mapping[str, Any]] = None
+    ) -> FormulaMaterializer:
+        """
+        Construct a `FormulaMaterializer` instance for `data` that can be used
+        to generate model matrices consistent with this model specification.
+
+        Args:
+            data: The data for which to build the materializer.
+            context: An additional mapping object of names to make available in
+                when evaluating formula term factors.
+        """
+        if self.materializer is None:
+            materializer = FormulaMaterializer.for_data(data)
+        else:
+            materializer = FormulaMaterializer.for_materializer(self.materializer)
+        return materializer(data, context=context, **(self.materializer_params or {}))
+
     def get_model_matrix(
         self,
         data: Any,
@@ -484,13 +524,12 @@ class ModelSpec:
         """
         if attr_overrides:
             return self.update(**attr_overrides).get_model_matrix(data, context=context)
-        if self.materializer is None:
-            materializer = FormulaMaterializer.for_data(data)
-        else:
-            materializer = FormulaMaterializer.for_materializer(self.materializer)
-        return materializer(
-            data, context=context, **(self.materializer_params or {})
-        ).get_model_matrix(self, drop_rows=drop_rows)
+        return cast(
+            "ModelMatrix",
+            self.get_materializer(data, context=context).get_model_matrix(
+                self, drop_rows=drop_rows
+            ),
+        )
 
     def get_linear_constraints(self, spec: LinearConstraintSpec) -> LinearConstraints:
         """
@@ -631,6 +670,16 @@ class ModelSpecs(Structured[ModelSpec]):
                 f"for key {repr(key)}."
             )
         return item
+
+    @property
+    def required_variables(self) -> Set[Variable]:
+        """
+        The set of variables required to be in the data to materialize all of
+        the model specifications in this `ModelSpecs` instance.
+        """
+        variables: Set[Variable] = set()
+        self._map(lambda ms: variables.update(ms.required_variables))
+        return variables
 
     def get_model_matrix(
         self,
