@@ -117,7 +117,10 @@ check = [
     "ruff format --check",
     "mypy formulaic",
 ]
-format = "ruff format"
+format = [
+    "ruff check --fix",
+    "ruff format",
+]
 
 # Linting configuration
 
