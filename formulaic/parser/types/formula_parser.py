@@ -17,10 +17,10 @@ from typing_extensions import Literal
 
 from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.structured import Structured
 
 from .ast_node import ASTNode
 from .operator_resolver import OperatorResolver
-from .structured import Structured
 from .term import Term
 from .token import Token
 

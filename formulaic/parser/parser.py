@@ -23,6 +23,7 @@ from typing_extensions import Self
 
 from formulaic.errors import FormulaParsingError
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.structured import Structured
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
@@ -33,7 +34,6 @@ from .types import (
     Operator,
     OperatorResolver,
     OrderedSet,
-    Structured,
     Term,
     Token,
 )

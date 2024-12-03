@@ -11,7 +11,7 @@ except ImportError:  # pragma: no cover
 
 import wrapt
 
-from formulaic.parser.types.structured import Structured
+from formulaic.utils.structured import Structured
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model_spec import ModelSpec, ModelSpecs

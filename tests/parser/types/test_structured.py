@@ -4,7 +4,7 @@ from io import BytesIO
 
 import pytest
 
-from formulaic.parser.types import Structured
+from formulaic.utils.structured import Structured
 
 
 class TestStructured:
@@ -50,6 +50,24 @@ class TestStructured:
 
         s4 = Structured((1, 2))
         assert s4[0] == 1
+
+        s5 = Structured(Structured((Structured("Hello"),)))
+        assert s5[("root", "root", 0, "root")] == "Hello"
+        with pytest.raises(KeyError, match="extends beyond structure"):
+            s5[("root", "root", 0, "root", 0)]
+
+    def test_item_preparation(self):
+        class SubStructured(Structured):
+            def _prepare_item(self, key, item):
+                return str(item) + "_prepared"
+
+        assert SubStructured("Hello")._to_dict() == {"root": "Hello_prepared"}
+        assert SubStructured(SubStructured("Hello"))._to_dict() == {
+            "root": {"root": "Hello_prepared"}
+        }
+        assert SubStructured(Structured("Hello"))._to_dict() == {
+            "root": {"root": "Hello_prepared_prepared"}
+        }
 
     def test__map(self):
         assert Structured("Hi", a="Hello", b="Greetings")._map(len)._to_dict() == {
@@ -186,6 +204,17 @@ class TestStructured:
 
         with pytest.raises(KeyError):
             s[0] = 10
+
+        s2 = Structured(Structured((Structured("Hello"),)))
+        s2[("root", "root", 0, "b")] = "World"
+        assert s2 == Structured(Structured((Structured("Hello", b="World"),)))
+
+        with pytest.raises(KeyError, match="Cannot replace self"):
+            s2[()] = "Hello"
+        with pytest.raises(
+            KeyError, match=re.escape("Object @ ('root', 'root') is not a `Structured`")
+        ):
+            s2[("root", "root", 2)] = "Hello"
 
     def test_iteration(self):
         assert list(Structured()) == []
