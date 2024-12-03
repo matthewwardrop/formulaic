@@ -7,8 +7,8 @@ import pytest
 import scipy.sparse
 
 from formulaic import Formula, ModelMatrices, ModelMatrix, ModelSpec, ModelSpecs
-from formulaic.materializers.base import FormulaMaterializerMeta
 from formulaic.materializers.pandas import PandasMaterializer
+from formulaic.materializers.types.formula_materializer import FormulaMaterializerMeta
 from formulaic.parser.types import Factor, Term
 
 
