@@ -117,6 +117,23 @@ class TestPandasMaterializer:
     def materializer(self, data):
         return PandasMaterializer(data)
 
+    def test_data_conversion(self):
+        df = PandasMaterializer({"a": [1, 2, 3]}).data
+        assert isinstance(df, pandas.DataFrame)
+        assert df.columns == ["a"]
+
+        df2 = PandasMaterializer({"a": 1}).data
+        assert isinstance(df2, pandas.DataFrame)
+        assert df2.columns == ["a"]
+        assert list(df2["a"]) == [1]
+
+        df3 = PandasMaterializer(
+            numpy.recarray((2,), dtype=[("x", int), ("y", float), ("z", int)])
+        ).data
+        assert isinstance(df3, pandas.DataFrame)
+        assert list(df3.columns) == ["x", "y", "z"]
+        assert len(df3["x"]) == 2
+
     @pytest.mark.parametrize("formula,tests", PANDAS_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(formula, ensure_full_rank=True)

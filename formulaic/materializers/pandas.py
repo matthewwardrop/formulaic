@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
 
 import numpy
@@ -22,8 +23,23 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class PandasMaterializer(FormulaMaterializer):
     REGISTER_NAME = "pandas"
-    REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
+    REGISTER_INPUTS: Sequence[str] = (
+        "pandas.core.frame.DataFrame",
+        "pandas.DataFrame",
+        "dict",
+        "numpy.rec.recarray",
+    )
     REGISTER_OUTPUTS: Sequence[str] = ("pandas", "numpy", "sparse")
+
+    @override
+    def _init(self) -> None:
+        if isinstance(self.data, (dict, Mapping)):
+            if all(numpy.isscalar(v) for v in self.data.values()):
+                self.data = pandas.DataFrame(self.data, index=[0])
+            else:
+                self.data = pandas.DataFrame(self.data)
+        elif isinstance(self.data, numpy.rec.recarray):
+            self.data = pandas.DataFrame.from_records(self.data)
 
     @override
     def _is_categorical(self, values: Any) -> bool:
