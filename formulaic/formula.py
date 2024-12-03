@@ -24,7 +24,7 @@ from typing import (
 
 from typing_extensions import Self, TypeAlias
 
-from formulaic.utils.sentinels import MISSING, _MissingType
+from formulaic.utils.sentinels import MISSING, MissingType
 
 from .errors import FormulaInvalidError
 from .model_matrix import ModelMatrix
@@ -70,7 +70,7 @@ class _FormulaMeta(ABCMeta):
 
     def __call__(
         cls,
-        root: Union[FormulaSpec, _MissingType] = MISSING,
+        root: Union[FormulaSpec, MissingType] = MISSING,
         *,
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
@@ -261,7 +261,7 @@ class Formula(metaclass=_FormulaMeta):
     @abstractmethod
     def __init__(
         self,
-        root: Union[FormulaSpec, _MissingType] = MISSING,
+        root: Union[FormulaSpec, MissingType] = MISSING,
         *,
         _parser: Optional[FormulaParser] = None,
         _nested_parser: Optional[FormulaParser] = None,
@@ -365,7 +365,7 @@ class SimpleFormula(
 
     def __init__(
         self,
-        root: Union[Iterable[Term], _MissingType] = MISSING,
+        root: Union[Iterable[Term], MissingType] = MISSING,
         *,
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
@@ -688,7 +688,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
 
     def __init__(
         self,
-        root: Union[FormulaSpec, _MissingType] = MISSING,
+        root: Union[FormulaSpec, MissingType] = MISSING,
         *,
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,

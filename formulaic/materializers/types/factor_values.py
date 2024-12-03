@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover
 import wrapt
 
 from formulaic.parser.types import Factor
-from formulaic.utils.sentinels import MISSING, _MissingType
+from formulaic.utils.sentinels import MISSING, MissingType
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
@@ -103,21 +103,21 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
     def __init__(
         self,
         values: Any,
-        metadata: Union[FactorValuesMetadata, _MissingType] = MISSING,
+        metadata: Union[FactorValuesMetadata, MissingType] = MISSING,
         *,
-        kind: Union[str, Factor.Kind, _MissingType] = MISSING,
-        column_names: Union[Tuple[Hashable, ...], _MissingType] = MISSING,
-        format: Union[str, _MissingType] = MISSING,  # pylint: disable=redefined-builtin
-        encoded: Union[bool, _MissingType] = MISSING,
+        kind: Union[str, Factor.Kind, MissingType] = MISSING,
+        column_names: Union[Tuple[Hashable, ...], MissingType] = MISSING,
+        format: Union[str, MissingType] = MISSING,  # pylint: disable=redefined-builtin
+        encoded: Union[bool, MissingType] = MISSING,
         encoder: Union[
             None,
             Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any],
-            _MissingType,
+            MissingType,
         ] = MISSING,
-        spans_intercept: Union[bool, _MissingType] = MISSING,
-        drop_field: Union[None, Hashable, _MissingType] = MISSING,
-        reduced: Union[bool, _MissingType] = MISSING,
-        format_reduced: Union[str, _MissingType] = MISSING,
+        spans_intercept: Union[bool, MissingType] = MISSING,
+        drop_field: Union[None, Hashable, MissingType] = MISSING,
+        reduced: Union[bool, MissingType] = MISSING,
+        format_reduced: Union[str, MissingType] = MISSING,
     ):
         metadata_constructor: Callable = FactorValuesMetadata
         metadata_kwargs = dict(
@@ -140,7 +140,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             if isinstance(values, FactorValues):
                 values = values.__wrapped__
 
-        if metadata and not isinstance(metadata, _MissingType):
+        if metadata and metadata is not MISSING:
             metadata_constructor = metadata.replace
 
         wrapt.ObjectProxy.__init__(self, values)
@@ -169,7 +169,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
     def __reduce_ex__(
         self, protocol: SupportsIndex
     ) -> Tuple[
-        Callable[[Any, Union[FactorValuesMetadata, _MissingType]], FactorValues],
-        Tuple[Any, Union[FactorValuesMetadata, _MissingType]],
+        Callable[[Any, Union[FactorValuesMetadata, MissingType]], FactorValues],
+        Tuple[Any, Union[FactorValuesMetadata, MissingType]],
     ]:
         return FactorValues, (self.__wrapped__, self._self_metadata)

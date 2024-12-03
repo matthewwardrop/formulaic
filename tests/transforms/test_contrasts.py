@@ -10,14 +10,12 @@ from formulaic.errors import DataMismatchWarning
 from formulaic.materializers import FactorValues
 from formulaic.model_spec import ModelSpec
 from formulaic.transforms.contrasts import (
-    UNSET,
-    ContrastsState,
-    SumContrasts,
-    _UnsetSentinel,
-    encode_contrasts,
+    ContrastsRegistry as contr,
 )
 from formulaic.transforms.contrasts import (
-    ContrastsRegistry as contr,
+    ContrastsState,
+    SumContrasts,
+    encode_contrasts,
 )
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 
@@ -32,11 +30,6 @@ def _compare_factor_values(a, b, comp=lambda x, y: numpy.allclose(x, y)):
     else:
         assert comp(a, b)
     assert a.__formulaic_metadata__ == b.__formulaic_metadata__
-
-
-def test_unset_sentinel():
-    assert _UnsetSentinel() is UNSET
-    assert repr(UNSET) == "UNSET"
 
 
 class TestContrastsTransform:
