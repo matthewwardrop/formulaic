@@ -7,9 +7,9 @@ import pytest
 
 from formulaic import Formula, SimpleFormula, StructuredFormula
 from formulaic.errors import FormulaInvalidError, FormulaMaterializerInvalidError
-from formulaic.parser.types import Structured
 from formulaic.parser.types.factor import Factor
 from formulaic.parser.types.term import Term
+from formulaic.utils.structured import Structured
 
 
 class TestFormula:

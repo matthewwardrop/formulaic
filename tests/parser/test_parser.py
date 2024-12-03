@@ -8,9 +8,10 @@ import pytest
 
 from formulaic.errors import FormulaParsingError, FormulaSyntaxError
 from formulaic.parser import DefaultFormulaParser, DefaultOperatorResolver
-from formulaic.parser.types import Structured, Token
+from formulaic.parser.types import Token
 from formulaic.parser.types.term import Term
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.structured import Structured
 
 FORMULA_TO_TOKENS = {
     "": ["1"],

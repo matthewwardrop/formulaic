@@ -17,8 +17,9 @@ from typing import (
 )
 
 from formulaic.materializers.base import EncodedTermStructure
-from formulaic.parser.types import Factor, Structured, Term
+from formulaic.parser.types import Factor, Term
 from formulaic.utils.constraints import LinearConstraints, LinearConstraintSpec
+from formulaic.utils.structured import Structured
 from formulaic.utils.variables import Variable
 
 from .formula import Formula, FormulaSpec, SimpleFormula, StructuredFormula

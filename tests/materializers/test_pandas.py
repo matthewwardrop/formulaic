@@ -17,7 +17,8 @@ from formulaic.materializers import PandasMaterializer
 from formulaic.materializers.base import EncodedTermStructure
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
-from formulaic.parser.types import Factor, Structured
+from formulaic.parser.types import Factor
+from formulaic.utils.structured import Structured
 
 PANDAS_TESTS = {
     # '<formula>': (<full_rank_names>, <names>, <full_rank_null_names>, <null_rows>)

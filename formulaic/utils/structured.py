@@ -16,9 +16,10 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
-from formulaic.utils.sentinels import MISSING
+from .sentinels import MISSING
 
 _ItemType = TypeVar("_ItemType")
 _SelfType = TypeVar("_SelfType", bound="Structured")
@@ -447,27 +448,49 @@ class Structured(Generic[_ItemType]):
             return
         self._structure[attr] = self.__prepare_item(attr, value)
 
+    def __lookup_path(self, path: Tuple[Union[str, int], ...]) -> Any:
+        obj = self
+        idx = 0
+
+        while idx < len(path):
+            if isinstance(obj, Structured) and path[idx] in obj._structure:
+                obj = obj._structure[cast(str, path[idx])]
+            elif isinstance(obj, tuple) and isinstance(path[idx], int):
+                obj = obj[path[idx]]
+            else:
+                break
+            idx += 1
+        else:
+            return obj
+
+        raise KeyError(
+            f"Lookup {path} at index {idx} extends beyond structure of `{self.__class__.__name__}`."
+        )
+
     def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, tuple):
+            return self.__lookup_path(key)
         if self._has_root and not self._has_keys:
             return self.root[key]
         if key in (None, "root") and self._has_root:
             return self.root
         if isinstance(key, str) and not key.startswith("_") and key in self._structure:
             return self._structure[key]
-        if isinstance(key, tuple) and len(key) >= 1 and key[0] in self._structure:
-            obj = self[key[0]]
-            if len(key) == 1:
-                return obj
-            if isinstance(obj, Structured):
-                return obj[key[1:]]
-            raise KeyError(
-                f"{key} extends beyond structure of `{self.__class__.__name__}`."
-            )
         raise KeyError(
             f"This `{self.__class__.__name__}` instance does not have structure @ `{repr(key)}`."
         )
 
     def __setitem__(self, key: Any, value: Any) -> Any:
+        if isinstance(key, tuple):
+            if len(key) == 0:
+                raise KeyError("Cannot replace self.")
+            obj = self.__lookup_path(key[:-1])
+            if isinstance(obj, Structured):
+                obj[key[-1]] = value
+                return
+            raise KeyError(
+                f"Object @ {key[:-1]} is not a `Structured` instance. Unable to set value."
+            )
         if not isinstance(key, str) or not key.isidentifier():
             raise KeyError(key)
         if key.startswith("_"):
@@ -475,16 +498,6 @@ class Structured(Generic[_ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in self._structure if key.startswith('_'))}."
             )
-        if isinstance(key, tuple) and len(key) > 1 and key[0] in self._structure:
-            obj = self[key[0]]
-            if isinstance(obj, Structured):
-                obj[key[1:]] = value
-                return
-            raise KeyError(
-                f"{key} extends beyond structure of `{self.__class__.__name__}`."
-            )
-        if isinstance(key, tuple) and len(key) == 1:
-            key = key[0]
         self._structure[key] = self.__prepare_item(key, value)
 
     def __iter__(self) -> Generator[Any, None, None]:
