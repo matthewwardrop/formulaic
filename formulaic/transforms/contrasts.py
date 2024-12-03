@@ -27,6 +27,7 @@ from interface_meta import InterfaceMeta
 
 from formulaic.errors import DataMismatchWarning
 from formulaic.materializers.types import FactorValues
+from formulaic.utils.sentinels import UNSET
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 from formulaic.utils.stateful_transforms import stateful_transform
 
@@ -34,19 +35,6 @@ from .poly import poly
 
 if TYPE_CHECKING:
     from formulaic.model_spec import ModelSpec  # pragma: no cover
-
-
-class _UnsetSentinel:
-    def __new__(cls, *args: Any, **kwargs: Any) -> _UnsetSentinel:
-        if not hasattr(cls, "_instance"):
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __repr__(self) -> str:
-        return "UNSET"
-
-
-UNSET = _UnsetSentinel()
 
 
 def C(

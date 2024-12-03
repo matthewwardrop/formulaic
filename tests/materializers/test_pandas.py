@@ -14,8 +14,8 @@ from formulaic.errors import (
     FormulaMaterializationError,
 )
 from formulaic.materializers import PandasMaterializer
-from formulaic.materializers.base import EncodedTermStructure
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
+from formulaic.materializers.types.formula_materializer import EncodedTermStructure
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 from formulaic.utils.structured import Structured
