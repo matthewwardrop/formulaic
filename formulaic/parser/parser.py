@@ -45,32 +45,6 @@ from .utils import (
 )
 
 
-class DefaultParserFeatureFlag(Flag):
-    """
-    Feature flags to restrict the flexibility of the formula parser.
-    """
-
-    TWOSIDED = auto()
-    MULTIPART = auto()
-    MULTISTAGE = auto()
-
-    # Convenience flags
-    NONE = 0
-    DEFAULT = TWOSIDED | MULTIPART
-    ALL = TWOSIDED | MULTIPART | MULTISTAGE
-
-    @classmethod
-    def from_spec(
-        cls, flags: Union[DefaultParserFeatureFlag, Set[str]]
-    ) -> DefaultParserFeatureFlag:
-        if isinstance(flags, DefaultParserFeatureFlag):
-            return flags
-        result = cls.NONE
-        for flag in flags:
-            result |= getattr(cls, flag.upper())
-        return result
-
-
 @dataclass
 class DefaultFormulaParser(FormulaParser):
     """
@@ -88,9 +62,34 @@ class DefaultFormulaParser(FormulaParser):
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
         feature_flags: Feature flags to enable or disable certain features. Can
-            be passed in as a `DefaultParserFeatureFlag` value or as a set of string flags
-            (which will be cast to a `DefaultParserFeatureFlag` instance internally).
+            be passed in as a `DefaultFormulaParser.FeatureFlag` value or as a set of string flags
+            (which will be cast to a `DefaultFormulaParser.FeatureFlag` instance internally).
     """
+
+    class FeatureFlags(Flag):
+        """
+        Feature flags to restrict the flexibility of the formula parser.
+        """
+
+        TWOSIDED = auto()
+        MULTIPART = auto()
+        MULTISTAGE = auto()
+
+        # Convenience flags
+        NONE = 0
+        DEFAULT = TWOSIDED | MULTIPART
+        ALL = TWOSIDED | MULTIPART | MULTISTAGE
+
+        @classmethod
+        def from_spec(
+            cls, flags: Union[DefaultFormulaParser.FeatureFlags, Set[str]]
+        ) -> DefaultFormulaParser.FeatureFlags:
+            if isinstance(flags, DefaultFormulaParser.FeatureFlags):
+                return flags
+            result = cls.NONE
+            for flag in flags:
+                result |= getattr(cls, flag.upper())
+            return result
 
     ZERO_PATTERN = re.compile(r"(?:^|(?<=\W))0(?=\W|$)")
 
@@ -99,16 +98,20 @@ class DefaultFormulaParser(FormulaParser):
         default_factory=lambda: DefaultOperatorResolver()  # pylint: disable=unnecessary-lambda
     )
     include_intercept: bool = True
-    feature_flags: DefaultParserFeatureFlag = DefaultParserFeatureFlag.DEFAULT
+    feature_flags: DefaultFormulaParser.FeatureFlags = FeatureFlags.DEFAULT
 
     def __post_init__(self) -> None:
         if isinstance(self.feature_flags, set):
-            self.feature_flags = DefaultParserFeatureFlag.from_spec(self.feature_flags)
+            self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(
+                self.feature_flags
+            )
         if isinstance(self.operator_resolver, DefaultOperatorResolver):
             self.operator_resolver.set_feature_flags(self.feature_flags)
 
-    def set_feature_flags(self, flags: DefaultParserFeatureFlag | Set[str]) -> Self:
-        self.feature_flags = DefaultParserFeatureFlag.from_spec(flags)
+    def set_feature_flags(
+        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+    ) -> Self:
+        self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
         self.__post_init__()
         return self
 
@@ -291,19 +294,25 @@ class DefaultOperatorResolver(OperatorResolver):
 
     Attributes:
         feature_flags: Feature flags to enable or disable certain features. Can
-            be passed in as a `DefaultParserFeatureFlag` value or as a set of string
-            flags (which will be cast to a `DefaultParserFeatureFlag` instance
+            be passed in as a `DefaultFormulaParser.FeatureFlag` value or as a set of string
+            flags (which will be cast to a `DefaultFormulaParser.FeatureFlag` instance
             internally).
     """
 
-    feature_flags: DefaultParserFeatureFlag = DefaultParserFeatureFlag.DEFAULT
+    feature_flags: DefaultFormulaParser.FeatureFlags = (
+        DefaultFormulaParser.FeatureFlags.DEFAULT
+    )
 
     def __post_init__(self) -> None:
         if isinstance(self.feature_flags, set):
-            self.feature_flags = DefaultParserFeatureFlag.from_spec(self.feature_flags)
+            self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(
+                self.feature_flags
+            )
 
-    def set_feature_flags(self, flags: DefaultParserFeatureFlag | Set[str]) -> Self:
-        self.feature_flags = DefaultParserFeatureFlag.from_spec(flags)
+    def set_feature_flags(
+        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+    ) -> Self:
+        self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
         if "operator_table" in self.__dict__:
             del self.__dict__["operator_table"]
         return self
@@ -407,7 +416,8 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=lambda lhs, rhs: Structured(lhs=lhs, rhs=rhs),
                 accepts_context=lambda context: len(context) == 0,
                 structural=True,
-                disabled=DefaultParserFeatureFlag.TWOSIDED not in self.feature_flags,
+                disabled=DefaultFormulaParser.FeatureFlags.TWOSIDED
+                not in self.feature_flags,
             ),
             Operator(
                 "~",
@@ -427,7 +437,8 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=multistage_formula,
                 accepts_context=lambda context: bool(context) and context[-1] == "[",
                 structural=True,
-                disabled=DefaultParserFeatureFlag.MULTISTAGE not in self.feature_flags,
+                disabled=DefaultFormulaParser.FeatureFlags.MULTISTAGE
+                not in self.feature_flags,
             ),
             Operator(
                 "|",
@@ -439,7 +450,8 @@ class DefaultOperatorResolver(OperatorResolver):
                     isinstance(c, Operator) and c.symbol in "~|" for c in context
                 ),
                 structural=True,
-                disabled=DefaultParserFeatureFlag.MULTIPART not in self.feature_flags,
+                disabled=DefaultFormulaParser.FeatureFlags.MULTIPART
+                not in self.feature_flags,
             ),
             Operator(
                 "+",
