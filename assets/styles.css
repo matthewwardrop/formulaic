@@ -1,0 +1,7 @@
+.jp-Cell {
+    --jp-cell-padding: 0px 0px 10px 0px;
+}
+
+.jp-Collapser {
+    --jp-cell-collapser-width: 0px;
+}
