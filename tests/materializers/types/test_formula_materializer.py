@@ -16,9 +16,14 @@ from formulaic.parser.types import Factor
 
 class TestFormulaMaterializer:
     def test_registrations(self):
-        assert sorted(FormulaMaterializer.REGISTERED_NAMES) == ["arrow", "pandas"]
+        assert sorted(FormulaMaterializer.REGISTERED_NAMES) == [
+            "arrow",
+            "narwhals",
+            "pandas",
+        ]
         assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == [
             "dict",
+            "narwhals.DataFrame",
             "numpy.rec.recarray",
             "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
