@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import inspect
 from enum import Enum
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Mapping, Optional, Union
 
 from .token import Token
 
@@ -35,6 +36,9 @@ class Operator:
             which case `Structured._merge` will not be used in the
             `ASTNode.to_terms()`, and the termsets will be directly passed to
             `Operator.to_terms()`.
+        disabled: Whether this operator is disabled and should not be used. This
+            is useful for restricting the set of formula that can be parsed in
+            certain contexts.
     """
 
     class Associativity(Enum):
@@ -60,6 +64,7 @@ class Operator:
             Callable[[List[Union[Token, Operator]]], bool]
         ] = None,
         structural: bool = False,
+        disabled: bool = False,
     ):
         self.symbol = symbol
         self.arity = arity
@@ -69,6 +74,7 @@ class Operator:
         self._to_terms = to_terms
         self._accepts_context = accepts_context
         self.structural = structural
+        self.disabled = disabled
 
     @property
     def associativity(self) -> Operator.Associativity:
@@ -86,9 +92,11 @@ class Operator:
     def fixity(self, fixity: Union[str, Operator.Fixity]) -> None:
         self._fixity = Operator.Fixity(fixity)
 
-    def to_terms(self, *args: Any) -> Any:
+    def to_terms(self, *args: Any, context: Optional[Mapping[str, Any]] = None) -> Any:
         if self._to_terms is None:
             raise RuntimeError(f"`to_terms` is not implemented for '{self.symbol}'.")
+        if inspect.signature(self._to_terms).parameters.get("context"):
+            return self._to_terms(*args, context=context or {})
         return self._to_terms(*args)
 
     def accepts_context(self, context: List[Union[Token, Operator]]) -> bool:

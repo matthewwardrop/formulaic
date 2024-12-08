@@ -1,10 +1,10 @@
-# pragma: no cover
+from __future__ import annotations
+
 import ast
 import functools
 import inspect
 import itertools
 import operator
-import warnings
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
 from typing import (
@@ -25,7 +25,6 @@ from typing import (
     cast,
 )
 
-import narwhals as nw
 from interface_meta import InterfaceMeta, inherit_docs
 
 from formulaic.errors import (
@@ -35,36 +34,26 @@ from formulaic.errors import (
     FormulaMaterializerInvalidError,
     FormulaMaterializerNotFoundError,
 )
-from formulaic.materializers.types.enums import ClusterBy, NAAction
-from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
 from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
-from formulaic.utils.null_handling import find_nulls
 from formulaic.utils.stateful_transforms import stateful_eval
 from formulaic.utils.variables import Variable
 
-from .types import (
-    EvaluatedFactor,
-    FactorValues,
-    FormulaMaterializer,
-    ScopedFactor,
-    ScopedTerm,
-)
+from .enums import ClusterBy, NAAction
+from .evaluated_factor import EvaluatedFactor
+from .factor_values import FactorValues, FactorValuesMetadata
+from .scoped_factor import ScopedFactor
+from .scoped_term import ScopedTerm
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic import FormulaSpec, ModelSpec, ModelSpecs
 
 EncodedTermStructure = namedtuple(
     "EncodedTermStructure", ("term", "scoped_terms", "columns")
-)
-
-warnings.warn(
-    "`FormulaMaterializer` has been moved from `formulaic.materializers.base` to `formulaic.materializers.types.formula_materializer`. This shim will be removed in version 2.0.",
-    DeprecationWarning,
 )
 
 
@@ -104,14 +93,6 @@ class FormulaMaterializerMeta(InterfaceMeta):
         return materializer
 
     def for_data(cls, data: Any, output: Hashable = None) -> Type[FormulaMaterializer]:
-        if (
-            "narwhals.DataFrame" in cls.REGISTERED_INPUTS
-            and nw.dependencies.is_into_dataframe(data)
-        ):
-            # pandas has its own materializer, so we leave it alone.
-            if not nw.dependencies.is_pandas_dataframe(data):
-                data = nw.from_native(data, eager_only=True)
-
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
@@ -178,12 +159,15 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def get_model_matrix(
         self,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
+        drop_rows: Optional[Set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, ModelMatrices]:
         from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
-        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(spec, **spec_overrides)
+        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(
+            spec, context=self.layered_context, **spec_overrides
+        )
         should_simplify = isinstance(spec, ModelSpec)
         model_specs: ModelSpecs = self._prepare_model_specs(spec)
 
@@ -196,7 +180,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
-        drop_rows: Set[int] = set()
+        drop_rows: Set[int] = drop_rows if drop_rows is not None else set()
         for factor in factors:
             self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
         drop_rows: Sequence[int] = sorted(drop_rows)
@@ -232,13 +216,22 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # This must happen before Step 1 otherwise the greedy rank reduction
         # below would result in a different outcome than if the columns had
         # always been in the generated order.
-        terms = self._cluster_terms(spec.formula.root, cluster_by=spec.cluster_by)
+        terms = self._cluster_terms(spec.formula, cluster_by=spec.cluster_by)
 
         # Step 1: Determine strategy to maintain structural full-rankness of output matrix
-        scoped_terms_for_terms = self._get_scoped_terms(
-            terms,
-            ensure_full_rank=spec.ensure_full_rank,
-        )
+        # (reusing pre-generated structure if it is available)
+        if spec.structure:
+            scoped_terms_for_terms: Generator[
+                Tuple[Term, Iterable[ScopedTerm]], None, None
+            ] = (
+                (s.term, [st.rehydrate(self.factor_cache) for st in s.scoped_terms])
+                for s in spec.structure
+            )
+        else:
+            scoped_terms_for_terms = self._get_scoped_terms(
+                terms,
+                ensure_full_rank=spec.ensure_full_rank,
+            )
 
         # Step 2: Generate the columns which will be collated into the full matrix
         cols = []
@@ -270,7 +263,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 3: Populate remaining model spec fields
         if spec.structure:
-            cols = self._enforce_structure(cols, spec, drop_rows)  # type: ignore
+            cols = list(self._enforce_structure(cols, spec, drop_rows))
         else:
             spec = spec.update(
                 structure=[
@@ -514,9 +507,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                         | (  # type: ignore
                             ScopedTerm(
                                 (
-                                    ScopedFactor(factor_new.factor, reduced=False)
-                                    if factor == factor_new
-                                    else factor
+                                    (
+                                        ScopedFactor(factor_new.factor, reduced=False)
+                                        if factor == factor_new
+                                        else factor
+                                    )
                                     for factor in scoped_term.factors
                                 ),
                                 scale=existing_term.scale * scoped_term.scale,
@@ -635,27 +630,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _check_for_nulls(
         self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
     ) -> None:
-        if na_action is NAAction.IGNORE:
-            return
-
-        try:
-            null_indices = find_nulls(values)
-
-            if na_action is NAAction.RAISE:
-                if null_indices:
-                    raise ValueError(f"`{name}` contains null values after evaluation.")
-
-            elif na_action is NAAction.DROP:
-                drop_rows.update(null_indices)
-
-            else:
-                raise ValueError(
-                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
-                )  # pragma: no cover; this is currently impossible to reach
-        except ValueError as e:
-            raise ValueError(
-                f"Error encountered while checking for nulls in `{name}`: {e}"
-            ) from e
+        pass  # pragma: no cover
 
     def _encode_evaled_factor(
         self,
@@ -789,6 +764,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             encoded = FactorValues(
                 encoded.copy(),
                 metadata=encoded.__formulaic_metadata__,  # type: ignore
+                reduced=True,
             )
             del encoded[encoded.__formulaic_metadata__.drop_field]
 
@@ -813,7 +789,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # Some nested dictionaries may not be a `FactorValues[dict]` instance,
         # in which case we impute the default formatter in `FactorValues.format`.
         if hasattr(values, "__formulaic_metadata__"):
-            name_format = values.__formulaic_metadata__.format
+            name_format = values.__formulaic_metadata__.get_format()
         else:
             name_format = FactorValuesMetadata.format
 
@@ -867,10 +843,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _enforce_structure(
         self,
-        cols: List[Tuple[Term, List[ScopedTerm], Dict[str, Any]]],
+        cols: List[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]]],
         spec: ModelSpec,
         drop_rows: Sequence[int],
-    ) -> Generator[Tuple[Term, List[ScopedTerm], Dict[str, Any]], None, None]:
+    ) -> Generator[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]], None, None]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
         structure = cast(List[EncodedTermStructure], spec.structure)
         if not len(cols) == len(structure):  # pragma: no cover
@@ -937,6 +913,3 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
     ) -> Any:
         pass  # pragma: no cover
-
-
-__all__ = ["FormulaMaterializer"]

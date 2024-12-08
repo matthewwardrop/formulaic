@@ -34,6 +34,7 @@ def exc_for_missing_operator(
     lhs: Union[Token, ASTNode],
     rhs: Union[Token, ASTNode],
     errcls: Type[Exception] = FormulaSyntaxError,
+    extra: Optional[str] = None,
 ) -> Exception:
     """
     Return an exception ready to be raised about a missing operator token
@@ -45,11 +46,12 @@ def exc_for_missing_operator(
         rhs: The `Token` or `ASTNode` instance to the right of where an operator
             should be placed.
         errcls: The type of the exception to be returned.
+        extra: Any additional information to be included in the exception message.
     """
     lhs_token, rhs_token, error_token = __get_tokens_for_gap(lhs, rhs)
     return exc_for_token(
         error_token,
-        f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.",
+        f"Missing operator between `{lhs_token.token}` and `{rhs_token.token}`.{f' {extra}' if extra else ''}",
         errcls=errcls,
     )
 
@@ -69,9 +71,11 @@ def __get_token_for_ast(ast: Union[Token, ASTNode]) -> Token:  # pragma: no cove
     while isinstance(rhs_token, ASTNode):
         rhs_token = rhs_token.args[-1]  # type: ignore
     return Token(
-        token=lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
-        if lhs_token.source
-        else "",
+        token=(
+            lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
+            if lhs_token.source
+            else ""
+        ),
         source=lhs_token.source,
         source_start=lhs_token.source_start,
         source_end=rhs_token.source_end,
@@ -91,19 +95,29 @@ def __get_tokens_for_gap(
     """
     lhs_token = lhs
     while isinstance(lhs_token, ASTNode):
-        lhs_token = lhs_token.args[-1]  # type: ignore
+        lhs_token = (
+            lhs_token.args[-1]  # type: ignore
+            if lhs_token.args
+            else Token(lhs_token.operator.symbol)
+        )
     rhs_token = rhs or lhs
     while isinstance(rhs_token, ASTNode):
-        rhs_token = rhs_token.args[0]  # type: ignore
+        rhs_token = (
+            rhs_token.args[0]  # type: ignore
+            if rhs_token.args
+            else Token(rhs_token.operator.symbol)
+        )
     return (
         lhs_token,
         rhs_token,
         Token(
-            lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
-            if lhs_token.source
-            and lhs_token.source_start is not None
-            and rhs_token.source_end is not None
-            else "",
+            (
+                lhs_token.source[lhs_token.source_start : rhs_token.source_end + 1]
+                if lhs_token.source
+                and lhs_token.source_start is not None
+                and rhs_token.source_end is not None
+                else ""
+            ),
             source=lhs_token.source,
             source_start=lhs_token.source_start,
             source_end=rhs_token.source_end,
@@ -152,6 +166,7 @@ def insert_tokens_after(
     *,
     kind: Optional[Token.Kind] = None,
     join_operator: Optional[str] = None,
+    no_join_for_operators: Union[bool, Set[str]] = True,
 ) -> Iterable[Token]:
     """
     Insert additional tokens into a sequence of tokens after (within token)
@@ -175,6 +190,10 @@ def insert_tokens_after(
             the added tokens with existing tokens, the value set here will be
             used to create a joining operator token. If not provided, not
             additional operators are added.
+        no_join_for_operators: Whether to use the join operator when the next
+            token is an operator token; or a set of operator symbols for which
+            to skip adding the join token.
+
     """
     tokens = list(tokens)
 
@@ -203,9 +222,11 @@ def insert_tokens_after(
                         next_token = split_tokens[j + 1]
                     elif i < len(tokens) - 1:
                         next_token = tokens[i + 1]
-                    if (
-                        next_token is not None
-                        and next_token.kind is not Token.Kind.OPERATOR
+                    if next_token is not None and (
+                        next_token.kind is not Token.Kind.OPERATOR
+                        or no_join_for_operators is False
+                        or isinstance(no_join_for_operators, set)
+                        and next_token.token not in no_join_for_operators
                     ):
                         yield Token(join_operator, kind=Token.Kind.OPERATOR)
 

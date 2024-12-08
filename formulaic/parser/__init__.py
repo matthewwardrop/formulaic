@@ -1,4 +1,7 @@
-from .parser import DefaultFormulaParser, DefaultOperatorResolver
+from .parser import (
+    DefaultFormulaParser,
+    DefaultOperatorResolver,
+)
 
 __all__ = [
     "DefaultFormulaParser",

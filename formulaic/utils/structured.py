@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import itertools
 from collections import defaultdict
 from typing import (
@@ -15,13 +16,16 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
-ItemType = TypeVar("ItemType")
-_MISSING = object()
+from .sentinels import MISSING
+
+_ItemType = TypeVar("_ItemType")
+_SelfType = TypeVar("_SelfType", bound="Structured")
 
 
-class Structured(Generic[ItemType]):
+class Structured(Generic[_ItemType]):
     """
     Layers structure onto an arbitrary type.
 
@@ -86,7 +90,7 @@ class Structured(Generic[ItemType]):
 
     def __init__(
         self,
-        root: Any = _MISSING,
+        root: Any = MISSING,
         *,
         _metadata: Optional[Dict[str, Any]] = None,
         **structure: Any,
@@ -96,8 +100,8 @@ class Structured(Generic[ItemType]):
                 "Substructure keys cannot start with an underscore. "
                 f"The invalid keys are: {set(key for key in structure if key.startswith('_'))}."
             )
-        if root is not _MISSING:
-            structure["root"] = self.__prepare_item("root", root)
+        if root is not MISSING:
+            structure["root"] = root
         self._metadata = _metadata
 
         self._structure = {
@@ -106,6 +110,9 @@ class Structured(Generic[ItemType]):
 
     def __prepare_item(self, key: str, item: Any) -> Any:
         if isinstance(item, Structured):
+            if type(item) is self.__class__:
+                # Will already have been prepared
+                return item
             return item._map(
                 lambda x: self._prepare_item(key, x), as_type=self.__class__
             )
@@ -113,7 +120,7 @@ class Structured(Generic[ItemType]):
             return tuple(self.__prepare_item(key, v) for v in item)
         return self._prepare_item(key, item)
 
-    def _prepare_item(self, key: str, item: Any) -> ItemType:
+    def _prepare_item(self, key: str, item: Any) -> _ItemType:
         return item
 
     @property
@@ -141,9 +148,13 @@ class Structured(Generic[ItemType]):
 
     def _map(
         self,
-        func: Callable[[ItemType], Any],
+        func: Union[
+            Callable[[_ItemType], Any],
+            Callable[[_ItemType, Tuple[Union[str, int], ...]], Any],
+        ],
         recurse: bool = True,
         as_type: Optional[Type[Structured]] = None,
+        _context: Tuple[Union[str, int], ...] = (),
     ) -> Structured[Any]:
         """
         Map a callable object onto all the structured objects, returning a
@@ -167,18 +178,24 @@ class Structured(Generic[ItemType]):
             but with all objects transformed under `func`.
         """
 
-        def apply_func(obj: Any) -> Any:
+        def apply_func(obj: Any, context: Tuple[Union[str, int], ...]) -> Any:
             if recurse and isinstance(obj, Structured):
-                return obj._map(func, recurse=True, as_type=as_type)
+                return obj._map(func, recurse=True, as_type=as_type, _context=context)
             if isinstance(obj, tuple):
-                return tuple(apply_func(o) for o in obj)
-            return func(obj)
+                return tuple(apply_func(o, context + (i,)) for i, o in enumerate(obj))
+            try:
+                return func(obj, context)  # type: ignore
+            except TypeError:
+                return func(obj)  # type: ignore
 
         return (as_type or Structured)(
-            **{key: apply_func(obj) for key, obj in self._structure.items()}
+            **{
+                key: apply_func(obj, _context + (key,))
+                for key, obj in self._structure.items()
+            }
         )
 
-    def _flatten(self) -> Generator[ItemType, None, None]:
+    def _flatten(self) -> Generator[_ItemType, None, None]:
         """
         Flatten any nested structure into a sequence of all values stored in
         this `Structured` instance. The order is currently that yielded by a
@@ -221,8 +238,12 @@ class Structured(Generic[ItemType]):
         return {key: do_recursion(value) for key, value in self._structure.items()}
 
     def _simplify(
-        self, *, recurse: bool = True, unwrap: bool = True, inplace: bool = False
-    ) -> Union[Any, Structured[ItemType]]:
+        self: _SelfType,
+        *,
+        recurse: bool = True,
+        unwrap: bool = True,
+        inplace: bool = False,
+    ) -> Union[_ItemType, _SelfType]:
         """
         Simplify this `Structured` instance by:
             - returning the object stored at the root node if there is no other
@@ -258,30 +279,43 @@ class Structured(Generic[ItemType]):
         if not isinstance(structured, Structured):
             return structured
 
-        structure = structured._structure
+        structure = structured._structure.copy()
+        structure_modified: bool = False
 
         if recurse:
 
-            def simplify_obj(obj: Any) -> Any:
+            def simplify_obj(
+                obj: Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]],
+            ) -> Tuple[Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]], bool]:
+                """
+                Return the simplified object, and a flag indicating whether the
+                object was modified.
+                """
                 if isinstance(obj, Structured):
-                    return obj._simplify(recurse=True)
+                    simplified = obj._simplify(recurse=True)
+                    return simplified, simplified is not obj
                 if isinstance(obj, tuple):
-                    return tuple(simplify_obj(o) for o in obj)
-                return obj
+                    simplified = tuple(simplify_obj(o) for o in obj)
+                    return tuple(s[0] for s in simplified), any(
+                        s[1] for s in simplified
+                    )
+                return obj, False
 
-            structure = {
-                key: simplify_obj(value) for key, value in structured._structure.items()
-            }
+            for key, value in tuple(structure.items()):
+                value, value_modified = simplify_obj(value)
+                if value_modified:
+                    structure[key] = value
+                    structure_modified = True
 
-        if inplace:
-            self._structure = structure
-            return self
-        return self.__class__(
-            _metadata=self._metadata,
-            **structure,
-        )
+        if not inplace and not structure_modified:
+            # Avoid any further work if simplification has not occurred
+            return structured
+        if not inplace:
+            self = copy.copy(self)
+        self._structure = structure
+        return self
 
-    def _update(self, root: Any = _MISSING, **structure: Any) -> Structured[ItemType]:
+    def _update(self, root: Any = MISSING, **structure: Any) -> Structured[_ItemType]:
         """
         Return a new `Structured` instance that is identical to this one but
         the root and/or keys replaced with the nominated values.
@@ -290,7 +324,7 @@ class Structured(Generic[ItemType]):
             root: The (optional) replacement of the root node.
             structure: Any additional key/values to update in the structure.
         """
-        if root is not _MISSING:
+        if root is not MISSING:
             structure["root"] = root
         return self.__class__(
             **{
@@ -309,7 +343,7 @@ class Structured(Generic[ItemType]):
         *objects: Any,
         merger: Optional[Callable] = None,
         _context: Tuple[str, ...] = (),
-    ) -> Union[ItemType, Structured[ItemType], Tuple]:
+    ) -> Union[_ItemType, Structured[_ItemType], Tuple]:
         """
         Merge arbitrarily many objects into a single `Structured` instance.
 
@@ -414,7 +448,28 @@ class Structured(Generic[ItemType]):
             return
         self._structure[attr] = self.__prepare_item(attr, value)
 
+    def __lookup_path(self, path: Tuple[Union[str, int], ...]) -> Any:
+        obj = self
+        idx = 0
+
+        while idx < len(path):
+            if isinstance(obj, Structured) and path[idx] in obj._structure:
+                obj = obj._structure[cast(str, path[idx])]
+            elif isinstance(obj, tuple) and isinstance(path[idx], int):
+                obj = obj[path[idx]]
+            else:
+                break
+            idx += 1
+        else:
+            return obj
+
+        raise KeyError(
+            f"Lookup {path} at index {idx} extends beyond structure of `{self.__class__.__name__}`."
+        )
+
     def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, tuple):
+            return self.__lookup_path(key)
         if self._has_root and not self._has_keys:
             return self.root[key]
         if key in (None, "root") and self._has_root:
@@ -426,6 +481,16 @@ class Structured(Generic[ItemType]):
         )
 
     def __setitem__(self, key: Any, value: Any) -> Any:
+        if isinstance(key, tuple):
+            if len(key) == 0:
+                raise KeyError("Cannot replace self.")
+            obj = self.__lookup_path(key[:-1])
+            if isinstance(obj, Structured):
+                obj[key[-1]] = value
+                return
+            raise KeyError(
+                f"Object @ {key[:-1]} is not a `Structured` instance. Unable to set value."
+            )
         if not isinstance(key, str) or not key.isidentifier():
             raise KeyError(key)
         if key.startswith("_"):

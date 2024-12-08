@@ -7,8 +7,8 @@ import pytest
 import scipy.sparse
 
 from formulaic import Formula, ModelMatrices, ModelMatrix, ModelSpec, ModelSpecs
-from formulaic.materializers.base import FormulaMaterializerMeta
 from formulaic.materializers.pandas import PandasMaterializer
+from formulaic.materializers.types.formula_materializer import FormulaMaterializerMeta
 from formulaic.parser.types import Factor, Term
 
 
@@ -78,42 +78,57 @@ class TestModelSpec:
             "A:a": slice(4, 6),
         }
         assert model_spec.terms == ["1", "a", "A", "A:a"]
+        assert model_spec.term_factors == {
+            "1": {"1"},
+            "a": {"a"},
+            "A": {"A"},
+            "A:a": {"a", "A"},
+        }
         assert model_spec.term_variables == {
             "1": set(),
             "a": {"a"},
             "A": {"A"},
             "A:a": {"a", "A"},
         }
+        assert model_spec.factors == {"1", "a", "A"}
+        assert model_spec.factor_terms == {
+            "1": {"1"},
+            "a": {"a", "A:a"},
+            "A": {"A", "A:a"},
+        }
+        assert model_spec.factor_variables == {"1": set(), "a": {"a"}, "A": {"A"}}
+        assert set(model_spec.factor_contrasts) == {"A"}
+        assert model_spec.factor_contrasts["A"].levels == ["a", "b", "c"]
+        assert model_spec.variables == {"a", "A"}
         assert model_spec.variable_terms == {"a": {"a", "A:a"}, "A": {"A", "A:a"}}
         assert model_spec.variable_indices == {
             "a": [1, 4, 5],
             "A": [2, 3, 4, 5],
         }
-        assert model_spec.variables == {"a", "A"}
         assert model_spec.variables_by_source == {"data": {"a", "A"}}
 
-    def test_get_model_matrix(self, model_spec, data2):
-        m = model_spec.get_model_matrix(data2)
+    def test_get_column_indices(self, model_spec):
+        assert model_spec.get_column_indices("a") == [1]
+        assert model_spec.get_column_indices("A[T.b]:a") == [4]
+        assert model_spec.get_column_indices(["a", "A[T.b]:a"]) == [1, 4]
 
-        assert isinstance(m, pandas.DataFrame)
-        assert model_spec.column_names == tuple(m.columns)
+    def test_get_term_indices(self, model_spec):
+        assert model_spec.get_term_indices("a") == [0, 1]
+        assert model_spec.get_term_indices(["a"]) == [1]
+        assert model_spec.get_term_indices("a + a:A") == [0, 1, 4, 5]
+        assert model_spec.get_term_indices(["a", "a:A"]) == [1, 4, 5]
+        assert model_spec.get_term_indices(["a:A", "a"], ordering="none") == [4, 5, 1]
 
-        model_spec = model_spec.update(materializer=None)
-        m2 = model_spec.get_model_matrix(data2)
-        assert isinstance(m2, pandas.DataFrame)
-        assert model_spec.column_names == tuple(m2.columns)
+    def test_get_variable_indices(self, model_spec):
+        assert model_spec.get_variable_indices("a") == [1, 4, 5]
+        assert model_spec.get_variable_indices("A") == [2, 3, 4, 5]
 
-        m3 = model_spec.get_model_matrix(data2, output="sparse")
-        assert isinstance(m3, scipy.sparse.spmatrix)
+    def test_required_variables(self, model_spec):
+        assert model_spec.structure
+        assert model_spec.required_variables == {"a", "A"}
 
-    def test_get_linear_constraints(self, model_spec):
-        lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
-        assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])
-        assert lc.constraint_values == [3]
-        assert lc.variable_names == model_spec.column_names
-
-    def test_differentiate(self, model_spec, formula):
-        assert model_spec.differentiate("a").formula == formula.differentiate("a")
+        # Derived using formula instead of structure
+        assert model_spec.update(structure=None).required_variables == {"a", "A"}
 
     def test_get_slice(self, model_spec):
         s = slice(0, 1)
@@ -139,6 +154,125 @@ class TestModelSpec:
         ):
             model_spec.get_slice("missing")
 
+    def test_get_model_matrix(self, model_spec, data2):
+        m = model_spec.get_model_matrix(data2)
+
+        assert isinstance(m, pandas.DataFrame)
+        assert model_spec.column_names == tuple(m.columns)
+
+        model_spec = model_spec.update(materializer=None)
+        m2 = model_spec.get_model_matrix(data2)
+        assert isinstance(m2, pandas.DataFrame)
+        assert model_spec.column_names == tuple(m2.columns)
+
+        m3 = model_spec.get_model_matrix(data2, output="sparse")
+        assert isinstance(m3, scipy.sparse.spmatrix)
+
+    def test_get_linear_constraints(self, model_spec):
+        lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
+        assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])
+        assert lc.constraint_values == [3]
+        assert lc.variable_names == model_spec.column_names
+
+    def test_differentiate(self, model_spec, formula):
+        assert model_spec.differentiate("a").formula == formula.differentiate("a")
+
+    def test_empty(self):
+        model_spec = ModelSpec([])
+
+        assert model_spec.factor_contrasts == {}
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.column_names
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.term_indices
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.term_variables
+
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "`ModelSpec.structure` has not yet been populated. This will "
+                "likely be resolved by using the `ModelSpec` instance attached "
+                "to the model matrix generated when calling `.get_model_matrix()`."
+            ),
+        ):
+            model_spec.factor_variables
+
+    def test_unrepresented_term(self):
+        model_spec = (
+            Formula("A")
+            .get_model_matrix(pandas.DataFrame({"A": ["a", "a", "a"]}))
+            .model_spec
+        )
+
+        assert model_spec.term_indices == {
+            "1": [0],
+            "A": [],
+        }
+        assert model_spec.term_slices == {
+            "1": slice(0, 1),
+            "A": slice(0, 0),
+        }
+
+    def test_subset(self, model_spec, data2):
+        subset = model_spec.subset(["a"])
+        assert subset.formula == ["a"]
+        assert subset.variables == {"a"}
+        assert numpy.allclose(
+            model_spec.get_model_matrix(data2).values[:, model_spec.get_slice("a")],
+            subset.get_model_matrix(data2).values,
+        )
+
+        subset = model_spec.subset(["a:A", "A"])
+        assert subset.formula == ["A", "a:A"]
+        assert subset.variables == {"a", "A"}
+        assert numpy.allclose(
+            model_spec.get_model_matrix(data2).values[
+                :, model_spec.get_term_indices(["A", "a:A"])
+            ],
+            subset.get_model_matrix(data2).values,
+        )
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                "Cannot subset a `ModelSpec` using a formula that has structure."
+            ),
+        ):
+            model_spec.subset("a | b")
+
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                r"Cannot subset a model spec with terms not present in the original model spec: {new_var}"
+            ),
+        ):
+            model_spec.subset("new_var")
+
     def test_model_specs(self, model_spec, data2):
         model_specs = ModelSpecs(a=model_spec)
 
@@ -147,6 +281,7 @@ class TestModelSpec:
         assert numpy.all(
             model_specs.get_model_matrix(data2).a == model_spec.get_model_matrix(data2)
         )
+        assert model_specs.required_variables == {"a", "A"}
         sparse_matrices = model_specs.get_model_matrix(data2, output="sparse")
         assert isinstance(sparse_matrices, ModelMatrices)
         assert isinstance(sparse_matrices.a, scipy.sparse.spmatrix)
@@ -181,51 +316,26 @@ class TestModelSpec:
         with pytest.raises(TypeError, match="`ModelSpecs` instances expect all.*"):
             ModelSpecs("invalid type!")
 
-    def test_empty(self):
-        model_spec = ModelSpec([])
+    def test_model_specs_subset(self, data, data2):
+        ms = Formula("a ~ A + A:a").get_model_matrix(data).model_spec
+
+        mss = ms.subset("a ~ A")
+
+        assert mss.lhs.formula == ["a"]
+        assert mss.rhs.formula == ["1", "A"]
 
         with pytest.raises(
-            RuntimeError,
+            ValueError,
             match=re.escape(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
+                "Cannot subset a `ModelSpecs` instance using a formula with a different structure [indexing path `('rhs', 0)` not found]."
             ),
         ):
-            model_spec.column_names
+            ms.subset("a ~ A | A:a")
 
         with pytest.raises(
-            RuntimeError,
+            ValueError,
             match=re.escape(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
+                "Formula has no structure, and hence does not match the structure of the `ModelSpec` instance."
             ),
         ):
-            model_spec.term_indices
-
-        with pytest.raises(
-            RuntimeError,
-            match=re.escape(
-                "`ModelSpec.structure` has not yet been populated. This will "
-                "likely be resolved by using the `ModelSpec` instance attached "
-                "to the model matrix generated when calling `.get_model_matrix()`."
-            ),
-        ):
-            model_spec.term_variables
-
-    def test_unrepresented_term(self):
-        model_spec = (
-            Formula("A")
-            .get_model_matrix(pandas.DataFrame({"A": ["a", "a", "a"]}))
-            .model_spec
-        )
-
-        assert model_spec.term_indices == {
-            "1": [0],
-            "A": [],
-        }
-        assert model_spec.term_slices == {
-            "1": slice(0, 1),
-            "A": slice(0, 0),
-        }
+            ms.subset("a + b")

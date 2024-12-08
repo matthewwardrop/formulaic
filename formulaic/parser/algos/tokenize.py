@@ -79,18 +79,18 @@ def tokenize(
         if quote_context and char == quote_context[-1]:
             token.update(char, i)
             quote_context.pop(-1)
-            if (
-                token
-                and not quote_context
-                and token.kind is Token.Kind.PYTHON
-                and char in ("]", ")")
-            ):
-                yield token
-                token = Token(source=formula)
+            # if (
+            #     token
+            #     and not quote_context
+            #     and token.kind is Token.Kind.PYTHON
+            #     and char in ("]", ")")
+            # ):
+            #     yield token
+            #     token = Token(source=formula)
             continue
-        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "}", "%"):
-            if char in "(`" and quote_context[-1] in "})":
-                quote_context.append(char.replace("(", ")"))
+        if quote_context and quote_context[-1] in ('"', "'", "`", ")", "]", "}", "%"):
+            if char in "`([" and quote_context[-1] in "})]":
+                quote_context.append(char.replace("(", ")").replace("[", "]"))
             token.update(char, i)
             continue
 
@@ -150,9 +150,11 @@ def tokenize(
             continue  # pragma: no cover; workaround bug in coverage
 
         if word_chars.match(char):
+            if token and token.kind in (Token.Kind.OPERATOR, Token.Kind.PYTHON):
+                yield token
+                token = Token(source=formula)
             if token.kind not in (
                 None,
-                Token.Kind.OPERATOR,
                 Token.Kind.VALUE,
                 Token.Kind.NAME,
             ):
@@ -160,9 +162,6 @@ def tokenize(
                     Token(source=formula, source_start=i, source_end=i),
                     f"Unexpected token kind {token.kind} for character '{char}'.",
                 )
-            if token and token.kind is Token.Kind.OPERATOR:
-                yield token
-                token = Token(source=formula)
             if numeric_chars.match(char) and token.kind in (None, Token.Kind.VALUE):
                 kind = "value"
             else:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy
@@ -12,7 +13,7 @@ from interface_meta import override
 from formulaic.utils.cast import as_columns
 from formulaic.utils.null_handling import drop_rows as drop_nulls
 
-from .base import FormulaMaterializer
+from .types.formula_materializer import FormulaMaterializer
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
@@ -20,8 +21,23 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class PandasMaterializer(FormulaMaterializer):
     REGISTER_NAME = "pandas"
-    REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
+    REGISTER_INPUTS: Sequence[str] = (
+        "pandas.core.frame.DataFrame",
+        "pandas.DataFrame",
+        "dict",
+        "numpy.rec.recarray",
+    )
     REGISTER_OUTPUTS: Sequence[str] = ("pandas", "numpy", "sparse")
+
+    @override
+    def _init(self) -> None:
+        if isinstance(self.data, (dict, Mapping)):
+            if all(numpy.isscalar(v) for v in self.data.values()):
+                self.data = pandas.DataFrame(self.data, index=[0])
+            else:
+                self.data = pandas.DataFrame(self.data)
+        elif isinstance(self.data, numpy.rec.recarray):
+            self.data = pandas.DataFrame.from_records(self.data)
 
     @override
     def _is_categorical(self, values: Any) -> bool:
@@ -176,3 +192,6 @@ class PandasMaterializer(FormulaMaterializer):
             index=pandas_index,
             copy=False,
         )
+
+
+__all__ = ["FormulaMaterializer"]

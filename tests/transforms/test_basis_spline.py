@@ -1,6 +1,7 @@
 import re
 
 import numpy
+import pandas as pd
 import pytest
 
 from formulaic import model_matrix
@@ -510,3 +511,39 @@ class TestBasisSpline:
             ),
         ):
             basis_spline([-2, 2], extrapolation="raise", _state=state)
+
+    @pytest.mark.parametrize("extrapolation", ["na", "zero"])
+    @pytest.mark.parametrize("bounds", [[0.0, 1.0], [0.25, 0.75]])
+    def test_extrapolation_zero(self, extrapolation, bounds):
+        data = numpy.linspace(0, 1, 77)
+        state = {}
+        lower, upper = bounds
+        res = basis_spline(
+            data,
+            df=7,
+            lower_bound=lower,
+            upper_bound=upper,
+            extrapolation=extrapolation,
+            _state=state,
+        )
+        out_of_range = (data < lower) | (data > upper)
+        if numpy.any(out_of_range):
+            val = 0.0 if extrapolation == "zero" else numpy.nan
+            reference = numpy.full(out_of_range.sum(), val)
+            for key in res:
+                numpy.testing.assert_allclose(
+                    res[key][out_of_range], reference, atol=1e-14
+                )
+
+    @pytest.mark.parametrize("extrapolation", ["na", "zero"])
+    def test_basis_spline_all_out_of_bounds(self, data, extrapolation):
+        state = {}
+        with pytest.raises(ValueError, match="After adjusting the sample"):
+            basis_spline(
+                data,
+                df=3,
+                lower_bound=0.56,
+                upper_bound=0.59,
+                extrapolation=extrapolation,
+                _state=state,
+            )

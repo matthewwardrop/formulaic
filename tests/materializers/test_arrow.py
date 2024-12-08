@@ -19,15 +19,15 @@ ARROW_TESTS = {
     "a": (["Intercept", "a"], ["Intercept", "a"]),
     "A": (
         ["Intercept", "A[T.b]", "A[T.c]"],
-        ["Intercept", "A[T.a]", "A[T.b]", "A[T.c]"],
+        ["Intercept", "A[a]", "A[b]", "A[c]"],
     ),
     "C(A)": (
         ["Intercept", "C(A)[T.b]", "C(A)[T.c]"],
-        ["Intercept", "C(A)[T.a]", "C(A)[T.b]", "C(A)[T.c]"],
+        ["Intercept", "C(A)[a]", "C(A)[b]", "C(A)[c]"],
     ),
     "a:A": (
-        ["Intercept", "a:A[T.a]", "a:A[T.b]", "a:A[T.c]"],
-        ["Intercept", "a:A[T.a]", "a:A[T.b]", "a:A[T.c]"],
+        ["Intercept", "a:A[a]", "a:A[b]", "a:A[c]"],
+        ["Intercept", "a:A[a]", "a:A[b]", "a:A[c]"],
     ),
 }
 

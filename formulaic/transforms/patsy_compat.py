@@ -3,6 +3,7 @@ from typing import Any, Dict, Mapping, Optional
 from formulaic.utils.stateful_transforms import stateful_transform
 
 from .contrasts import (
+    UNSET,
     DiffContrasts,
     HelmertContrasts,
     PolyContrasts,
@@ -23,7 +24,7 @@ def standardize(
     return scale(x, center=center, scale=rescale, ddof=ddof, _state=_state)
 
 
-def Treatment(reference: Any = TreatmentContrasts.MISSING) -> TreatmentContrasts:
+def Treatment(reference: Any = UNSET) -> TreatmentContrasts:
     return TreatmentContrasts(base=reference)
 
 

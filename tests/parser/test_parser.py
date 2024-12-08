@@ -8,8 +8,10 @@ import pytest
 
 from formulaic.errors import FormulaParsingError, FormulaSyntaxError
 from formulaic.parser import DefaultFormulaParser, DefaultOperatorResolver
-from formulaic.parser.types import Structured, Token
+from formulaic.parser.types import Token
 from formulaic.parser.types.term import Term
+from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.structured import Structured
 
 FORMULA_TO_TOKENS = {
     "": ["1"],
@@ -63,6 +65,49 @@ FORMULA_TO_TERMS = {
         "lhs": (["a"], ["b"]),
         "rhs": (["1", "c"], ["1", "d"]),
     },
+    # Formula stages
+    "[ a ~ b ]": {"root": ["1", "a_hat"], "deps": ({"lhs": ["a"], "rhs": ["1", "b"]},)},
+    "y ~ [ a ~ b ]": {
+        "lhs": ["y"],
+        "rhs": {"root": ["1", "a_hat"], "deps": ({"lhs": ["a"], "rhs": ["1", "b"]},)},
+    },
+    "[ a ~ [ b ~ c ] ]": {
+        "root": ["1", "a_hat"],
+        "deps": (
+            {
+                "lhs": ["a"],
+                "rhs": {
+                    "root": ["1", "b_hat"],
+                    "deps": ({"lhs": ["b"], "rhs": ["1", "c"]},),
+                },
+            },
+        ),
+    },
+    "y ~ [ a ~ [ b ~ c ] + [d ~ e] ]": {
+        "lhs": ["y"],
+        "rhs": {
+            "root": ["1", "a_hat"],
+            "deps": (
+                {
+                    "lhs": ["a"],
+                    "rhs": {
+                        "root": ["1", "b_hat", "d_hat"],
+                        "deps": (
+                            {"lhs": ["b"], "rhs": ["1", "c"]},
+                            {"lhs": ["d"], "rhs": ["1", "e"]},
+                        ),
+                    },
+                },
+            ),
+        },
+    },
+    "y ~ [ a:b ~ c + d ]": {
+        "lhs": ["y"],
+        "rhs": {
+            "root": ["1", "`a:b_hat`"],
+            "deps": ({"lhs": ["a:b"], "rhs": ["1", "c", "d"]},),
+        },
+    },
     # Products
     "a:b": ["1", "a:b"],
     "b:a + a:b": ["1", "b:a"],
@@ -90,10 +135,21 @@ FORMULA_TO_TERMS = {
     # Quoting
     "`a|b~c*d`": ["1", "a|b~c*d"],
     "{a | b | c}": ["1", "a | b | c"],
+    # Wildcards
+    ".": ["1", "a", "b", "c"],
+    ".^2": ["1", "a", "a:b", "a:c", "b", "b:c", "c"],
+    ".^2 - a:b": ["1", "a", "a:c", "b", "b:c", "c"],
+    "a ~ .": {
+        "lhs": ["a"],
+        "rhs": ["1", "b", "c"],
+    },
 }
 
-PARSER = DefaultFormulaParser()
-PARSER_NO_INTERCEPT = DefaultFormulaParser(include_intercept=False)
+PARSER = DefaultFormulaParser(feature_flags={"all"})
+PARSER_NO_INTERCEPT = DefaultFormulaParser(
+    include_intercept=False, feature_flags={"all"}
+)
+PARSER_CONTEXT = {"__formulaic_variables_available__": ["a", "b", "c"]}
 
 
 class TestFormulaParser:
@@ -103,7 +159,9 @@ class TestFormulaParser:
 
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
-        generated_terms: Structured[List[Term]] = PARSER.get_terms(formula)
+        generated_terms: Structured[List[Term]] = PARSER.get_terms(
+            formula, context=PARSER_CONTEXT
+        )
         if generated_terms._has_keys:
             comp = generated_terms._map(list)._to_dict()
         elif generated_terms._has_root and isinstance(generated_terms.root, tuple):
@@ -198,6 +256,56 @@ class TestFormulaParser:
         ):
             PARSER.get_terms("50:a + 100:a")
 
+    def test_feature_flags(self):
+        assert "lhs" in DefaultFormulaParser(feature_flags={"twosided"}).get_terms(
+            "y ~ x"
+        )
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Missing operator between `y` and `1`. This may be due to the following operators being at least partially disabled by parser configuration: {~}."
+            ),
+        ):
+            DefaultFormulaParser(feature_flags={}).get_terms("y ~ x")
+
+        assert (
+            len(
+                DefaultFormulaParser()
+                .set_feature_flags({"multipart"})
+                .get_terms("x | y")
+            )
+            == 2
+        )
+        with pytest.raises(
+            FormulaSyntaxError,
+            match=re.escape(
+                "Operator `|` is at least partially disabled by parser configuration, and/or is incorrectly used."
+            ),
+        ):
+            DefaultFormulaParser().set_feature_flags({}).get_terms("x | y")
+
+    def test_invalid_multistage_formula(self):
+        with pytest.raises(
+            NotImplementedError,
+            match=re.escape(
+                "Nested multistage formulas do not support structured lhs."
+            ),
+        ):
+            DefaultFormulaParser(feature_flags={"all"}).get_terms("[[a ~ b] ~ c]")
+
+    def test_alternative_wildcard_usage(self):
+        PARSER.get_terms(
+            ".", context=LayeredMapping({"a": 1, "b": 2}, name="data")
+        ) == ["1", "a", "b"]
+
+        with pytest.raises(
+            FormulaParsingError,
+            match=re.escape(
+                "The `.` operator requires additional context about which "
+            ),
+        ):
+            PARSER.get_terms(".")
+
 
 class TestDefaultOperatorResolver:
     @pytest.fixture
@@ -205,32 +313,24 @@ class TestDefaultOperatorResolver:
         return DefaultOperatorResolver()
 
     def test_resolve(self, resolver):
-        assert len(resolver.resolve(Token("+++++"), 1, [])) == 1
-        assert resolver.resolve(Token("+++++"), 1, [])[0].symbol == "+"
-        assert resolver.resolve(Token("+++++"), 1, [])[0].arity == 2
+        resolved = list(resolver.resolve(Token("+++++")))
+        assert len(resolved) == 1
+        assert resolved[0][1][0].symbol == "+"
+        assert resolved[0][1][0].arity == 2
 
-        assert len(resolver.resolve(Token("+++-+"), 1, [])) == 1
-        assert resolver.resolve(Token("+++-+"), 1, [])[0].symbol == "-"
-        assert resolver.resolve(Token("+++-+"), 1, [])[0].arity == 2
+        resolved = list(resolver.resolve(Token("+++-+")))
+        assert len(resolved) == 1
+        assert resolved[0][1][0].symbol == "-"
+        assert resolved[0][1][0].arity == 2
 
-        assert len(resolver.resolve(Token("*+++-+"), 1, [])) == 2
-        assert resolver.resolve(Token("*+++-+"), 1, [])[0].symbol == "*"
-        assert resolver.resolve(Token("*+++-+"), 1, [])[0].arity == 2
-        assert resolver.resolve(Token("*+++-+"), 1, [])[1].symbol == "-"
-        assert resolver.resolve(Token("*+++-+"), 1, [])[1].arity == 1
-
-        with pytest.raises(
-            FormulaSyntaxError, match="Operator `/` is incorrectly used."
-        ):
-            resolver.resolve(Token("*/"), 2, [])
-
-    def test_accepts_context(self, resolver):
-        tilde_operator = resolver.resolve(Token("~"), 1, [])[0]
-
-        with pytest.raises(
-            FormulaSyntaxError, match=re.escape("Operator `~` is incorrectly used.")
-        ):
-            resolver.resolve(Token("~"), 1, [tilde_operator])
+        resolved = list(resolver.resolve(Token("*+++-+")))
+        assert len(resolved) == 2
+        assert resolved[0][1][0].symbol == "*"
+        assert resolved[0][1][0].arity == 2
+        assert resolved[1][1][0].symbol == "-"
+        assert resolved[1][1][0].arity == 2
+        assert resolved[1][1][1].symbol == "-"
+        assert resolved[1][1][1].arity == 1
 
     def test_pickleable(self, resolver):
         o = BytesIO()
@@ -239,3 +339,13 @@ class TestDefaultOperatorResolver:
         resolver = pickle.load(o)
         assert "operator_table" not in resolver.__dict__
         assert resolver.operator_table
+
+    def test_feature_flags(self):
+        resolver = DefaultOperatorResolver(feature_flags=set())
+        tbl = resolver.operator_table
+        new_tbl = resolver.set_feature_flags({"twosided"}).operator_table
+
+        assert tbl is not new_tbl
+        assert len([o for o in tbl["~"] if o.disabled]) > len(
+            [o for o in new_tbl["~"] if o.disabled]
+        )

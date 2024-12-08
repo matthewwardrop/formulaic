@@ -14,30 +14,31 @@ from formulaic.errors import (
     FormulaMaterializationError,
 )
 from formulaic.materializers import PandasMaterializer
-from formulaic.materializers.base import EncodedTermStructure
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
+from formulaic.materializers.types.formula_materializer import EncodedTermStructure
 from formulaic.model_spec import ModelSpec
-from formulaic.parser.types import Factor, Structured
+from formulaic.parser.types import Factor
+from formulaic.utils.structured import Structured
 
 PANDAS_TESTS = {
     # '<formula>': (<full_rank_names>, <names>, <full_rank_null_names>, <null_rows>)
     "a": (["Intercept", "a"], ["Intercept", "a"], ["Intercept", "a"], 2),
     "A": (
         ["Intercept", "A[T.b]", "A[T.c]"],
-        ["Intercept", "A[T.a]", "A[T.b]", "A[T.c]"],
+        ["Intercept", "A[a]", "A[b]", "A[c]"],
         ["Intercept", "A[T.c]"],
         2,
     ),
     "C(A)": (
         ["Intercept", "C(A)[T.b]", "C(A)[T.c]"],
-        ["Intercept", "C(A)[T.a]", "C(A)[T.b]", "C(A)[T.c]"],
+        ["Intercept", "C(A)[a]", "C(A)[b]", "C(A)[c]"],
         ["Intercept", "C(A)[T.c]"],
         2,
     ),
     "A:a": (
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
-        ["Intercept", "A[T.a]:a", "A[T.b]:a", "A[T.c]:a"],
-        ["Intercept", "A[T.a]:a"],
+        ["Intercept", "A[a]:a", "A[b]:a", "A[c]:a"],
+        ["Intercept", "A[a]:a", "A[b]:a", "A[c]:a"],
+        ["Intercept", "A[a]:a"],
         1,
     ),
     "A:B": (
@@ -45,26 +46,43 @@ PANDAS_TESTS = {
             "Intercept",
             "B[T.b]",
             "B[T.c]",
-            "A[T.b]:B[T.a]",
-            "A[T.c]:B[T.a]",
-            "A[T.b]:B[T.b]",
-            "A[T.c]:B[T.b]",
-            "A[T.b]:B[T.c]",
-            "A[T.c]:B[T.c]",
+            "A[T.b]:B[a]",
+            "A[T.c]:B[a]",
+            "A[T.b]:B[b]",
+            "A[T.c]:B[b]",
+            "A[T.b]:B[c]",
+            "A[T.c]:B[c]",
         ],
         [
             "Intercept",
-            "A[T.a]:B[T.a]",
-            "A[T.b]:B[T.a]",
-            "A[T.c]:B[T.a]",
-            "A[T.a]:B[T.b]",
-            "A[T.b]:B[T.b]",
-            "A[T.c]:B[T.b]",
-            "A[T.a]:B[T.c]",
-            "A[T.b]:B[T.c]",
-            "A[T.c]:B[T.c]",
+            "A[a]:B[a]",
+            "A[b]:B[a]",
+            "A[c]:B[a]",
+            "A[a]:B[b]",
+            "A[b]:B[b]",
+            "A[c]:B[b]",
+            "A[a]:B[c]",
+            "A[b]:B[c]",
+            "A[c]:B[c]",
         ],
         ["Intercept"],
+        1,
+    ),
+    ".": (
+        ["Intercept", "a", "b", "A[T.b]", "A[T.c]", "B[T.b]", "B[T.c]"],
+        [
+            "Intercept",
+            "a",
+            "b",
+            "A[a]",
+            "A[b]",
+            "A[c]",
+            "B[a]",
+            "B[b]",
+            "B[c]",
+            "D[a]",
+        ],
+        ["Intercept", "a", "b"],
         1,
     ),
 }
@@ -86,12 +104,35 @@ class TestPandasMaterializer:
     @pytest.fixture
     def data_with_nulls(self):
         return pandas.DataFrame(
-            {"a": [1, 2, None], "A": ["a", None, "c"], "B": ["a", "b", None]}
+            {
+                "a": [1, 2, None],
+                "b": [1, 2, 3],
+                "A": ["a", None, "c"],
+                "B": ["a", "b", None],
+                "D": ["a", "a", "a"],
+            }
         )
 
     @pytest.fixture
     def materializer(self, data):
         return PandasMaterializer(data)
+
+    def test_data_conversion(self):
+        df = PandasMaterializer({"a": [1, 2, 3]}).data
+        assert isinstance(df, pandas.DataFrame)
+        assert df.columns == ["a"]
+
+        df2 = PandasMaterializer({"a": 1}).data
+        assert isinstance(df2, pandas.DataFrame)
+        assert df2.columns == ["a"]
+        assert list(df2["a"]) == [1]
+
+        df3 = PandasMaterializer(
+            numpy.recarray((2,), dtype=[("x", int), ("y", float), ("z", int)])
+        ).data
+        assert isinstance(df3, pandas.DataFrame)
+        assert list(df3.columns) == ["x", "y", "z"]
+        assert len(df3["x"]) == 2
 
     @pytest.mark.parametrize("formula,tests", PANDAS_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
@@ -182,7 +223,10 @@ class TestPandasMaterializer:
             formula, na_action="ignore"
         )
         assert isinstance(mm, pandas.DataFrame)
-        assert mm.shape == (3, len(tests[0]) + (-1 if "A" in formula else 0))
+        if formula == ".":
+            assert mm.shape == (3, 5)
+        else:
+            assert mm.shape == (3, len(tests[0]) + (-1 if "A" in formula else 0))
 
         if formula != "C(A)":  # C(A) pre-encodes the data, stripping out nulls.
             with pytest.raises(ValueError):
@@ -324,7 +368,7 @@ class TestPandasMaterializer:
                 spec=ModelSpec(formula=[]),
                 drop_rows=[],
             )
-        ) == ["B[a][T.a]", "B[a][T.b]", "B[a][T.c]"]
+        ) == ["B[a][a]", "B[a][b]", "B[a][c]"]
 
     def test_empty(self, materializer):
         mm = materializer.get_model_matrix("0", ensure_full_rank=True)
@@ -366,27 +410,27 @@ class TestPandasMaterializer:
         )
 
         m = PandasMaterializer(data).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m.columns) == ["A[a]", "A[b]", "A[c]"]
         assert list(m.model_spec.get_model_matrix(data3).columns) == [
-            "A[T.a]",
-            "A[T.b]",
-            "A[T.c]",
+            "A[a]",
+            "A[b]",
+            "A[c]",
         ]
 
         m2 = PandasMaterializer(data2).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m2.columns) == ["A[T.a]", "A[T.b]", "A[T.c]"]
+        assert list(m2.columns) == ["A[a]", "A[b]", "A[c]"]
         assert list(m2.model_spec.get_model_matrix(data3).columns) == [
-            "A[T.a]",
-            "A[T.b]",
-            "A[T.c]",
+            "A[a]",
+            "A[b]",
+            "A[c]",
         ]
 
         m3 = PandasMaterializer(data3).get_model_matrix("A + 0", ensure_full_rank=False)
-        assert list(m3.columns) == ["A[T.c]", "A[T.b]", "A[T.a]"]
+        assert list(m3.columns) == ["A[c]", "A[b]", "A[a]"]
         assert list(m3.model_spec.get_model_matrix(data).columns) == [
-            "A[T.c]",
-            "A[T.b]",
-            "A[T.a]",
+            "A[c]",
+            "A[b]",
+            "A[a]",
         ]
 
     def test_term_clustering(self, materializer):
@@ -420,7 +464,7 @@ class TestPandasMaterializer:
         o.seek(0)
         ms2 = pickle.load(o)
         assert isinstance(ms, Structured)
-        assert ms2.lhs.formula.root == ["a"]
+        assert ms2.lhs.formula == ["a"]
 
     def test_no_levels_encoding(self, data):
         mm = PandasMaterializer(data, output="pandas").get_model_matrix("a + D")
@@ -480,3 +524,18 @@ class TestPandasMaterializer:
     def test_nested_transform_state(self, data):
         ms = PandasMaterializer(data).get_model_matrix("bs(bs(a))").model_spec
         assert {"bs(a)", "bs(bs(a))"}.issubset(ms.transform_state)
+
+    def test_drop_rows(self, data, data_with_nulls):
+        drop_rows = {0, 1}
+        mm = PandasMaterializer(data).get_model_matrix("a", drop_rows=drop_rows)
+        assert mm.shape == (1, 2)
+        assert list(mm.index) == [2]
+        assert drop_rows == {0, 1}
+
+        drop_rows = {0, 1}
+        mm = PandasMaterializer(data_with_nulls).get_model_matrix(
+            "a", drop_rows=drop_rows
+        )
+        assert mm.shape == (0, 2)
+        assert not list(mm.index)
+        assert drop_rows == {0, 1, 2}

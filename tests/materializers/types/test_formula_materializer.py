@@ -2,7 +2,6 @@ import pandas
 import pytest
 
 from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
-from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.materializers.types import (
     EvaluatedFactor,
@@ -10,6 +9,7 @@ from formulaic.materializers.types import (
     ScopedFactor,
     ScopedTerm,
 )
+from formulaic.materializers.types.formula_materializer import FormulaMaterializer
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 
@@ -23,6 +23,8 @@ class TestFormulaMaterializer:
         ]
         assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == [
             "narwhals.DataFrame",
+            "dict",
+            "numpy.rec.recarray",
             "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
             "pyarrow.lib.Table",

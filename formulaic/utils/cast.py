@@ -5,12 +5,12 @@ import numpy
 import pandas
 import scipy.sparse
 
-from formulaic.materializers.types.factor_values import FactorValues
-
 
 def propagate_metadata(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(data, *args, **kwargs):  # type: ignore[no-untyped-def]
+        from formulaic.materializers.types.factor_values import FactorValues
+
         evaluated = func(data, *args, **kwargs)
         if isinstance(data, FactorValues):
             return FactorValues(

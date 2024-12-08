@@ -15,6 +15,8 @@ def sanitize_tokens(tokens: Iterable[Token]) -> Iterable[Token]:
         - possible more in the future
     """
     for token in tokens:
+        if token.token == ".":  # noqa: S105
+            token.kind = Token.Kind.OPERATOR
         if token.kind is Token.Kind.PYTHON:
             token.token = sanitize_python_code(token.token)
         yield token

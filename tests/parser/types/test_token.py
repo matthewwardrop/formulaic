@@ -95,3 +95,9 @@ class TestToken:
             Token("b"),
             Token("c"),
         ]
+
+    def test_required_variables(self, token_a, token_b):
+        assert token_a.required_variables == {"a"}
+        assert token_b.required_variables == {"x"}
+        assert Token("malformed((python", kind="python").required_variables == set()
+        assert Token("xyz", kind="value").required_variables == set()

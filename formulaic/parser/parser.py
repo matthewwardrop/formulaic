@@ -1,19 +1,39 @@
+from __future__ import annotations
+
 import ast
 import functools
 import itertools
 import re
 from dataclasses import dataclass, field
-from typing import Iterable, List, Sequence, Tuple, Union, cast
+from enum import Flag, auto
+from typing import (
+    Any,
+    Generator,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
+
+from typing_extensions import Self
+
+from formulaic.errors import FormulaParsingError
+from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.structured import Structured
 
 from .algos.sanitize_tokens import sanitize_tokens
 from .algos.tokenize import tokenize
 from .types import (
+    ASTNode,
     Factor,
     FormulaParser,
     Operator,
     OperatorResolver,
     OrderedSet,
-    Structured,
     Term,
     Token,
 )
@@ -41,7 +61,35 @@ class DefaultFormulaParser(FormulaParser):
         include_intercept: Whether to include an intercept by default
                 (formulas can still omit this intercept in the usual manner:
                 adding a '-1' or '+0' term).
+        feature_flags: Feature flags to enable or disable certain features. Can
+            be passed in as a `DefaultFormulaParser.FeatureFlag` value or as a set of string flags
+            (which will be cast to a `DefaultFormulaParser.FeatureFlag` instance internally).
     """
+
+    class FeatureFlags(Flag):
+        """
+        Feature flags to restrict the flexibility of the formula parser.
+        """
+
+        TWOSIDED = auto()
+        MULTIPART = auto()
+        MULTISTAGE = auto()
+
+        # Convenience flags
+        NONE = 0
+        DEFAULT = TWOSIDED | MULTIPART
+        ALL = TWOSIDED | MULTIPART | MULTISTAGE
+
+        @classmethod
+        def from_spec(
+            cls, flags: Union[DefaultFormulaParser.FeatureFlags, Set[str]]
+        ) -> DefaultFormulaParser.FeatureFlags:
+            if isinstance(flags, DefaultFormulaParser.FeatureFlags):
+                return flags
+            result = cls.NONE
+            for flag in flags:
+                result |= getattr(cls, flag.upper())
+            return result
 
     ZERO_PATTERN = re.compile(r"(?:^|(?<=\W))0(?=\W|$)")
 
@@ -50,14 +98,34 @@ class DefaultFormulaParser(FormulaParser):
         default_factory=lambda: DefaultOperatorResolver()  # pylint: disable=unnecessary-lambda
     )
     include_intercept: bool = True
+    feature_flags: DefaultFormulaParser.FeatureFlags = FeatureFlags.DEFAULT
 
-    def get_tokens(self, formula: str) -> Iterable[Token]:
+    def __post_init__(self) -> None:
+        if isinstance(self.feature_flags, set):
+            self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(
+                self.feature_flags
+            )
+        if isinstance(self.operator_resolver, DefaultOperatorResolver):
+            self.operator_resolver.set_feature_flags(self.feature_flags)
+
+    def set_feature_flags(
+        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+    ) -> Self:
+        self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
+        self.__post_init__()
+        return self
+
+    def get_tokens_from_formula(
+        self, formula: str, *, context: MutableMapping[str, Any]
+    ) -> Iterable[Token]:
         """
         Return an iterable of `Token` instances for the nominated `formula`
         string.
 
         Args:
             formula: The formula string to be tokenized.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
 
         # Transform formula to add intercepts and replace 0 with -1. We do this
@@ -87,15 +155,37 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 )
             )
-            rhs_index = (
-                max(
-                    (i for i, token in enumerate(tokens) if token.token.endswith("~")),
-                    default=-1,
-                )
-                + 1
-            )
+
+            def find_rhs_index(tokens: List[Token]) -> int:
+                """
+                Find the top-level index of the tilde operator starting the
+                right hand side of the formula (or -1 if not found).
+                """
+                from .algos.tokens_to_ast import CONTEXT_CLOSERS, CONTEXT_OPENERS
+
+                context = []
+                for index, token in enumerate(tokens):
+                    if token.kind is Token.Kind.CONTEXT:
+                        if token.token in CONTEXT_OPENERS:
+                            context.append(token.token)
+                            continue
+                        else:
+                            if (
+                                not context
+                                or context[-1] != CONTEXT_CLOSERS[token.token]
+                            ):
+                                return -1  # pragma: no cover ; should not happen
+                            context.pop()
+                    if context:
+                        continue
+                    if token.token == "~":  # noqa: S105
+                        return index
+                return -1
+
+            rhs_index = find_rhs_index(tokens) + 1
             tokens = [
                 *(
                     tokens[:rhs_index]
@@ -108,7 +198,14 @@ class DefaultFormulaParser(FormulaParser):
                     [token_one],
                     kind=Token.Kind.OPERATOR,
                     join_operator="+",
+                    no_join_for_operators={"+", "-"},
                 ),
+            ]
+
+            context["__formulaic_variables_used_lhs__"] = [
+                variable
+                for token in tokens[:rhs_index]
+                for variable in token.required_variables
             ]
 
         # Collapse inserted "+" and "-" operators to prevent unary issues.
@@ -116,7 +213,9 @@ class DefaultFormulaParser(FormulaParser):
 
         return tokens
 
-    def get_terms(self, formula: str) -> Structured[List[Term]]:
+    def get_terms_from_ast(
+        self, ast: Union[None, Token, ASTNode], *, context: MutableMapping[str, Any]
+    ) -> Structured[OrderedSet[Term]]:
         """
         Assemble the `Term` instances for a formula string. Depending on the
         operators involved, this may be an iterable of `Term` instances, or
@@ -128,8 +227,11 @@ class DefaultFormulaParser(FormulaParser):
 
         Args:
             formula: The formula for which an AST should be generated.
+            context: An optional context which may be used during the evaluation
+                of operators.
         """
-        terms = super().get_terms(formula)
+
+        terms = super().get_terms_from_ast(ast, context=context)
 
         def check_terms(terms: Iterable[Term]) -> None:
             seen_terms = set()
@@ -142,11 +244,13 @@ class DefaultFormulaParser(FormulaParser):
                     ):
                         raise exc_for_token(
                             factor.token or Token(),
-                            "Numeric literals other than `1` can only be used "
-                            "to scale other terms. (tip: Use `:` rather than "
-                            "`*` when scaling terms)"
-                            if factor.expr.replace(".", "", 1).isnumeric()
-                            else "String literals are not valid in formulae.",
+                            (
+                                "Numeric literals other than `1` can only be used "
+                                "to scale other terms. (tip: Use `:` rather than "
+                                "`*` when scaling terms)"
+                                if factor.expr.replace(".", "", 1).isnumeric()
+                                else "String literals are not valid in formulae."
+                            ),
                         )
                 else:
                     for factor in term.factors:
@@ -177,6 +281,7 @@ class DefaultFormulaParser(FormulaParser):
         return terms
 
 
+@dataclass
 class DefaultOperatorResolver(OperatorResolver):
     """
     The default operator resolver implementation.
@@ -186,7 +291,31 @@ class DefaultOperatorResolver(OperatorResolver):
     subclassing to support other kinds of operators, in which case `.operators`
     and/or `.resolve` can be overridden. For more details about which operators
     are implemented, review the code or the documentation website.
+
+    Attributes:
+        feature_flags: Feature flags to enable or disable certain features. Can
+            be passed in as a `DefaultFormulaParser.FeatureFlag` value or as a set of string
+            flags (which will be cast to a `DefaultFormulaParser.FeatureFlag` instance
+            internally).
     """
+
+    feature_flags: DefaultFormulaParser.FeatureFlags = (
+        DefaultFormulaParser.FeatureFlags.DEFAULT
+    )
+
+    def __post_init__(self) -> None:
+        if isinstance(self.feature_flags, set):
+            self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(
+                self.feature_flags
+            )
+
+    def set_feature_flags(
+        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+    ) -> Self:
+        self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
+        if "operator_table" in self.__dict__:
+            del self.__dict__["operator_table"]
+        return self
 
     @property
     def operators(self) -> List[Operator]:
@@ -228,6 +357,56 @@ class DefaultOperatorResolver(OperatorResolver):
                 for term in itertools.product(*[arg] * int(power_term.factors[0].expr))
             )
 
+        def multistage_formula(
+            lhs: OrderedSet[Term], rhs: OrderedSet[Term]
+        ) -> Structured[OrderedSet[Term]]:
+            def get_terms(terms: OrderedSet[Term]) -> List[Term]:
+                return [
+                    Term(
+                        factors=[Factor(str(t) + "_hat", eval_method="lookup")],
+                        origin=t,
+                    )
+                    for t in terms
+                ]
+
+            if isinstance(lhs, Structured):
+                raise NotImplementedError(
+                    "Nested multistage formulas do not support structured lhs."
+                )
+
+            return Structured(get_terms(lhs), deps=(Structured(lhs=lhs, rhs=rhs),))
+
+        def insert_unused_terms(context: Mapping[str, Any]) -> OrderedSet[Term]:
+            available_variables: OrderedSet[str]
+            used_variables: Set[str] = set(context["__formulaic_variables_used_lhs__"])
+
+            # Populate `available_variables` or raise.
+            if "__formulaic_variables_available__" in context:
+                available_variables = OrderedSet(
+                    context["__formulaic_variables_available__"]
+                )
+            elif isinstance(context, LayeredMapping) and "data" in context.named_layers:
+                available_variables = OrderedSet(context.named_layers["data"])
+            else:
+                raise FormulaParsingError(
+                    "The `.` operator requires additional context about which "
+                    "variables are available to use. This can be provided by "
+                    "passing in a value for `__formulaic_variables_available__`"
+                    "in the context while parsing the formula; by passing the "
+                    "formula to the materializer's `.get_model_matrix()` method; "
+                    "or by passing a `LayeredMapping` instance as the context "
+                    "with a `data` layer containing the available variables "
+                    "(such as the `.layered_context` from a "
+                    "`FormulaMaterializer` instance)."
+                )
+
+            unused_variables = available_variables - used_variables
+
+            return OrderedSet(
+                Term([Factor(variable, eval_method="lookup")])
+                for variable in unused_variables
+            )
+
         return [
             Operator(
                 "~",
@@ -237,6 +416,8 @@ class DefaultOperatorResolver(OperatorResolver):
                 to_terms=lambda lhs, rhs: Structured(lhs=lhs, rhs=rhs),
                 accepts_context=lambda context: len(context) == 0,
                 structural=True,
+                disabled=DefaultFormulaParser.FeatureFlags.TWOSIDED
+                not in self.feature_flags,
             ),
             Operator(
                 "~",
@@ -249,6 +430,17 @@ class DefaultOperatorResolver(OperatorResolver):
                 structural=True,
             ),
             Operator(
+                "~",
+                arity=2,
+                precedence=-100,
+                associativity=None,
+                to_terms=multistage_formula,
+                accepts_context=lambda context: bool(context) and context[-1] == "[",
+                structural=True,
+                disabled=DefaultFormulaParser.FeatureFlags.MULTISTAGE
+                not in self.feature_flags,
+            ),
+            Operator(
                 "|",
                 arity=2,
                 precedence=-50,
@@ -258,6 +450,8 @@ class DefaultOperatorResolver(OperatorResolver):
                     isinstance(c, Operator) and c.symbol in "~|" for c in context
                 ),
                 structural=True,
+                disabled=DefaultFormulaParser.FeatureFlags.MULTIPART
+                not in self.feature_flags,
             ),
             Operator(
                 "+",
@@ -334,13 +528,22 @@ class DefaultOperatorResolver(OperatorResolver):
             Operator(
                 "^", arity=2, precedence=500, associativity="right", to_terms=power
             ),
+            Operator(
+                ".",
+                arity=0,
+                precedence=1000,
+                fixity="postfix",
+                to_terms=insert_unused_terms,
+            ),
         ]
 
     def resolve(
-        self, token: Token, max_prefix_arity: int, context: List[Union[Token, Operator]]
-    ) -> Sequence[Operator]:
+        self,
+        token: Token,
+    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
         if token.token in self.operator_table:
-            return super().resolve(token, max_prefix_arity, context)
+            yield from super().resolve(token)
+            return
 
         symbol = token.token
 
@@ -357,9 +560,8 @@ class DefaultOperatorResolver(OperatorResolver):
             )
 
         if symbol in self.operator_table:
-            return [self._resolve(token, symbol, max_prefix_arity, context)]
+            yield self._resolve(token, symbol)
+            return
 
-        return [
-            self._resolve(token, sym, max_prefix_arity if i == 0 else 0, context)
-            for i, sym in enumerate(symbol)
-        ]
+        for sym in symbol:
+            yield self._resolve(token, sym)

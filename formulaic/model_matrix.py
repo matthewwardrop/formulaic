@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Tuple, TypeVar, cast
+
+try:
+    from typing import SupportsIndex
+except ImportError:  # pragma: no cover
+    from typing_extensions import SupportsIndex
+
 
 import wrapt
 
-from formulaic.parser.types.structured import Structured
+from formulaic.utils.structured import Structured
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model_spec import ModelSpec, ModelSpecs
@@ -54,6 +60,15 @@ class ModelMatrix(Generic[MatrixType], wrapt.ObjectProxy):
             copy.deepcopy(self.__wrapped__, memo),
             spec=copy.deepcopy(self._self_model_spec),
         )
+
+    # Handle pickling behaviour
+
+    def __reduce_ex__(
+        self, protocol: SupportsIndex
+    ) -> Tuple[
+        Callable[[Any, ModelSpec], ModelMatrix], Tuple[Any, Optional[ModelSpec]]
+    ]:
+        return ModelMatrix, (self.__wrapped__, self._self_model_spec)
 
 
 class ModelMatrices(Structured[ModelMatrix]):

@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -33,6 +34,7 @@ from formulaic.parser.utils import exc_for_token
 
 LinearConstraintSpec = Union[
     str,
+    List[str],
     Dict[str, Number],
     Tuple["numpy.typing.ArrayLike", "numpy.typing.ArrayLike"],
     "numpy.typing.ArrayLike",
@@ -70,23 +72,31 @@ class LinearConstraints:
                     * str: In which case it is interpreted as a constraints
                         formula (e.g. "x + 2 * y = 3, z + y - x / 10"). All
                         variables used must be present in `variable_names`.
+                    * List[str]: In which case the strings are joined with
+                        commas and expected to look like `str` above.
                     * Dict[str, Number]: In which case each key is treated as
                         formula, and each value as the constraint (e.g. {"x":19}
                         , {"a + b": 0}).
                     * Tuple: a two-tuple describing the constraint matrix and
                         values respectively.
-                    * numpy.ndarray: a constraint matrix (with all values
-                        assumed to be zero).
+                    * numpy.ndarray/numerical sequence: a constraint matrix
+                        (with all values assumed to be zero).
             variable_names: The ordered names of the variables represented by
                 $x$; typically the column names of a `ModelMatrix` instance.
         """
         if isinstance(spec, LinearConstraints):
             return spec
-        if isinstance(spec, (str, dict)):
+        if (
+            isinstance(spec, (str, dict))
+            or isinstance(spec, list)
+            and all(isinstance(s, str) for s in spec)
+        ):
             if variable_names is None:
                 raise ValueError(
                     "`variable_names` must be provided when parsing constraints from a formula."
                 )
+            if isinstance(spec, list):
+                spec = ",".join(spec)
             if isinstance(spec, str):
                 matrix, values = LinearConstraintParser(
                     variable_names=variable_names
@@ -311,7 +321,9 @@ class ConstraintToken(Token):
             }
         )
 
-    def to_terms(self) -> Set[ScaledFactor]:  # type: ignore[override]
+    def to_terms(  # type: ignore[override]
+        self, *, context: Optional[Mapping[str, Any]] = None
+    ) -> Set[ScaledFactor]:
         if self.kind is Token.Kind.VALUE:
             factor = ast.literal_eval(self.token)
             if isinstance(factor, (int, float)):

@@ -30,7 +30,7 @@ class Variable(str):
         return s
 
     @classmethod
-    def union(cls, *variable_sets: Set[Variable]) -> Set[Variable]:
+    def union(cls, *variable_sets: Iterable[Variable]) -> Set[Variable]:
         variables: Dict[Variable, Variable] = {}
         for variable_set in variable_sets:
             for variable in variable_set:
@@ -46,7 +46,9 @@ class Variable(str):
 
 
 def get_expression_variables(
-    expr: Union[str, ast.AST], context: Mapping, aliases: Optional[Mapping] = None
+    expr: Union[str, ast.AST],
+    context: Optional[Mapping] = None,
+    aliases: Optional[Mapping] = None,
 ) -> Set[Variable]:
     """
     Extract the variables that are used in the nominated Python expression.

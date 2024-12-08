@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import warnings
 from abc import abstractmethod
+from dataclasses import dataclass
 from numbers import Number
 from typing import (
     TYPE_CHECKING,
@@ -26,6 +27,7 @@ from interface_meta import InterfaceMeta
 
 from formulaic.errors import DataMismatchWarning
 from formulaic.materializers.types import FactorValues
+from formulaic.utils.sentinels import UNSET
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 from formulaic.utils.stateful_transforms import stateful_transform
 
@@ -175,6 +177,10 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
 
     # Update state
     _state["categories"] = categories
+    # Add `contrasts` to state for introspection purposes only. It is not used
+    # as the source of truth because it is easier for users to simply provide
+    # the "categories" state if manually specifying encoder state.
+    _state["contrasts"] = ContrastsState(contrasts, categories)
 
     # Apply and return contrasts
     return contrasts.apply(
@@ -190,6 +196,7 @@ class Contrasts(metaclass=InterfaceMeta):
     INTERFACE_RAISE_ON_VIOLATION = True
 
     FACTOR_FORMAT = "{name}[{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[{field}]"
 
     def apply(
         self,
@@ -233,9 +240,11 @@ class Contrasts(metaclass=InterfaceMeta):
         if not levels or len(levels) == 1 and reduced_rank:
             if output == "pandas":
                 encoded = pandas.DataFrame(
-                    index=dummies.index
-                    if isinstance(dummies, pandas.DataFrame)
-                    else range(dummies.shape[0])
+                    index=(
+                        dummies.index
+                        if isinstance(dummies, pandas.DataFrame)
+                        else range(dummies.shape[0])
+                    )
                 )
             elif output == "numpy":
                 encoded = numpy.ones((dummies.shape[0], 0))
@@ -251,6 +260,7 @@ class Contrasts(metaclass=InterfaceMeta):
                 column_names=cast(Tuple[Hashable], ()),
                 spans_intercept=False,
                 format=self.get_factor_format(levels, reduced_rank=reduced_rank),
+                format_reduced=self.get_factor_format(levels, reduced_rank=True),
                 encoded=True,
             )
 
@@ -277,6 +287,7 @@ class Contrasts(metaclass=InterfaceMeta):
             spans_intercept=self.get_spans_intercept(levels, reduced_rank=reduced_rank),
             drop_field=self.get_drop_field(levels, reduced_rank=reduced_rank),
             format=self.get_factor_format(levels, reduced_rank=reduced_rank),
+            format_reduced=self.get_factor_format(levels, reduced_rank=True),
             encoded=True,
         )
 
@@ -462,9 +473,10 @@ class Contrasts(metaclass=InterfaceMeta):
             levels: The names of the levels/categories in the data.
             reduced_rank: Whether the contrast encoding used had reduced rank.
         """
-        return self.FACTOR_FORMAT
+        return self.FACTOR_FORMAT_REDUCED if reduced_rank else self.FACTOR_FORMAT
 
 
+@dataclass
 class TreatmentContrasts(Contrasts):
     """
     Treatment (aka. dummy) coding.
@@ -474,12 +486,9 @@ class TreatmentContrasts(Contrasts):
     is taken to be the first level.
     """
 
-    FACTOR_FORMAT = "{name}[T.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[T.{field}]"
 
-    MISSING = object()
-
-    def __init__(self, base: Hashable = MISSING):
-        self.base = base
+    base: Hashable = UNSET
 
     @Contrasts.override
     def _apply(
@@ -501,7 +510,7 @@ class TreatmentContrasts(Contrasts):
         return dummies
 
     def _find_base_index(self, levels: Sequence[Hashable]) -> int:
-        if self.base is self.MISSING:
+        if self.base is UNSET:
             return 0
         try:
             return levels.index(self.base)
@@ -551,9 +560,10 @@ class TreatmentContrasts(Contrasts):
     ) -> Hashable:
         if reduced_rank:
             return None
-        return self.base if self.base is not self.MISSING else levels[0]
+        return self.base if self.base is not UNSET else levels[0]
 
 
+@dataclass
 class SASContrasts(TreatmentContrasts):
     """
     SAS (treatment) contrast coding.
@@ -565,7 +575,7 @@ class SASContrasts(TreatmentContrasts):
 
     @TreatmentContrasts.override  # type: ignore[attr-defined]
     def _find_base_index(self, levels: Sequence[Hashable]) -> int:
-        if self.base is self.MISSING:
+        if self.base is UNSET:
             return len(levels) - 1
         try:
             return levels.index(self.base)
@@ -580,9 +590,10 @@ class SASContrasts(TreatmentContrasts):
     ) -> Hashable:
         if reduced_rank:
             return None
-        return self.base if self.base is not self.MISSING else levels[-1]
+        return self.base if self.base is not UNSET else levels[-1]
 
 
+@dataclass
 class SumContrasts(Contrasts):
     """
     Sum (or Deviation) coding.
@@ -591,7 +602,7 @@ class SumContrasts(Contrasts):
     (except the last, which is redundant) to the global average of all levels.
     """
 
-    FACTOR_FORMAT = "{name}[S.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[S.{field}]"
 
     @Contrasts.override
     def _get_coding_matrix(
@@ -624,6 +635,7 @@ class SumContrasts(Contrasts):
         return levels
 
 
+@dataclass
 class HelmertContrasts(Contrasts):
     """
     Helmert coding.
@@ -640,11 +652,10 @@ class HelmertContrasts(Contrasts):
             integer one).
     """
 
-    FACTOR_FORMAT = "{name}[H.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[H.{field}]"
 
-    def __init__(self, *, reverse: bool = True, scale: bool = False):
-        self.reverse = reverse
-        self.scale = scale
+    reverse: bool = True
+    scale: bool = False
 
     @Contrasts.override
     def _get_coding_matrix(
@@ -696,6 +707,7 @@ class HelmertContrasts(Contrasts):
         return levels
 
 
+@dataclass
 class DiffContrasts(Contrasts):
     """
     Difference coding.
@@ -710,10 +722,9 @@ class DiffContrasts(Contrasts):
             Level 1 cf. Level 1 - Level 2).
     """
 
-    FACTOR_FORMAT = "{name}[D.{field}]"
+    FACTOR_FORMAT_REDUCED = "{name}[D.{field}]"
 
-    def __init__(self, backward: bool = True):
-        self.backward = backward
+    backward: bool = True
 
     @Contrasts.override
     def _get_coding_matrix(
@@ -760,6 +771,7 @@ class DiffContrasts(Contrasts):
         return levels
 
 
+@dataclass
 class PolyContrasts(Contrasts):
     """
     (Orthogonal) Polynomial coding.
@@ -773,15 +785,13 @@ class PolyContrasts(Contrasts):
             have the same cardinality as the categories being coded.
     """
 
-    FACTOR_FORMAT = "{name}{field}"
     NAME_ALIASES = {
         1: ".L",
         2: ".Q",
         3: ".C",
     }
 
-    def __init__(self, scores: Optional[Sequence[float]] = None):
-        self.scores = scores
+    scores: Optional[Sequence[float]] = None
 
     @Contrasts.override
     def _get_coding_matrix(
@@ -823,11 +833,15 @@ class PolyContrasts(Contrasts):
         return levels
 
 
+@dataclass(init=False)
 class CustomContrasts(Contrasts):
     """
     Handle the custom contrast case when users pass in hand-coded contrast
     matrices.
     """
+
+    contrasts: numpy.ndarray
+    names: Optional[Sequence[Hashable]] = None
 
     def __init__(
         self,
@@ -904,3 +918,57 @@ class ContrastsRegistry(type):
     # Extra
     diff = DiffContrasts
     custom = CustomContrasts
+
+
+@dataclass
+class ContrastsState:
+    """
+    Combines a `Contrasts` instance with information collected at runtime in
+    order to allow introspection of the contrast matrices used during model
+    matrix materialization.
+
+    Attributes:
+        contrasts: The `Contrasts` instance used to encode the data.
+        levels: The names of the levels/categories in the data.
+        reduced_rank: Whether the contrast encoding used had reduced rank.
+    """
+
+    contrasts: Contrasts
+    levels: Sequence[Hashable]
+
+    def get_coding_matrix(
+        self, reduced_rank: bool = True, sparse: bool = False
+    ) -> Union[pandas.DataFrame, spsparse.spmatrix]:
+        """
+        Generate the coding matrix used during materialization; i.e. the matrix
+        with column vectors representing the encoding to use for the
+        corresponding level.
+
+        Args:
+            reduced_rank: Whether to output a reduced rank matrix. When this is
+                `False`, the dummy encoding is usually passed through
+                unmodified.
+            sparse: Whether to output sparse results.
+        """
+        return self.contrasts.get_coding_matrix(
+            self.levels, reduced_rank=reduced_rank, sparse=sparse
+        )
+
+    def get_coefficient_matrix(
+        self, reduced_rank: bool = True, sparse: bool = False
+    ) -> Union[pandas.DataFrame, spsparse.spmatrix]:
+        """
+        Generate the coefficient matrix corresponding to the coding matrix used
+        during materialization; i.e. the matrix with rows representing the
+        contrasts effectively computed during a regression, with columns
+        indicating the weights given to the origin categories. This is primarily
+        used for debugging/introspection.
+
+        Args:
+            reduced_rank: Whether to output the coefficients for reduced rank
+                encodings.
+            sparse: Whether to output sparse results.
+        """
+        return self.contrasts.get_coefficient_matrix(
+            self.levels, reduced_rank=reduced_rank, sparse=sparse
+        )

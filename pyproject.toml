@@ -5,9 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "formulaic"
 description = "An implementation of Wilkinson formulas."
-authors = [
-    {name = "Matthew Wardrop", email = "mpwardrop@gmail.com"},
-]
+authors = [{ name = "Matthew Wardrop", email = "mpwardrop@gmail.com" }]
 license = "MIT"
 readme = "README.md"
 classifiers = [
@@ -26,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">=3.7.2"
 dependencies = [
@@ -36,7 +35,8 @@ dependencies = [
     "numpy>=1.16.5",
     "pandas>=1.0",
     "scipy>=1.6",
-    "wrapt>=1.0",
+    "wrapt>=1.0; python_version <\"3.13\"",
+    "wrapt>=1.17.0rc1; python_version >=\"3.13\"",
     "typing-extensions>=4.2.0",
 ]
 dynamic = ["version"]
@@ -72,18 +72,17 @@ include = [
 
 [tool.hatch.envs.default]
 dependencies = [
-    'formulaic[arrow,calculus]; python_version < "3.12"',
-    'formulaic[calculus]; python_version == "3.12"',
-    "narwhals>=1.0.0",
+    'formulaic[arrow,calculus]',
     "pytest==7.4.3",
     "pytest-cov==4.1.0",
+    "narwhals>=1.0.0",
 ]
 
 [tool.hatch.envs.default.scripts]
 tests = 'pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=formulaic --cov-report=xml -vv {args:tests}'
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["37", "38", "39", "310", "311", "312", "313"]
 
 [[tool.hatch.envs.test_min.matrix]]
 python = ["37"]
@@ -106,18 +105,15 @@ dependencies = [
 ]
 
 [tool.hatch.envs.lint]
-dependencies = [
-    "mypy==1.11.1",
-    "mypy-extensions==1.0.0",
-    "ruff==0.5.6",
-]
+dependencies = ["mypy==1.11.1", "mypy-extensions==1.0.0", "ruff==0.5.6"]
 
 [tool.hatch.envs.lint.scripts]
-check = [
-    "ruff format --check",
-    "mypy formulaic",
-]
-format = "ruff format"
+check = ["ruff check", "ruff format --check", "mypy formulaic"]
+format = ["ruff check --fix", "ruff format"]
+
+# Coverage configuration
+[tool.coverage.run]
+omit = ["formulaic/_version.py", "formulaic/materializers/base.py"]
 
 # Linting configuration
 
@@ -138,11 +134,11 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
-    "F",  # flake8 rules
-    "E",  # pycodestyle
-    "W",  # pycodestyle
-    "S",  # bandit
-    "I001",  # import sorting
+    "F",    # flake8 rules
+    "E",    # pycodestyle
+    "W",    # pycodestyle
+    "S",    # bandit
+    "I001", # import sorting
     # "D", # documentation
 ]
 
@@ -153,7 +149,7 @@ ignore = [
     "E712",
     "E722",
     "E731",
-    "S307",  # Use of ast.literal_eval
+    "S307", # Use of ast.literal_eval
 ]
 
 [tool.ruff.lint.per-file-ignores]

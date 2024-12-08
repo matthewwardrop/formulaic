@@ -1,6 +1,7 @@
 import pytest
 
 from formulaic.parser.types import Factor, Term
+from formulaic.parser.types.ordered_set import OrderedSet
 
 
 class TestTerm:
@@ -48,3 +49,6 @@ class TestTerm:
         assert term3.degree == 3
         assert Term([Factor("1", eval_method="literal")]).degree == 0
         assert Term([Factor("1", eval_method="literal"), Factor("x")]).degree == 1
+
+    def test_to_terms(self, term1):
+        assert term1.to_terms() == OrderedSet((term1,))

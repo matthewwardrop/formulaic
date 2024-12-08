@@ -61,6 +61,16 @@ TOKEN_TESTS = {
         "operator:in",
         "operator:custom op",
     ],
+    "A[T.a]": [
+        "python:A[T.a]",
+    ],
+    "A(T.a)": [
+        "python:A(T.a)",
+    ],
+    "A(T.a)[b](c)": [
+        "python:A(T.a)[b](c)",
+    ],
+    "A(T.a)[b](c)a": ["python:A(T.a)[b](c)", "name:a"],
 }
 
 TOKEN_ERRORS = {
@@ -68,6 +78,14 @@ TOKEN_ERRORS = {
     "`a": [
         FormulaSyntaxError,
         "Formula ended before quote context was closed. Expected: `",
+    ],
+    "A[(T.a]": [
+        FormulaSyntaxError,
+        r"Formula ended before quote context was closed. Expected: \)",
+    ],
+    "A([T.a)": [
+        FormulaSyntaxError,
+        "Formula ended before quote context was closed. Expected: ]",
     ],
 }
 

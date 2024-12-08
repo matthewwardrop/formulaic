@@ -26,10 +26,12 @@ unless otherwise indicated.
 | `{...}`[^1] | 1 | Quotes python operations, as a more convenient way to do Python operations than `I(...)`, e.g. `` {`my|col`**2} `` | ✓ | ✗ | ✗ |
 | `<function>(...)`[^1] | 1 | Python transform on column, e.g. `my_func(x)` which is equivalent to `{my_func(x)}` | ✓[^2] | ✓ | ✗ |
 |-----|
-| `(...)` | 1 | Groups operations, overriding normal precedence rules. All operations with the parentheses are performed before the result of these operations is permitted to be operated upon by its peers. | ✓ | ✓ | ✓ |
+| `(...)` | 1 | Groups operations, overriding normal precedence rules. All operations with the parentheses are performed before the result of these operations is permitted to be operated upon by its peers. | ✓ | ✗ | ✓ |
 |-----|
-| ** | 2 | Includes all n-th order interactions of the terms in the left operand, where n is the (integral) value of the right operand, e.g. `(a+b+c)**2` is equivalent to `a + b + c + a:b + a:c + b:c`. | ✓ | ✓ | ✓ |
-| ^ | 2 | Alias for `**`. | ✓ | ✗[^3] | ✓ |
+| `.`[^9] | 0 | Stands in as a wild-card for the sum of variables in the data not used on the left-hand side of a formula. | ✓ | ✗ | ✓ |
+|-----|
+| `**` | 2 | Includes all n-th order interactions of the terms in the left operand, where n is the (integral) value of the right operand, e.g. `(a+b+c)**2` is equivalent to `a + b + c + a:b + a:c + b:c`. | ✓ | ✓ | ✓ |
+| `^` | 2 | Alias for `**`. | ✓ | ✗[^3] | ✓ |
 |-----|
 | `:` | 2 | Adds a new term that corresponds to the interaction of its operands (i.e. their elementwise product). | ✓[^4] | ✓ | ✓ |
 |-----|
@@ -42,9 +44,10 @@ unless otherwise indicated.
 | `+` | 1 | Returns the current term unmodified (not very useful). | ✓ | ✓ | ✓ |
 | `-` | 1 | Negates a term (only implemented for 0, in which case it is replaced with `1`). | ✓ | ✓ | ✓ |
 |-----|
-| `|` | 2 | Splits a formula into multiple parts, allowing the simultaneous generation of multiple model matrices. When on the right-hand-side of the `~` operator, all parts will attract an additional intercept term by default. | ✓ | ✗ | ✓[^6] |
+| `\|` | 2 | Splits a formula into multiple parts, allowing the simultaneous generation of multiple model matrices. When on the right-hand-side of the `~` operator, all parts will attract an additional intercept term by default. | ✓ | ✗ | ✓[^6] |
 |-----|
 | `~` | 1,2 | Separates the target features from the input features. If absent, it is assumed that we are considering only the the input features. Unless otherwise indicated, it is assumed that the input features implicitly include an intercept. | ✓ | ✓ | ✓ |
+| `[ . ~ . ]` | 2 | [Experimental] Multi stage formula notation, which is useful in (e.g.) IV contexts. Requires the `MULTISTAGE` feature flag to be passed to the parser. | ✓ | ✗ | ✗ |
 
 
 ## Transforms
@@ -62,10 +65,12 @@ that have *not* been implemented by `formulaic` are explicitly noted also.
 | `center(...)` | Shift column data so mean is zero. | ✓ | ✓ | ✗ |
 | `scale(...)` | Shift column so mean is zero and variance is 1. | ✓ | ✓[^7] | ✓ |
 | `standardize(...)` | Alias of `scale`. | ✓[^8] | ✓ | ✗ |
+| `lag(...[, <k>])` | Generate lagging or leading columns (useful for datasets collected at regular intervals). | ✓ | ✗ | ✓ |
 | `poly(...)` | Generates a polynomial basis, allowing non-linear fits. | ✓ | ✗ | ✓ |
 | `bs(...)` | Generates a B-Spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
-| `cr(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
-| `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | ✗ | ✓ | ✓ |
+| `cs(...)` | Generates a natural cubic spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
+| `cr(...)` | Alias for `cs` above. | ✓ | ✗ | ✓ |
+| `cc(...)` | Generates a cyclic cubic spline basis, allowing non-linear fits. | ✓ | ✓ | ✓ |
 | `te(...)` | Generates a tensor product smooth. | ✗ | ✓ | ✓ |
 | `hashed(...)` | Categorically encode a deterministic hash of a column. | ✓ | ✗ | ✗ |
 | ...       | Others? Contributions welcome!     | ? | ? | ? |
@@ -122,3 +127,4 @@ and conventions of which you should be aware.
 [^6]: Implemented by an R package called [Formula](https://cran.r-project.org/web/packages/Formula/index.html) that extends the default formula syntax.
 [^7]: Patsy uses the `rescale` keyword rather than `scale`, but provides the same functionality.
 [^8]: For increased compatibility with patsy, we use patsy's signature for `standardize`.
+[^9]: Requires additional context to be passed in when directly using the `Formula` constructor. e.g. `Formula("y ~ .", context={"__formulaic_variables_available__": ["x", "y", "z"]})`; or you can use `model_matrix`, `ModelSpec.get_model_matrix()`, or `FormulaMaterializer.get_model_matrix()` without further specification.

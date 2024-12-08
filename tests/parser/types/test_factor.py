@@ -52,3 +52,4 @@ class TestFactor:
 
     def test_repr(self):
         assert repr(Factor("a")) == "a"
+        assert repr(Factor("a:b")) == "`a:b`"
