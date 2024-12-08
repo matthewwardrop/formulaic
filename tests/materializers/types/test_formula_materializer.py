@@ -22,8 +22,8 @@ class TestFormulaMaterializer:
             "pandas",
         ]
         assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == [
-            "narwhals.DataFrame",
             "dict",
+            "narwhals.DataFrame",
             "numpy.rec.recarray",
             "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
