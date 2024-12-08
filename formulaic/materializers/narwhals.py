@@ -14,7 +14,7 @@ from interface_meta import override
 from formulaic.utils.cast import as_columns
 from formulaic.utils.null_handling import drop_rows as drop_nulls
 
-from .base import FormulaMaterializer
+from .types.formula_materializer import FormulaMaterializer
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
