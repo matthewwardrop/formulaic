@@ -20,9 +20,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class PandasMaterializer(FormulaMaterializer):
     REGISTER_NAME = "pandas"
-    REGISTER_INPUTS: Sequence[
-        str
-    ] = ()  # ("pandas.core.frame.DataFrame", "pandas.DataFrame")
+    REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
     REGISTER_OUTPUTS: Sequence[str] = ("pandas", "numpy", "sparse")
 
     @override

@@ -25,6 +25,7 @@ from typing import (
     cast,
 )
 
+import narwhals as nw
 from interface_meta import InterfaceMeta, inherit_docs
 
 from formulaic.errors import (
@@ -92,6 +93,14 @@ class FormulaMaterializerMeta(InterfaceMeta):
         return materializer
 
     def for_data(cls, data: Any, output: Hashable = None) -> Type[FormulaMaterializer]:
+        if (
+            "narwhals.DataFrame" in cls.REGISTERED_INPUTS
+            and nw.dependencies.is_into_dataframe(data)
+        ):
+            # pandas has its own materializer, so we leave it alone.
+            if not nw.dependencies.is_pandas_dataframe(data):
+                data = nw.from_native(data, eager_only=True)
+
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
