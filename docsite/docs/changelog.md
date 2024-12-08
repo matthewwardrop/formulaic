@@ -8,8 +8,8 @@ For changes since the latest tagged release, please refer to the
 ** Enhancements **
 
 * Added cubic spline support for cyclic (`cc`) and natural (`cr`). See
- `formulaic.materializers.transforms.cubic_spline.cubic_spline` for
-  more details.
+ `formulaic.materializers.transforms.cubic_spline.cubic_spline` for 
+  more details. 
 
 ## 1.0.2 (12 July 2024)
 
