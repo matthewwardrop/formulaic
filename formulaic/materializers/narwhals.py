@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
 
 import narwhals.stable.v1 as nw
 import numpy
@@ -10,9 +10,16 @@ import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
 
+# Prefer these for `isinstance` checks so they catch both
+# narwhals.stable.v1.DataFrame and narwhals.DataFrame
+from narwhals import DataFrame as NwDataFrame
+from narwhals import Series as NwSeries
+
 from formulaic.utils.cast import as_columns
 from formulaic.utils.null_handling import drop_rows as drop_nulls
+from formulaic.utils.null_handling import find_nulls
 
+from .types import NAAction
 from .types.formula_materializer import FormulaMaterializer
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -39,10 +46,36 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        if isinstance(values, nw.Series):
+        if isinstance(values, NwSeries):
             if not values.dtype.is_numeric():
                 return True
         return super()._is_categorical(values)
+
+    @override
+    def _check_for_nulls(
+        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
+    ) -> None:
+        if na_action is NAAction.IGNORE:
+            return
+
+        try:
+            null_indices = find_nulls(values)
+
+            if na_action is NAAction.RAISE:
+                if null_indices:
+                    raise ValueError(f"`{name}` contains null values after evaluation.")
+
+            elif na_action is NAAction.DROP:
+                drop_rows.update(null_indices)
+
+            else:
+                raise ValueError(
+                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
+                )  # pragma: no cover; this is currently impossible to reach
+        except ValueError as e:
+            raise ValueError(
+                f"Error encountered while checking for nulls in `{name}`: {e}"
+            ) from e
 
     @override
     def _encode_constant(
@@ -93,7 +126,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
         if drop_rows:
             values = drop_nulls(values, indices=drop_rows)
-        if isinstance(values, nw.Series):
+        if isinstance(values, NwSeries):
             values = values.to_pandas()
 
         return as_columns(
@@ -202,7 +235,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
             native_namespace=nw.get_native_namespace(self.__narwhals_data),
         )
         if spec.output == "narwhals":
-            if isinstance(self.data, nw.DataFrame):
+            if isinstance(self.data, NwDataFrame):
                 return combined
             return combined.to_native()
         if spec.output == "pandas":

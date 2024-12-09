@@ -2,6 +2,7 @@ from functools import singledispatch
 from typing import Any, Sequence, Set, Union
 
 import narwhals
+import narwhals.stable.v1 as nw
 import numpy
 import pandas
 import scipy.sparse as spsparse
@@ -123,10 +124,12 @@ def _(values: list, indices: Sequence[int]) -> list:
 
 @drop_rows.register
 def _(values: narwhals.Series, indices: Sequence[int]) -> narwhals.Series:
-    # TODO: Is there a better narwhals native way to do this?
-    selector = numpy.zeros(len(values), dtype=bool)
-    selector[list(indices)] = True
-    return values.filter(~selector)
+    tmp_name = nw.generate_temporary_column_name(n_bytes=8, columns=[values.name])
+    return (
+        values.to_frame()
+        .with_row_index(tmp_name)
+        .filter(~nw.col(tmp_name).is_in(indices))[values.name]
+    )
 
 
 @drop_rows.register
