@@ -14,7 +14,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class ArrowMaterializer(PandasMaterializer):
     REGISTER_NAME = "arrow"
-    REGISTER_INPUTS: Sequence[str] = ()  # ("pyarrow.lib.Table",)
+    REGISTER_INPUTS: Sequence[str] = ("pyarrow.lib.Table",)
 
     @override
     def _init(self) -> None:
