@@ -4,7 +4,6 @@ import functools
 import itertools
 from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
-import narwhals.dtypes as nwd
 import narwhals.stable.v1 as nw
 import numpy
 import pandas
@@ -27,7 +26,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
     @override
     def _init(self) -> None:
-        self.__narwhals_data = nw.from_native(self.data)
+        self.__narwhals_data = nw.from_native(self.data, eager_only=True)
         self.__data_context = self.__narwhals_data.to_dict()
 
     @override  # type: ignore
@@ -38,7 +37,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
     @override
     def _is_categorical(self, values: Any) -> bool:
         if isinstance(values, nw.Series):
-            if not isinstance(values.dtype, nwd.NumericType):
+            if not values.dtype.is_numeric():
                 return True
         return super()._is_categorical(values)
 
@@ -180,7 +179,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
                 return spsparse.csc_matrix(values)
             if spec.output == "narwhals":
                 # TODO: Inconsistent with non-empty case below (where we use to-native)
-                return nw.from_native(values)
+                return nw.from_native(values, eager_only=True)
             if spec.output == "numpy":
                 return values
             return (
@@ -196,16 +195,13 @@ class NarwhalsMaterializer(FormulaMaterializer):
         # TODO: Can we do better than this? Having to reconstitute raw data
         # does not seem ideal.
         combined = nw.from_dict(
-            {
-                name: (nw.to_native(col) if isinstance(col, nw.Series) else col)
-                for name, col in cols
-            },
+            {name: nw.to_native(col, pass_through=True) for name, col in cols},
             native_namespace=nw.get_native_namespace(self.__narwhals_data),
         )
         if spec.output == "narwhals":
             if isinstance(self.data, nw.DataFrame):
                 return combined
-            return nw.to_native(combined)
+            return combined.to_native()
         if spec.output == "pandas":
             df = combined.to_pandas()
             if pandas_index is not None:

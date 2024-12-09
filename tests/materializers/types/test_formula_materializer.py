@@ -27,7 +27,6 @@ class TestFormulaMaterializer:
             "numpy.rec.recarray",
             "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
-            "pyarrow.lib.Table",
         ]
 
     def test_retrieval(self):
