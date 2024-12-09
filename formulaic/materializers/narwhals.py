@@ -21,7 +21,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class NarwhalsMaterializer(FormulaMaterializer):
     REGISTER_NAME = "narwhals"
-    REGISTER_INPUTS: Sequence[str] = ("narwhals.DataFrame",)
+    REGISTER_INPUTS: Sequence[str] = (
+        "narwhals.DataFrame",
+        "narwhals.stable.v1.DataFrame",
+    )
     REGISTER_OUTPUTS: Sequence[str] = ("narwhals", "pandas", "numpy", "sparse")
 
     @override
