@@ -25,7 +25,7 @@ from typing import (
     cast,
 )
 
-import narwhals as nw
+import narwhals.stable.v1 as nw
 from interface_meta import InterfaceMeta, inherit_docs
 
 from formulaic.errors import (
