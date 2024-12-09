@@ -6,7 +6,7 @@ import scipy.sparse as spsparse
 
 from formulaic.materializers import NarwhalsMaterializer
 
-NARWHALS_TESTS = {
+POLARS_TESTS = {
     "a": (["Intercept", "a"], ["Intercept", "a"]),
     "A": (
         ["Intercept", "A[T.b]", "A[T.c]"],
@@ -23,7 +23,7 @@ NARWHALS_TESTS = {
 }
 
 
-class TestPolarsMaterializer:
+class TestNarwhalsMaterializerPolars:
     @pytest.fixture
     def data(self):
         import polars
@@ -38,7 +38,7 @@ class TestPolarsMaterializer:
         assert set(materializer.data_context) == {"a", "A"}
         assert len(materializer.data_context) == 2
 
-    @pytest.mark.parametrize("formula,tests", NARWHALS_TESTS.items())
+    @pytest.mark.parametrize("formula,tests", POLARS_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(formula, ensure_full_rank=True)
         assert isinstance(mm, polars.DataFrame)
@@ -50,7 +50,7 @@ class TestPolarsMaterializer:
         assert mm.shape == (3, len(tests[1]))
         assert list(mm.columns) == tests[1]
 
-    @pytest.mark.parametrize("formula,tests", NARWHALS_TESTS.items())
+    @pytest.mark.parametrize("formula,tests", POLARS_TESTS.items())
     def test_get_model_matrix_sparse(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(
             formula, ensure_full_rank=True, output="sparse"
