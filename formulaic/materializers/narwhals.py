@@ -10,11 +10,6 @@ import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
 
-# Prefer these for `isinstance` checks so they catch both
-# narwhals.stable.v1.DataFrame and narwhals.DataFrame
-from narwhals import DataFrame as NwDataFrame
-from narwhals import Series as NwSeries
-
 from formulaic.utils.cast import as_columns
 from formulaic.utils.null_handling import drop_rows as drop_nulls
 from formulaic.utils.null_handling import find_nulls
@@ -46,7 +41,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        if isinstance(values, NwSeries):
+        if nw.dependencies.is_narwhals_series(values):
             if not values.dtype.is_numeric():
                 return True
         return super()._is_categorical(values)
@@ -126,7 +121,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
         if drop_rows:
             values = drop_nulls(values, indices=drop_rows)
-        if isinstance(values, NwSeries):
+        if nw.dependencies.is_narwhals_series(values):
             values = values.to_pandas()
 
         return as_columns(
@@ -235,7 +230,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
             native_namespace=nw.get_native_namespace(self.__narwhals_data),
         )
         if spec.output == "narwhals":
-            if isinstance(self.data, NwDataFrame):
+            if nw.dependencies.is_narwhals_dataframe(self.data):
                 return combined
             return combined.to_native()
         if spec.output == "pandas":
