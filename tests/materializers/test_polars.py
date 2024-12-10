@@ -1,14 +1,12 @@
 import numpy
 import pandas
+import polars
 import pytest
 import scipy.sparse as spsparse
 
 from formulaic.materializers import NarwhalsMaterializer
 
-pyarrow = pytest.importorskip("pyarrow")
-
-
-ARROW_TESTS = {
+POLARS_TESTS = {
     "a": (["Intercept", "a"], ["Intercept", "a"]),
     "A": (
         ["Intercept", "A[T.b]", "A[T.c]"],
@@ -25,12 +23,12 @@ ARROW_TESTS = {
 }
 
 
-class TestNarwhalsMaterializerArrow:
+class TestNarwhalsMaterializerPolars:
     @pytest.fixture
     def data(self):
-        return pyarrow.Table.from_pandas(
-            pandas.DataFrame({"a": [1, 2, 3], "A": ["a", "b", "c"]})
-        )
+        import polars
+
+        return polars.DataFrame({"a": [1, 2, 3], "A": ["a", "b", "c"]})
 
     @pytest.fixture
     def materializer(self, data):
@@ -40,19 +38,19 @@ class TestNarwhalsMaterializerArrow:
         assert set(materializer.data_context) == {"a", "A"}
         assert len(materializer.data_context) == 2
 
-    @pytest.mark.parametrize("formula,tests", ARROW_TESTS.items())
+    @pytest.mark.parametrize("formula,tests", POLARS_TESTS.items())
     def test_get_model_matrix(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(formula, ensure_full_rank=True)
-        assert isinstance(mm, pyarrow.Table)
+        assert isinstance(mm, polars.DataFrame)
         assert mm.shape == (3, len(tests[0]))
-        assert list(mm.column_names) == tests[0]
+        assert list(mm.columns) == tests[0]
 
         mm = materializer.get_model_matrix(formula, ensure_full_rank=False)
-        assert isinstance(mm, pyarrow.Table)
+        assert isinstance(mm, polars.DataFrame)
         assert mm.shape == (3, len(tests[1]))
-        assert list(mm.column_names) == tests[1]
+        assert list(mm.columns) == tests[1]
 
-    @pytest.mark.parametrize("formula,tests", ARROW_TESTS.items())
+    @pytest.mark.parametrize("formula,tests", POLARS_TESTS.items())
     def test_get_model_matrix_sparse(self, materializer, formula, tests):
         mm = materializer.get_model_matrix(
             formula, ensure_full_rank=True, output="sparse"
@@ -70,15 +68,15 @@ class TestNarwhalsMaterializerArrow:
 
     def test_state(self, materializer):
         mm = materializer.get_model_matrix("center(a) - 1")
-        assert isinstance(mm, pyarrow.Table)
-        assert list(mm.column_names) == ["center(a)"]
+        assert isinstance(mm, polars.DataFrame)
+        assert list(mm.columns) == ["center(a)"]
         assert numpy.allclose(mm["center(a)"], [-1, 0, 1])
 
-        mm2 = NarwhalsMaterializer(
-            pyarrow.Table.from_pandas(pandas.DataFrame({"a": [4, 5, 6]}))
-        ).get_model_matrix(mm.model_spec)
-        assert isinstance(mm2, pyarrow.Table)
-        assert list(mm2.column_names) == ["center(a)"]
+        mm2 = NarwhalsMaterializer(polars.DataFrame({"a": [4, 5, 6]})).get_model_matrix(
+            mm.model_spec
+        )
+        assert isinstance(mm2, polars.DataFrame)
+        assert list(mm2.columns) == ["center(a)"]
         assert numpy.allclose(mm2["center(a)"], [2, 3, 4])
 
     def test_missing_field(self, materializer):
