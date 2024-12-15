@@ -81,6 +81,13 @@ class OrderedSet(MutableSet, Sequence, Generic[_ItemType]):
         else:
             return next(islice(self._values, index, None))
 
+    # Other data model methods
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, OrderedSet):
+            return tuple(self) == tuple(other)
+        return NotImplemented
+
     # Convenience methods
 
     def update(
