@@ -1,4 +1,4 @@
-from formulaic.parser.types import OrderedSet
+from formulaic.utils.ordered_set import OrderedSet
 
 
 class TestOrderedSet:

@@ -21,9 +21,10 @@ from formulaic.utils.sentinels import MISSING, MissingType
 from .errors import FormulaInvalidError
 from .model_matrix import ModelMatrix
 from .parser import DefaultFormulaParser
-from .parser.types import FormulaParser, OrderedSet, Term
+from .parser.types import FormulaParser, Term
 from .utils.calculus import differentiate_term
 from .utils.deprecations import deprecated
+from .utils.ordered_set import OrderedSet
 from .utils.structured import Structured
 from .utils.variables import Variable, get_expression_variables
 

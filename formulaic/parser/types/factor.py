@@ -4,7 +4,8 @@ from collections.abc import Mapping
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from .ordered_set import OrderedSet
+from formulaic.utils.ordered_set import OrderedSet
+
 from .term import Term
 
 if TYPE_CHECKING:

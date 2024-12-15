@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from typing import cast
 
 from formulaic.parser.types import Factor, Term
-from formulaic.parser.types.ordered_set import OrderedSet
+from formulaic.utils.ordered_set import OrderedSet
 
 
 def differentiate_term(

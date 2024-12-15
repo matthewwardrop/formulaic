@@ -29,11 +29,11 @@ from formulaic.materializers.types.enums import ClusterBy, NAAction
 from formulaic.materializers.types.factor_values import FactorValuesMetadata
 from formulaic.model_matrix import ModelMatrices, ModelMatrix
 from formulaic.parser.types import Factor, Term
-from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
 from formulaic.utils.null_handling import find_nulls
+from formulaic.utils.ordered_set import OrderedSet
 from formulaic.utils.stateful_transforms import stateful_eval
 from formulaic.utils.variables import Variable
 
