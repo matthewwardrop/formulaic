@@ -111,7 +111,7 @@ format = ["ruff check --fix", "ruff format"]
 
 # Coverage configuration
 [tool.coverage.run]
-omit = ["formulaic/_version.py", "formulaic/materializers/base.py"]
+omit = ["formulaic/_version.py"]
 
 # Linting configuration
 

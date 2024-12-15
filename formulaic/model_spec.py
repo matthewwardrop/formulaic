@@ -16,7 +16,7 @@ from typing import (
     cast,
 )
 
-from formulaic.materializers.types.formula_materializer import EncodedTermStructure
+from formulaic.materializers.base import EncodedTermStructure
 from formulaic.parser.types import Factor, Term
 from formulaic.utils.constraints import LinearConstraints, LinearConstraintSpec
 from formulaic.utils.structured import Structured
