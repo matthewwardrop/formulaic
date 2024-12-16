@@ -2,13 +2,8 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import MutableMapping
+from functools import cached_property
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
-
-# Cached property was introduced in Python 3.8 (we currently support 3.7)
-try:
-    from functools import cached_property
-except ImportError:  # pragma: no cover
-    from cached_property import cached_property  # type: ignore
 
 
 class LayeredMapping(MutableMapping):

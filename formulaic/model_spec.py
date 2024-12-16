@@ -29,11 +29,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from .model_matrix import ModelMatrices, ModelMatrix
     from .transforms.contrasts import ContrastsState
 
-# Cached property was introduced in Python 3.8 (we currently support 3.7)
-try:
-    from functools import cached_property
-except ImportError:  # pragma: no cover
-    from cached_property import cached_property  # type: ignore
+from functools import cached_property
 
 
 @dataclass(frozen=True)
