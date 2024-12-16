@@ -158,3 +158,26 @@ allow_redefinition = true
 disallow_untyped_defs = true
 disallow_any_generics = false
 ignore_missing_imports = true
+
+# Documentation configuration
+
+[tool.hatch.env]
+requires = ["hatch-pip-compile; python_version >= \"3.8\""]
+
+[tool.hatch.envs.docs]
+dependencies = [
+    "mike",
+    "mkdocs",
+    "mkdocs-jupyter",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
+    "pymdown-extensions",
+    "pygments",
+]
+lock-filename = "docsite/requirements.lock"
+type = "pip-compile"
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build -f docsite/mkdocs.yml {args}"
+serve = "mkdocs serve -f docsite/mkdocs.yml {args}"
+deploy = "mike deploy --config-file docsite/mkdocs.yml -p {args}"

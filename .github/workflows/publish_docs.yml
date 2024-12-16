@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-    contents: write
+  contents: write
 
 jobs:
   build:
@@ -29,7 +29,10 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
+      - name: Install hatch
+        run: |
+          python -m pip install --upgrade pip
+          pip install hatch
       - name: Build and Deploy docs.
         run: |
-          pip install -r docsite/requirements.txt
-          mkdocs gh-deploy -v --config-file docsite/mkdocs.yml --force
+          hatch run docs:deploy dev
