@@ -180,7 +180,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     )
     for i in range(len(knots) - 1):
         if extrapolation is SplineExtrapolation.EXTEND:
-            cache[0][i] = (
+            cache[0][i] = (  # type: ignore
                 (x >= (knots[i] if i != degree else -numpy.inf))
                 & (
                     x

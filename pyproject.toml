@@ -95,7 +95,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.lint]
-dependencies = ["mypy==1.11.1", "mypy-extensions==1.0.0", "ruff==0.5.6"]
+dependencies = ["mypy[faster-cache]==1.13.0", "ruff==0.8.3"]
 
 [tool.hatch.envs.lint.scripts]
 check = ["ruff check", "ruff format --check", "mypy formulaic"]
@@ -143,6 +143,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"**/docsite/*" = ["F811", "F821"]
 "**/tests/*" = ["F", "E", "W", "S"]
 
 [tool.mypy]
