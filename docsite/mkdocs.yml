@@ -1,28 +1,29 @@
 site_name: Formulaic
 nav:
   - Getting Started:
-    - Introduction: index.md
-    - What are formulas?: formulas.md
-    - Installation: installation.md
-    - Migrating from Patsy/R: migration.md
-    - Changelog: changelog.md
+      - Introduction: index.md
+      - What are formulas?: formulas.md
+      - Installation: installation.md
+      - Migrating from Patsy/R: migration.md
+      - Changelog: changelog.md
   - User Guides:
-    - Introduction: guides/index.md
-    - Quickstart: guides/quickstart.ipynb
-    - How it works: guides/formulae.ipynb
-    - Handling Missing Data: guides/missing_data.ipynb
-    - Formula Grammar: guides/grammar.md
-    - Model Specs: guides/model_specs.ipynb
-    - Transforms: guides/transforms.ipynb
-    - Categorical Encoding: guides/contrasts.ipynb
-    - Spline Encoding: guides/splines.ipynb
-    - Using with existing libraries: guides/integration.ipynb
+      - Introduction: guides/index.md
+      - Quickstart: guides/quickstart.ipynb
+      - How it works: guides/formulae.ipynb
+      - Handling Missing Data: guides/missing_data.ipynb
+      - Formula Grammar: guides/grammar.md
+      - Model Specs: guides/model_specs.ipynb
+      - Transforms: guides/transforms.ipynb
+      - Categorical Encoding: guides/contrasts.ipynb
+      - Spline Encoding: guides/splines.ipynb
+      - Using with existing libraries: guides/integration.ipynb
   - Developer Guides:
-    - Introduction: dev/index.md
-    - Integration: dev/integration.md
-    - Extensions: dev/extensions.md
+      - Introduction: dev/index.md
+      - Integration: dev/integration.md
+      - Extensions: dev/extensions.md
 theme:
   name: material
+  custom_dir: overrides
   font:
     text: Roboto
     code: Roboto Mono
@@ -45,3 +46,7 @@ plugins:
   - mkdocs-jupyter
 extra_css:
   - assets/styles.css
+extra:
+  version:
+    alias: true
+    provider: mike
