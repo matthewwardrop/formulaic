@@ -1,7 +1,9 @@
+import narwhals.stable.v1 as nw
 import numpy
 import pytest
 import scipy.sparse as spsparse
 
+from formulaic import model_matrix
 from formulaic.materializers import NarwhalsMaterializer
 
 polars = pytest.importorskip("polars")
@@ -29,6 +31,43 @@ class TestNarwhalsMaterializerPolars:
         import polars
 
         return polars.DataFrame({"a": [1, 2, 3], "A": ["a", "b", "c"]})
+
+    @pytest.fixture
+    def data_with_nulls(self):
+        return polars.DataFrame(
+            {
+                "a": [1, 2, None],
+                "b": [1, 2, 3],
+                "A": ["a", None, "c"],
+                "B": ["a", "b", None],
+                "D": ["a", "a", "a"],
+            }
+        )
+
+    @pytest.mark.parametrize("formula,tests", POLARS_TESTS.items())
+    @pytest.mark.parametrize("output", ["pandas", "narwhals", "numpy"])
+    def test_na_handling(self, data_with_nulls, formula, tests, output):
+        mm = NarwhalsMaterializer(data_with_nulls).get_model_matrix(
+            formula, output=output
+        )
+
+        if formula == "A:B":
+            return
+
+        mm = NarwhalsMaterializer(data_with_nulls).get_model_matrix(
+            formula, na_action="ignore"
+        )
+        assert isinstance(mm, polars.DataFrame)
+        if formula == ".":
+            assert mm.shape == (3, 5)
+        else:
+            assert mm.shape == (3, len(tests[0]) + (-1 if "A" in formula else 0))
+
+        if formula != "C(A)":  # C(A) pre-encodes the data, stripping out nulls.
+            with pytest.raises(ValueError):
+                NarwhalsMaterializer(data_with_nulls).get_model_matrix(
+                    formula, na_action="raise"
+                )
 
     @pytest.fixture
     def materializer(self, data):
@@ -82,3 +121,27 @@ class TestNarwhalsMaterializerPolars:
     def test_missing_field(self, materializer):
         with pytest.raises(KeyError):
             materializer.data_context["invalid_key"]
+
+    def test_for_data(self):
+        df = polars.DataFrame(
+            {
+                "xm": [1.0, 4.0, None, 2.0],
+            }
+        )
+        result = model_matrix("xm", data=df, na_action="drop")
+        assert result.to_dict(as_series=False) == {
+            "Intercept": [1.0, 1.0, 1.0],
+            "xm": [1.0, 4.0, 2.0],
+        }
+
+    def test_narwhals_input(self):
+        df = polars.DataFrame(
+            {
+                "xm": [1.0, 4.0, None, 2.0],
+            }
+        )
+        result = model_matrix("xm", data=nw.from_native(df), na_action="drop")
+        assert result.to_dict(as_series=False) == {
+            "Intercept": [1.0, 1.0, 1.0],
+            "xm": [1.0, 4.0, 2.0],
+        }

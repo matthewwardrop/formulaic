@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import itertools
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple
 
 import narwhals.stable.v1 as nw
 import numpy
@@ -193,16 +193,6 @@ class NarwhalsMaterializer(FormulaMaterializer):
     def _combine_columns(
         self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
     ) -> pandas.DataFrame:
-        # If we are outputing a pandas DataFrame, explicitly override index
-        # in case transforms/etc have lost track of it.
-        pandas_index = None
-        if spec.output == "pandas" and isinstance(self.data, pandas.DataFrame):
-            pandas_index = cast(pandas.DataFrame, self.data).index
-            if drop_rows:
-                pandas_index = pandas_index.drop(
-                    cast(pandas.DataFrame, self.data_context).index[drop_rows]
-                )
-
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:
             values = numpy.empty((self.data.shape[0], 0))
@@ -213,11 +203,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
                 return nw.from_native(values, eager_only=True)
             if spec.output == "numpy":
                 return values
-            return (
-                pandas.DataFrame(index=pandas_index)
-                if pandas_index is not None
-                else pandas.DataFrame(values)
-            )
+            return pandas.DataFrame(values)
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":
@@ -235,8 +221,6 @@ class NarwhalsMaterializer(FormulaMaterializer):
             return combined.to_native()
         if spec.output == "pandas":
             df = combined.to_pandas()
-            if pandas_index is not None:
-                return df.set_index(pandas_index, drop=True)
             return df
         if spec.output == "numpy":
             return combined.to_numpy()

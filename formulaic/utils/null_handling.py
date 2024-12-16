@@ -124,7 +124,7 @@ def _(values: list, indices: Sequence[int]) -> list:
 
 @drop_rows.register
 def _(values: narwhals.Series, indices: Sequence[int]) -> narwhals.Series:
-    tmp_name = nw.generate_temporary_column_name(n_bytes=8, columns=[values.name])
+    tmp_name = f"{values.name}_tmp"
     return (
         values.to_frame()
         .with_row_index(tmp_name)
