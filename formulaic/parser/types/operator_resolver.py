@@ -1,16 +1,11 @@
 import abc
 from collections import defaultdict
+from functools import cached_property
 from typing import Dict, Generator, Iterable, List, Tuple
 
 from ..utils import exc_for_token
 from .operator import Operator
 from .token import Token
-
-# Cached property was introduced in Python 3.8 (we currently support 3.7)
-try:
-    from functools import cached_property
-except ImportError:  # pragma: no cover
-    from cached_property import cached_property  # type: ignore
 
 
 class OperatorResolver(metaclass=abc.ABCMeta):

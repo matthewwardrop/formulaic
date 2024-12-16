@@ -33,11 +33,10 @@ The original license of the code is as follows:
 from __future__ import annotations
 
 from functools import partial
-from typing import Iterable, cast
+from typing import Iterable, Literal, cast
 
 import numpy
 import pandas
-from typing_extensions import Literal
 
 from formulaic.materializers.types import FactorValues
 from formulaic.transforms.basis_spline import SplineExtrapolation

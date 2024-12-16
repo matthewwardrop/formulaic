@@ -5,6 +5,7 @@ from enum import IntEnum
 from typing import (
     Any,
     Iterable,
+    Literal,
     Mapping,
     MutableMapping,
     Optional,
@@ -12,8 +13,6 @@ from typing import (
     Union,
     overload,
 )
-
-from typing_extensions import Literal
 
 from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.utils.layered_mapping import LayeredMapping

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Tuple, TypeVar, cast
-
-try:
-    from typing import SupportsIndex
-except ImportError:  # pragma: no cover
-    from typing_extensions import SupportsIndex
-
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Optional,
+    SupportsIndex,
+    Tuple,
+    TypeVar,
+    cast,
+)
 
 import wrapt
 

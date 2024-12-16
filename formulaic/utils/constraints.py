@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -19,7 +20,6 @@ from typing import (
 )
 
 import numpy
-from typing_extensions import Literal
 
 from formulaic.parser.algos.tokenize import tokenize
 from formulaic.parser.algos.tokens_to_ast import tokens_to_ast
