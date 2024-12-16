@@ -1,10 +1,10 @@
 import numpy
-import pandas
-import polars
 import pytest
 import scipy.sparse as spsparse
 
 from formulaic.materializers import NarwhalsMaterializer
+
+polars = pytest.importorskip("polars")
 
 POLARS_TESTS = {
     "a": (["Intercept", "a"], ["Intercept", "a"]),

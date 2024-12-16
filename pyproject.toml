@@ -43,6 +43,7 @@ documentation = "https://matthewwardrop.github.io/formulaic"
 
 [project.optional-dependencies]
 arrow = ["pyarrow>=1"]
+polars = ["polars>=1"]
 calculus = ["sympy>=1.3,!=1.10"]
 
 [tool.hatch.version]
