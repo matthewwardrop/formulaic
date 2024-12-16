@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Literal
 
-from typing_extensions import Literal, TypeAlias
+from typing_extensions import TypeAlias
 
 
 class Sentinel(Enum):

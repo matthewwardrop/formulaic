@@ -406,14 +406,17 @@ class Structured(Generic[_ItemType]):
                 values_to_merge["root"].append(obj)
 
         return cls(
-            **{
-                key: (
-                    cls._merge(*values, merger=merger, _context=_context + (key,))
-                    if len(values) > 1
-                    else values[0]
-                )
-                for key, values in values_to_merge.items()
-            }
+            **cast(
+                Dict[str, Any],
+                {
+                    key: (
+                        cls._merge(*values, merger=merger, _context=_context + (key,))
+                        if len(values) > 1
+                        else values[0]
+                    )
+                    for key, values in values_to_merge.items()
+                },
+            )
         )
 
     @staticmethod
