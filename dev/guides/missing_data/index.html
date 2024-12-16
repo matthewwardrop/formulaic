@@ -1398,28 +1398,38 @@ dataset. For example:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
-<span class="kn">from</span> <span class="nn">formulaic.materializers</span> <span class="kn">import</span> <span class="n">NAAction</span>
-<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">Categorical</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">Categorical</span><span class="p">,</span> <span class="n">DataFrame</span>
 
-<span class="n">df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">"c"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
-    <span class="s2">"C"</span><span class="p">:</span> <span class="n">Categorical</span><span class="p">([</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">])</span>
-<span class="p">})</span>
+<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
+<span class="kn">from</span> <span class="nn">formulaic.materializers</span> <span class="kn">import</span> <span class="n">NAAction</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"c"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+        <span class="s2">"C"</span><span class="p">:</span> <span class="n">Categorical</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">],</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"d"</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">]</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"c + C"</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">na_action</span><span class="o">=</span><span class="n">NAAction</span><span class="o">.</span><span class="n">DROP</span><span class="p">)</span>
 <span class="c1"># Equivlent to:</span>
 <span class="c1">#   * model_matrix("c + C", df)</span>
 <span class="c1">#   * model_matrix("c + C", df, na_action="drop")</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from formulaic import model_matrix
-from formulaic.materializers import NAAction
-from pandas import DataFrame, Categorical
+<div class="clipboard-copy-txt" id="cell-1">from pandas import Categorical, DataFrame
 
-df = DataFrame({
-    "c": [1, 2, None, 4, 5],
-    "C": Categorical(["a", "b", "c", None, "e"], categories=["a", "b", "c", "d", "e"])
-})
+from formulaic import model_matrix
+from formulaic.materializers import NAAction
+
+df = DataFrame(
+    {
+        "c": [1, 2, None, 4, 5],
+        "C": Categorical(
+            ["a", "b", "c", None, "e"], categories=["a", "b", "c", "d", "e"]
+        ),
+    }
+)
 
 model_matrix("c + C", df, na_action=NAAction.DROP)
 # Equivlent to:

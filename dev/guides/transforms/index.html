@@ -1535,16 +1535,20 @@ example:</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span>
-<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span><span class="p">,</span> <span class="n">Formula</span>
+
+<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">Formula</span><span class="p">,</span> <span class="n">model_matrix</span>
+
 
 <span class="k">def</span> <span class="nf">my_transform</span><span class="p">(</span><span class="n">col</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">col</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">col</span><span class="o">**</span><span class="mi">2</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import pandas
-from formulaic import model_matrix, Formula
+
+from formulaic import Formula, model_matrix
+
 
 def my_transform(col: pandas.Series) -&gt; pandas.Series:
-    return col ** 2</div>
+    return col**2</div>
 </div>
 </div>
 </div>
@@ -1799,11 +1803,13 @@ does the centering. For more details, refer to inline documentation:
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic.transforms</span> <span class="kn">import</span> <span class="n">scale</span><span class="p">,</span> <span class="n">center</span>
-<span class="n">scale</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]))</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic.transforms</span> <span class="kn">import</span> <span class="n">center</span><span class="p">,</span> <span class="n">scale</span>
+
+<span class="n">scale</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">from formulaic.transforms import scale, center
-scale(pandas.Series([1,2,3,4,5,6,7,8]))</div>
+<div class="clipboard-copy-txt" id="cell-4">from formulaic.transforms import center, scale
+
+scale(pandas.Series([1, 2, 3, 4, 5, 6, 7, 8]))</div>
 </div>
 </div>
 </div>
@@ -1841,10 +1847,9 @@ scale(pandas.Series([1,2,3,4,5,6,7,8]))</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">center</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]))</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">center</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">]))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-5">
-center(pandas.Series([1,2,3,4,5,6,7,8]))</div>
+<div class="clipboard-copy-txt" id="cell-5">center(pandas.Series([1, 2, 3, 4, 5, 6, 7, 8]))</div>
 </div>
 </div>
 </div>
@@ -1926,7 +1931,9 @@ explored below.</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span>
+
 <span class="kn">from</span> <span class="nn">formulaic.transforms</span> <span class="kn">import</span> <span class="n">stateful_transform</span>
+
 
 <span class="nd">@stateful_transform</span>
 <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1937,11 +1944,14 @@ explored below.</p>
         <span class="n">_state</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">data</span> <span class="o">-</span> <span class="n">_state</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">]</span>
 
+
 <span class="n">state</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="n">center</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]),</span> <span class="n">_state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+<span class="n">center</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="n">_state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">import numpy
+
 from formulaic.transforms import stateful_transform
+
 
 @stateful_transform
 def center(data, _state=None, _metadata=None, _spec=None):
@@ -1952,8 +1962,9 @@ def center(data, _state=None, _metadata=None, _spec=None):
         _state["mean"] = numpy.mean(data)
     return data - _state["mean"]
 
+
 state = {}
-center(pandas.Series([1,2,3]), _state=state)</div>
+center(pandas.Series([1, 2, 3]), _state=state)</div>
 </div>
 </div>
 </div>
@@ -2055,12 +2066,13 @@ something like:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span>
-<span class="kn">from</span> <span class="nn">formulaic.transforms</span> <span class="kn">import</span> <span class="n">stateful_transform</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic.transforms</span> <span class="kn">import</span> <span class="n">stateful_transform</span>
+
 
 <span class="nd">@stateful_transform</span>
 <span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No implementation for data of type </span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">))</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
 
 <span class="nd">@center</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2068,12 +2080,13 @@ something like:</p>
         <span class="n">_state</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">data</span> <span class="o">-</span> <span class="n">_state</span><span class="p">[</span><span class="s2">"mean"</span><span class="p">]</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-8">import numpy
-from formulaic.transforms import stateful_transform
+<div class="clipboard-copy-txt" id="cell-8">from formulaic.transforms import stateful_transform
+
 
 @stateful_transform
 def center(data, _state=None, _metadata=None, _spec=None):
     raise ValueError(f"No implementation for data of type {repr(type(data))}")
+
 
 @center.register(pandas.Series)
 def _(data, _state=None, _metadata=None, _spec=None):

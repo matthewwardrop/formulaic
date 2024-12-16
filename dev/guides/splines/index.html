@@ -1437,10 +1437,16 @@ and scaling, and so all methods will result in the same set of polynomials.</p>
 <span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
 
 <span class="c1"># Build some data, and hard-code "y" as a quartic function with some Gaussian noise.</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">"x"</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
-<span class="p">})</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"x"</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+    <span class="p">}</span>
+<span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span>
+    <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span>
+    <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span>
+    <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span>
+    <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
 <span class="p">)</span>
 
 <span class="c1"># Generate a model matrix with a polynomial coding in "x".</span>
@@ -1450,11 +1456,15 @@ and scaling, and so all methods will result in the same set of polynomials.</p>
 <span class="n">coeffs</span> <span class="o">=</span> <span class="n">OLS</span><span class="p">(</span><span class="n">y</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span><span class="o">.</span><span class="n">params</span>
 
 <span class="c1"># Plot the basis splines weighted by coefficients.</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">X</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">" (weighted)"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">model_spec</span><span class="o">.</span><span class="n">column_names</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+    <span class="n">X</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">" (weighted)"</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">model_spec</span><span class="o">.</span><span class="n">column_names</span><span class="p">],</span>
+<span class="p">)</span>
 <span class="c1"># Plot B-spline basis functions (colored curves) each multiplied by its coeff</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Raw observations"</span><span class="p">)</span>
 <span class="c1"># Plot the fit spline itself (sum of the basis functions)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s1">'k'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Fit spline"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">"k"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Fit spline"</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">();</span>
 </pre></div>
@@ -1466,10 +1476,16 @@ from statsmodels.api import OLS
 from formulaic import model_matrix
 
 # Build some data, and hard-code "y" as a quartic function with some Gaussian noise.
-data = pandas.DataFrame({
-    "x": numpy.linspace(0., 1., 100),
-}).assign(
-    y=lambda df: df.x + 0.2 * df.x**2 - 0.7 * df.x**3 + 3 * df.x**4 + 0.1 * numpy.random.randn(100)
+data = pandas.DataFrame(
+    {
+        "x": numpy.linspace(0.0, 1.0, 100),
+    }
+).assign(
+    y=lambda df: df.x
+    + 0.2 * df.x**2
+    - 0.7 * df.x**3
+    + 3 * df.x**4
+    + 0.1 * numpy.random.randn(100)
 )
 
 # Generate a model matrix with a polynomial coding in "x".
@@ -1479,11 +1495,15 @@ y, X = model_matrix("y ~ poly(x, degree=3)", data, output="numpy")
 coeffs = OLS(y[:, 0], X).fit().params
 
 # Plot the basis splines weighted by coefficients.
-plt.plot(data.x, X * coeffs, label=[name + " (weighted)" for name in X.model_spec.column_names])
+plt.plot(
+    data.x,
+    X * coeffs,
+    label=[name + " (weighted)" for name in X.model_spec.column_names],
+)
 # Plot B-spline basis functions (colored curves) each multiplied by its coeff
 plt.scatter(data.x, data.y, marker="x", label="Raw observations")
 # Plot the fit spline itself (sum of the basis functions)
-plt.plot(data.x, numpy.dot(X, coeffs), color='k', linewidth=3, label="Fit spline")
+plt.plot(data.x, numpy.dot(X, coeffs), color="k", linewidth=3, label="Fit spline")
 
 plt.legend();</div>
 </div>

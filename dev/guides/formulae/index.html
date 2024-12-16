@@ -1519,15 +1519,23 @@ way by the appropriate <code>Materializer</code> instance.</p>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic.parser.types</span> <span class="kn">import</span> <span class="n">Factor</span>
 
-<span class="n">Factor</span><span class="p">(</span><span class="s2">"1"</span><span class="p">,</span> <span class="n">eval_method</span><span class="o">=</span><span class="s2">"literal"</span><span class="p">)</span>  <span class="c1"># a factor that represents the numerical constant of 1</span>
+<span class="n">Factor</span><span class="p">(</span>
+    <span class="s2">"1"</span><span class="p">,</span> <span class="n">eval_method</span><span class="o">=</span><span class="s2">"literal"</span>
+<span class="p">)</span>  <span class="c1"># a factor that represents the numerical constant of 1</span>
 <span class="n">Factor</span><span class="p">(</span><span class="s2">"a"</span><span class="p">)</span>  <span class="c1"># a factor that will be looked up from the data context</span>
-<span class="n">Factor</span><span class="p">(</span><span class="s2">"a + b"</span><span class="p">,</span> <span class="n">eval_method</span><span class="o">=</span><span class="s2">"python"</span><span class="p">)</span>  <span class="c1"># a factor that will return the sum of `a` and `b`</span>
+<span class="n">Factor</span><span class="p">(</span>
+    <span class="s2">"a + b"</span><span class="p">,</span> <span class="n">eval_method</span><span class="o">=</span><span class="s2">"python"</span>
+<span class="p">)</span>  <span class="c1"># a factor that will return the sum of `a` and `b`</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">from formulaic.parser.types import Factor
 
-Factor("1", eval_method="literal")  # a factor that represents the numerical constant of 1
+Factor(
+    "1", eval_method="literal"
+)  # a factor that represents the numerical constant of 1
 Factor("a")  # a factor that will be looked up from the data context
-Factor("a + b", eval_method="python")  # a factor that will return the sum of `a` and `b`</div>
+Factor(
+    "a + b", eval_method="python"
+)  # a factor that will return the sum of `a` and `b`</div>
 </div>
 </div>
 </div>
@@ -1655,18 +1663,24 @@ model matrices for different parts of our modeling process.</p>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">Formula</span>
 
 <span class="c1"># Unstructured formula (a simple list of terms)</span>
-<span class="n">Formula</span><span class="p">([</span>
-    <span class="n">Term</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="n">Factor</span><span class="p">(</span><span class="s2">"c"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"d"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"e"</span><span class="p">)]),</span>
-    <span class="n">Term</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="n">Factor</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"b"</span><span class="p">)]),</span>
-<span class="p">])</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">Formula</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">Term</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="n">Factor</span><span class="p">(</span><span class="s2">"c"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"d"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"e"</span><span class="p">)]),</span>
+        <span class="n">Term</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="n">Factor</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">Factor</span><span class="p">(</span><span class="s2">"b"</span><span class="p">)]),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">f</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3">from formulaic import Formula
 
 # Unstructured formula (a simple list of terms)
-Formula([
-    Term(factors=[Factor("c"), Factor("d"), Factor("e")]),
-    Term(factors=[Factor("a"), Factor("b")]),
-])</div>
+f = Formula(
+    [
+        Term(factors=[Factor("c"), Factor("d"), Factor("e")]),
+        Term(factors=[Factor("a"), Factor("b")]),
+    ]
+)
+f</div>
 </div>
 </div>
 </div>
@@ -1714,9 +1728,9 @@ Formula([
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">type</span><span class="p">(</span><span class="n">_</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">type(_), list(_)</div>
+<div class="clipboard-copy-txt" id="cell-4">type(f), list(f)</div>
 </div>
 </div>
 </div>
@@ -1784,7 +1798,7 @@ described below).</p>
         <span class="n">really_nested</span><span class="o">=</span><span class="p">[</span>
             <span class="n">Term</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="p">[</span><span class="n">Factor</span><span class="p">(</span><span class="s2">"really_nested_col"</span><span class="p">)]),</span>
         <span class="p">],</span>
-    <span class="p">)</span>
+    <span class="p">),</span>
 <span class="p">)</span>
 <span class="n">f</span>
 </pre></div>
@@ -1803,7 +1817,7 @@ described below).</p>
         really_nested=[
             Term(factors=[Factor("really_nested_col")]),
         ],
-    )
+    ),
 )
 f</div>
 </div>
@@ -1861,9 +1875,9 @@ f</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">type</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6">type(_)</div>
+<div class="clipboard-copy-txt" id="cell-6">type(f)</div>
 </div>
 </div>
 </div>
@@ -2130,8 +2144,9 @@ This applies to parentheses <code>()</code> and square brackets <code>[]</code>.
 <span class="p">[</span>
     <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">token</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">kind</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="n">DefaultFormulaParser</span><span class="p">(</span><span class="n">include_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">get_tokens</span><span class="p">(</span><span class="s2">"y ~ 1 + b:log(c) | `d$in^df` + {e + f}"</span><span class="p">)</span>
+        <span class="n">DefaultFormulaParser</span><span class="p">(</span><span class="n">include_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">get_tokens</span><span class="p">(</span>
+            <span class="s2">"y ~ 1 + b:log(c) | `d$in^df` + {e + f}"</span>
+        <span class="p">)</span>
     <span class="p">)</span>
 <span class="p">]</span>
 </pre></div>
@@ -2140,8 +2155,9 @@ This applies to parentheses <code>()</code> and square brackets <code>[]</code>.
 [
     f"{token.token} : {token.kind.value}"
     for token in (
-        DefaultFormulaParser(include_intercept=False)
-        .get_tokens("y ~ 1 + b:log(c) | `d$in^df` + {e + f}")
+        DefaultFormulaParser(include_intercept=False).get_tokens(
+            "y ~ 1 + b:log(c) | `d$in^df` + {e + f}"
+        )
     )
 ]</div>
 </div>
@@ -2389,8 +2405,7 @@ parser if you so desire (though 99.9% of the time this wouldn't be necessary).</
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">Formula</span><span class="p">(</span><span class="s2">"y ~ a + b:c"</span><span class="p">,</span> <span class="n">_parser</span><span class="o">=</span><span class="n">DefaultFormulaParser</span><span class="p">(</span><span class="n">include_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-14">
-Formula("y ~ a + b:c", _parser=DefaultFormulaParser(include_intercept=False))</div>
+<div class="clipboard-copy-txt" id="cell-14">Formula("y ~ a + b:c", _parser=DefaultFormulaParser(include_intercept=False))</div>
 </div>
 </div>
 </div>
@@ -2456,12 +2471,16 @@ an argument to <code>.get_model_matrix()</code>:</p>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="s2">"c"</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="s2">"A"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">]})</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="s2">"c"</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="s2">"A"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">]}</span>
+<span class="p">)</span>
 <span class="n">Formula</span><span class="p">(</span><span class="s2">"a + b:c"</span><span class="p">)</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-15">import pandas
 
-data = pandas.DataFrame({"a": [1,2,3], "b": [4,5,6], "c": [7, 8, 9], "A": ["a", "b", "c"]})
+data = pandas.DataFrame(
+    {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "A": ["a", "b", "c"]}
+)
 Formula("a + b:c").get_model_matrix(data)</div>
 </div>
 </div>
@@ -2622,9 +2641,11 @@ code is equivalent to:</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic.materializers</span> <span class="kn">import</span> <span class="n">PandasMaterializer</span>
+
 <span class="n">PandasMaterializer</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">Formula</span><span class="p">(</span><span class="s2">"a + b:c"</span><span class="p">),</span> <span class="n">output</span><span class="o">=</span><span class="s2">"pandas"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-17">from formulaic.materializers import PandasMaterializer
+
 PandasMaterializer(data).get_model_matrix(Formula("a + b:c"), output="pandas")</div>
 </div>
 </div>
@@ -2722,12 +2743,14 @@ subclass, and so it <em>also</em> acts like the type of object requested. For ex
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span>
+
 <span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">ModelMatrix</span>
 
 <span class="n">mm</span> <span class="o">=</span> <span class="n">Formula</span><span class="p">(</span><span class="s2">"a + b:c"</span><span class="p">)</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">"numpy"</span><span class="p">)</span>
 <span class="nb">isinstance</span><span class="p">(</span><span class="n">mm</span><span class="p">,</span> <span class="n">ModelMatrix</span><span class="p">),</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mm</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-18">import numpy
+
 from formulaic import ModelMatrix
 
 mm = Formula("a + b:c").get_model_matrix(data, output="numpy")

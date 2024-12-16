@@ -1577,17 +1577,19 @@ sensible names to the coefficients fit during a regression.</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># Let's get ourselves a simple `ModelMatrix` instance to play with.</span>
-<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
 
-<span class="n">mm</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"center(a) + b"</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">]}))</span>
+<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
+
+<span class="n">mm</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"center(a) + b"</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">]}))</span>
 <span class="n">mm</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1"># Let's get ourselves a simple `ModelMatrix` instance to play with.
-from formulaic import model_matrix
 from pandas import DataFrame
 
-mm = model_matrix("center(a) + b", DataFrame({"a": [1,2,3], "b": ["A", "B", "C"]}))
+from formulaic import model_matrix
+
+mm = model_matrix("center(a) + b", DataFrame({"a": [1, 2, 3], "b": ["A", "B", "C"]}))
 mm</div>
 </div>
 </div>
@@ -1902,16 +1904,12 @@ names; for example:</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">mm_numpy</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span>
-    <span class="s2">"center(a) + b"</span><span class="p">,</span>
-    <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">]}),</span>
-    <span class="n">output</span><span class="o">=</span><span class="s1">'numpy'</span>
+    <span class="s2">"center(a) + b"</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">]}),</span> <span class="n">output</span><span class="o">=</span><span class="s2">"numpy"</span>
 <span class="p">)</span>
 <span class="n">mm_numpy</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">mm_numpy = model_matrix(
-    "center(a) + b",
-    DataFrame({"a": [1,2,3], "b": ["A", "B", "C"]}),
-    output='numpy'
+    "center(a) + b", DataFrame({"a": [1, 2, 3], "b": ["A", "B", "C"]}), output="numpy"
 )
 mm_numpy</div>
 </div>
@@ -1953,10 +1951,10 @@ mm_numpy</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ms_numpy</span> <span class="o">=</span> <span class="n">mm_numpy</span><span class="o">.</span><span class="n">model_spec</span>
-<span class="n">mm_numpy</span><span class="p">[:,</span> <span class="n">ms_numpy</span><span class="o">.</span><span class="n">term_indices</span><span class="p">[</span><span class="s1">'b'</span><span class="p">]]</span>
+<span class="n">mm_numpy</span><span class="p">[:,</span> <span class="n">ms_numpy</span><span class="o">.</span><span class="n">term_indices</span><span class="p">[</span><span class="s2">"b"</span><span class="p">]]</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">ms_numpy = mm_numpy.model_spec
-mm_numpy[:, ms_numpy.term_indices['b']]</div>
+mm_numpy[:, ms_numpy.term_indices["b"]]</div>
 </div>
 </div>
 </div>
@@ -2023,9 +2021,9 @@ documentation.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ms</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">]}))</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">ms</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">]}))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-7">ms.get_model_matrix(DataFrame({"a": [4,5,6], "b": ["A", "B", "D"]}))</div>
+<div class="clipboard-copy-txt" id="cell-7">ms.get_model_matrix(DataFrame({"a": [4, 5, 6], "b": ["A", "B", "D"]}))</div>
 </div>
 </div>
 </div>
@@ -2131,9 +2129,9 @@ warnings and/or exceptions will be generated.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model_matrix</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">]}))</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model_matrix</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">]}))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-8">model_matrix(ms, data=DataFrame({"a": [4,5,6], "b": ["A", "A", "A"]}))</div>
+<div class="clipboard-copy-txt" id="cell-8">model_matrix(ms, data=DataFrame({"a": [4, 5, 6], "b": ["A", "A", "A"]}))</div>
 </div>
 </div>
 </div>
@@ -2235,12 +2233,12 @@ these choices into the formula itself where possible). For example:</p>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">ModelSpec</span>
 
-<span class="n">ms</span> <span class="o">=</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"a+b+c"</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">'numpy'</span><span class="p">,</span> <span class="n">ensure_full_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ms</span> <span class="o">=</span> <span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"a+b+c"</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">"numpy"</span><span class="p">,</span> <span class="n">ensure_full_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">ms</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-9">from formulaic import ModelSpec
 
-ms = ModelSpec("a+b+c", output='numpy', ensure_full_rank=False)
+ms = ModelSpec("a+b+c", output="numpy", ensure_full_rank=False)
 ms</div>
 </div>
 </div>
@@ -2279,11 +2277,17 @@ ms</div>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span>
-<span class="n">mm</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">'a'</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="s1">'b'</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="s1">'c'</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">]}))</span>
+
+<span class="n">mm</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">get_model_matrix</span><span class="p">(</span>
+    <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="s2">"c"</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">]})</span>
+<span class="p">)</span>
 <span class="n">mm</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-10">import pandas
-mm = ms.get_model_matrix(pandas.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7,8,9]}))
+
+mm = ms.get_model_matrix(
+    pandas.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+)
 mm</div>
 </div>
 </div>
@@ -2392,11 +2396,15 @@ structure from a formula. For example:</p>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">Formula</span><span class="p">,</span> <span class="n">ModelSpecs</span>
 
-<span class="n">ModelSpecs</span><span class="p">(</span><span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">substructure</span><span class="o">=</span><span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"b"</span><span class="p">),</span> <span class="n">another_substructure</span><span class="o">=</span><span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"c"</span><span class="p">))</span>
+<span class="n">ModelSpecs</span><span class="p">(</span>
+    <span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"a"</span><span class="p">),</span> <span class="n">substructure</span><span class="o">=</span><span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"b"</span><span class="p">),</span> <span class="n">another_substructure</span><span class="o">=</span><span class="n">ModelSpec</span><span class="p">(</span><span class="s2">"c"</span><span class="p">)</span>
+<span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-12">from formulaic import Formula, ModelSpecs
 
-ModelSpecs(ModelSpec("a"), substructure=ModelSpec("b"), another_substructure=ModelSpec("c"))</div>
+ModelSpecs(
+    ModelSpec("a"), substructure=ModelSpec("b"), another_substructure=ModelSpec("c")
+)</div>
 </div>
 </div>
 </div>

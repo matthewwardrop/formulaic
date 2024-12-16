@@ -1566,25 +1566,31 @@ the data whether a feature needs to categorically encoded. For example:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
-<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">Categorical</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">Categorical</span><span class="p">,</span> <span class="n">DataFrame</span>
 
-<span class="n">df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s2">"letters"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">],</span>
-    <span class="s2">"numbers"</span><span class="p">:</span> <span class="n">Categorical</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]),</span>
-    <span class="s2">"values"</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
-<span class="p">})</span>
+<span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"letters"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">],</span>
+        <span class="s2">"numbers"</span><span class="p">:</span> <span class="n">Categorical</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+        <span class="s2">"values"</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"letters + numbers + values"</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">from formulaic import model_matrix
-from pandas import DataFrame, Categorical
+<div class="clipboard-copy-txt" id="cell-1">from pandas import Categorical, DataFrame
 
-df = DataFrame({
-    "letters": ["a", "b", "c"],
-    "numbers": Categorical([1,2,3]),
-    "values": [20, 200, 30],
-})
+from formulaic import model_matrix
+
+df = DataFrame(
+    {
+        "letters": ["a", "b", "c"],
+        "numbers": Categorical([1, 2, 3]),
+        "values": [20, 200, 30],
+    }
+)
 
 model_matrix("letters + numbers + values", df)</div>
 </div>
@@ -2907,23 +2913,29 @@ write:</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span>
-<span class="n">Z</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># A</span>
-    <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="c1"># B - A</span>
-    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># C - B</span>
-    <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>  <span class="c1"># D - A</span>
-<span class="p">])</span>
-<span class="n">coding</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Z</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">:]</span>
+
+<span class="n">Z</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># A</span>
+        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># B - A</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># C - B</span>
+        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>  <span class="c1"># D - A</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">coding</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Z</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">:]</span>
 <span class="n">coding</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-13">import numpy
-Z = numpy.array([
-    [1, 0, 0, 0],  # A
-    [-1, 1, 0, 0], # B - A
-    [0, -1, 1, 0],  # C - B
-    [-1, 0, 0, 1],  # D - A
-])
-coding = numpy.linalg.inv(Z)[:,1:]
+
+Z = numpy.array(
+    [
+        [1, 0, 0, 0],  # A
+        [-1, 1, 0, 0],  # B - A
+        [0, -1, 1, 0],  # C - B
+        [-1, 0, 0, 1],  # D - A
+    ]
+)
+coding = numpy.linalg.inv(Z)[:, 1:]
 coding</div>
 </div>
 </div>
@@ -2964,9 +2976,13 @@ coding</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model_matrix</span><span class="p">(</span><span class="s2">"C(letters, contr.custom(coding))"</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"letters"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">]}))</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">model_matrix</span><span class="p">(</span>
+    <span class="s2">"C(letters, contr.custom(coding))"</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s2">"letters"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">]})</span>
+<span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-14">model_matrix("C(letters, contr.custom(coding))", DataFrame({"letters": ["A", "B", "C", "D"]}))</div>
+<div class="clipboard-copy-txt" id="cell-14">model_matrix(
+    "C(letters, contr.custom(coding))", DataFrame({"letters": ["A", "B", "C", "D"]})
+)</div>
 </div>
 </div>
 </div>

@@ -1370,26 +1370,32 @@ high-level <code>model_matrix</code> function:</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span>
+
 <span class="kn">from</span> <span class="nn">formulaic</span> <span class="kn">import</span> <span class="n">model_matrix</span>
 
-<span class="n">df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s1">'y'</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="s1">'a'</span><span class="p">:</span> <span class="p">[</span><span class="s1">'A'</span><span class="p">,</span> <span class="s1">'B'</span><span class="p">,</span> <span class="s1">'C'</span><span class="p">],</span>
-    <span class="s1">'b'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
-<span class="p">})</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"y"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="s2">"a"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">],</span>
+        <span class="s2">"b"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">)</span>
 
 <span class="n">y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"y ~ a + b + a:b"</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
 <span class="c1"># This is short-hand for:</span>
 <span class="c1"># y, X = formulaic.Formula('y ~ a + b + a:b').get_model_matrix(df)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">import pandas
+
 from formulaic import model_matrix
 
-df = pandas.DataFrame({
-    'y': [0, 1, 2],
-    'a': ['A', 'B', 'C'],
-    'b': [0.3, 0.1, 0.2],
-})
+df = pandas.DataFrame(
+    {
+        "y": [0, 1, 2],
+        "a": ["A", "B", "C"],
+        "b": [0.3, 0.1, 0.2],
+    }
+)
 
 y, X = model_matrix("y ~ a + b + a:b", df)
 # This is short-hand for:
@@ -1607,8 +1613,7 @@ matrix is not full-rank, you can pass <code>ensure_full_rank=False</code>:</p>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"a + b + a:b"</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">ensure_full_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">X</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">
-X = model_matrix("a + b + a:b", df, ensure_full_rank=False)
+<div class="clipboard-copy-txt" id="cell-4">X = model_matrix("a + b + a:b", df, ensure_full_rank=False)
 X</div>
 </div>
 </div>
@@ -1788,10 +1793,10 @@ Formulaic allows you to directly generate sparse model matrices using:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"a + b + a:b"</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s1">'sparse'</span><span class="p">)</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">model_matrix</span><span class="p">(</span><span class="s2">"a + b + a:b"</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">"sparse"</span><span class="p">)</span>
 <span class="n">X</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6">X = model_matrix("a + b + a:b", df, output='sparse')
+<div class="clipboard-copy-txt" id="cell-6">X = model_matrix("a + b + a:b", df, output="sparse")
 X</div>
 </div>
 </div>
