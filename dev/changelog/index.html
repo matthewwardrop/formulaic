@@ -1,0 +1,1949 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../migration/">
+      
+      
+        <link rel="next" href="../guides/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+    
+    
+      
+        <title>Changelog - Formulaic</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/styles.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="light-blue" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#110-15-december-2024" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Formulaic" class="md-header__button md-logo" aria-label="Formulaic" data-md-component="logo">
+      
+  <img src="../assets/images/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Formulaic
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/" class="md-tabs__link">
+          
+  
+  User Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../dev/" class="md-tabs__link">
+          
+  
+  Developer Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Formulaic" class="md-nav__button md-logo" aria-label="Formulaic" data-md-component="logo">
+      
+  <img src="../assets/images/logo.svg" alt="logo">
+
+    </a>
+    Formulaic
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formulas/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What are formulas?
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Migrating from Patsy/R
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#110-15-december-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1.0 (15 December 2024)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#102-12-july-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.2 (12 July 2024)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#101-24-december-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.1 (24 December 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-24-december-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.0 (24 December 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066-4-october-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.6 (4 October 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#065-25-september-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.5 (25 September 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064-10-july-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.4 (10 July 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063-26-june-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.3 (26 June 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#062-22-june-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.2 (22 June 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061-2-may-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.1 (2 May 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-26-apr-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.0 (26 Apr 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#052-17-sep-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.2 (17 Sep 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051-9-sep-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.1 (9 Sep 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-28-aug-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.0 (28 Aug 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-10-aug-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 (10 Aug 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#034-1-may-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.4 (1 May 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#033-4-april-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.3 (4 April 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032-17-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.2 (17 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031-15-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.1 (15 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-14-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.0 (14 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#024-9-july-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.4 (9 July 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#023-4-february-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.3 (4 February 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#022-4-february-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.2 (4 February 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#021-22-january-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.1 (22 January 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-21-january-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (21 January 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#012-6-november-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.2 (6 November 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#011-31-october-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.1 (31 October 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-31-october-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.0 (31 October 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#001-1-september-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.1 (1 September 2019)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    User Guides
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            User Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/formulae/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How it works
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/missing_data/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Handling Missing Data
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/grammar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Formula Grammar
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/model_specs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Model Specs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/transforms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Transforms
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/contrasts/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Categorical Encoding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/splines/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Spline Encoding
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Using with existing libraries
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Developer Guides
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/integration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/extensions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extensions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#110-15-december-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1.0 (15 December 2024)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#102-12-july-2024" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.2 (12 July 2024)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#101-24-december-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.1 (24 December 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-24-december-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.0.0 (24 December 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066-4-october-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.6 (4 October 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#065-25-september-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.5 (25 September 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064-10-july-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.4 (10 July 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063-26-june-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.3 (26 June 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#062-22-june-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.2 (22 June 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061-2-may-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.1 (2 May 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060-26-apr-2023" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.6.0 (26 Apr 2023)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#052-17-sep-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.2 (17 Sep 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051-9-sep-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.1 (9 Sep 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-28-aug-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.5.0 (28 Aug 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040-10-aug-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.4.0 (10 Aug 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#034-1-may-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.4 (1 May 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#033-4-april-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.3 (4 April 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032-17-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.2 (17 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031-15-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.1 (15 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030-14-march-2022" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.3.0 (14 March 2022)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#024-9-july-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.4 (9 July 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#023-4-february-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.3 (4 February 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#022-4-february-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.2 (4 February 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#021-22-january-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.1 (22 January 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020-21-january-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (21 January 2021)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#012-6-november-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.2 (6 November 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#011-31-october-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.1 (31 October 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-31-october-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.1.0 (31 October 2019)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#001-1-september-2019" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.0.1 (1 September 2019)
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Changelog</h1>
+
+<p>For changes since the latest tagged release, please refer to the
+<a href="https://github.com/matthewwardrop/formulaic/commits/main">git commit log</a>.</p>
+<hr />
+<h2 id="110-15-december-2024">1.1.0 (15 December 2024)</h2>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li><code>Formula</code> is no longer always "structured" with special cases to handle the
+  case where it has no structure. Legacy shims have been added to support old
+  patterns, with <code>DeprecationWarning</code>s raised when they are used. It is not
+  expected to break anyone not explicitly checking whether the <code>Formula.root</code> is
+  a list instance (which formerly should have been simply assumed) [it is a now
+  <code>SimpleFormula</code> instance that acts like an ordered sequence of <code>Term</code>
+  instances].</li>
+<li>The column names associated with categorical factors has changed. Previously,
+  a prefix was unconditionally added to the level in the column name like
+  <code>feature[T.A]</code>, whether nor not the encoding will result in that term acting
+  as a contrast. Now, in keeping with <code>patsy</code>, we only add the prefix if the
+  categorical factor is encoded with reduced rank. Otherwise, <code>feature[A]</code> will
+  be used instead.</li>
+<li><code>formulaic.parsers.types.structured</code> has been promoted to
+  <code>formulaic.utils.structured</code>.</li>
+</ul>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li><code>Formula</code> now instantiates to <code>SimpleFormula</code> or <code>StructuredFormula</code>, the
+  latter being a tree-structure of <code>SimpleFormula</code> instances (as compared to
+  <code>List[Term]</code>) previously. This simplifies various internal logic and makes the
+  propagation of formula metadata more explicit.</li>
+<li>Added support for restricting the set of features used by the default formula
+  parser so that libraries can more easily restrict the structure of output
+  formulae.</li>
+<li><code>dict</code> and <code>recarray</code> types are no associated with the <code>pandas</code> materializer
+  by default (rather than raising), simplifying some user workflows.</li>
+<li>Added support for the <code>.</code> operator (which is replaced with all variables not
+  used on the left-hand-side of formulae).</li>
+<li>Added <strong>experimental</strong> support for nested formulae of form <code>[ ... ~ ... ]</code>.
+  This is useful for (e.g.) generating formulae for IV 2SLS.</li>
+<li>Add support for subsettings <code>ModelSpec[s]</code> based on an arbitrary
+  strictly reduced <code>FormulaSpec</code>.</li>
+<li>Added <code>Formula.required_variables</code> to more easily surface the expected data
+  requirements of the formula.</li>
+<li>Added support for extracting rows dropped during materialization.</li>
+<li>Added cubic spline support for cyclic (<code>cc</code>) and natural (<code>cr</code>). See
+  <code>formulaic.materializers.transforms.cubic_spline.cubic_spline</code> for
+  more details.</li>
+<li>Added a <code>lag()</code> transform.</li>
+<li>Constructing <code>LinearConstraints</code> can now be done from a list of strings (for
+  increased parity with <code>patsy</code>).</li>
+<li>Categorical factors are now preceded with (e.g.) <code>T.</code> when they actully
+  describe contrasts (i.e. when they are encoded with reduced rank).</li>
+<li>Contrasts metadata is now added to the encoder state via <code>encode_categorical</code>;
+  which is surfaced via <code>ModelSpec.factor_contrasts</code>.</li>
+<li><code>Operator</code> instances now received <code>context</code> which is optionally specified by
+  the user during formula parsing, and updated by the parser. This is what makes
+  the <code>.</code> implementation possible.</li>
+<li>Given the generic usefulness of <code>Structured</code>, it has been promoted to
+  <code>formulaic.utils</code>.</li>
+<li>Added explicit support and testing for Python 3.13.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed nested ordering of <code>Formula</code> instance.</li>
+<li>Allow Python tokens to multiple chained parentheses and brackets without using
+  quotes as long as the parentheses are balanced.</li>
+<li>Reduced the number of redundant initialisation operations in <code>Structured</code>
+  instances.</li>
+<li>Fixed pickling <code>ModelMatrix</code> and <code>FactorValues</code> instances (whenever wrapped
+  objects are picklable).</li>
+<li><code>basis_spline</code>: Fixed evaluation involving datasets with null values, and
+  disallow out-of-bounds knots.</li>
+<li>Improved robustness of data contexts involving PyArrow datasets.</li>
+<li>We now use the same sentiles throughout the code-base, rather than having
+  module specific sentinels in some places.</li>
+<li>Migrated to <code>ruff</code> for linting, and updated <code>mypy</code> and <code>pre-commit</code> tooling.</li>
+<li>Automatic fixes from <code>ruff</code> are automatically applied when using
+  <code>hatch run lint:format</code>.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>Fixed and updated docsite build, as well as other minor tweaks.</li>
+</ul>
+<hr />
+<h2 id="102-12-july-2024">1.0.2 (12 July 2024)</h2>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fix compatibility with <code>pandas</code> &gt;=3.</li>
+<li>Fix <code>mypy</code> type inference in materializer subclasses.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>Add column name extraction to <code>sklearn</code> integration example.</li>
+<li>Add section to allow users to indicate their usage of formulaic.</li>
+</ul>
+<h2 id="101-24-december-2023">1.0.1 (24 December 2023)</h2>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Update package status from "beta" to "production/stable".</li>
+</ul>
+<h2 id="100-24-december-2023">1.0.0 (24 December 2023)</h2>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li>Python tokens are now canonically formatted (see below).</li>
+<li>Methods deprecated during the 0.x series have been removed: <code>Formula.terms</code>,
+  <code>ModelSpec.feature_names</code>, and <code>ModelSpec.feature_indices</code>.</li>
+</ul>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Python tokens are now sanitized and canonically formatted to prevent
+  ambiguities and better align with <code>patsy</code>.</li>
+<li>Added official support for Python 3.12 (no code changes were necessary).</li>
+<li>Added the <code>hashed</code> transform for categorically encoding deterministically
+  hashed representations of a dataset.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed transform state not propagating correctly when Python code tokens were
+  not canonically formatted.</li>
+<li>Literals in formulae will no longer be silently ignored, and feature scaling
+  is now fully supported.</li>
+<li>Improved code parsing and formatting utilities and dropped the requirement for
+  <code>astor</code> for Python 3.9 and newer.</li>
+<li>Fixed all warnings emitted during unit tests.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>Removed incompleteness warnings.</li>
+<li>Added some lightweight developer documents.</li>
+<li>Fixed some broken links.</li>
+</ul>
+<hr />
+<h2 id="066-4-october-2023">0.6.6 (4 October 2023)</h2>
+<p>This is minor release with one important bugfix.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixes a regression introduced by 0.6.4 whereby missing variables will be
+  silently dropped from the formula., rather than raising an exception.</li>
+</ul>
+<h2 id="065-25-september-2023">0.6.5 (25 September 2023)</h2>
+<p>This is a minor release with several important bugfixes.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed intercept terms sorting after other features (by not counting literal
+  factors toward the degree of a term).</li>
+<li>Fixed a regression in 0.6.4 around quoted field names in Python evaluations.</li>
+<li>Fixed detection and dropping of null rows in sparse datasets.</li>
+<li>Fixed <code>poly()</code> transforms operating on datasets that include null values.</li>
+<li>Arguments can now be passed when running the unit tests using <code>hatch run tests</code>.</li>
+</ul>
+<h2 id="064-10-july-2023">0.6.4 (10 July 2023)</h2>
+<p>This is a minor release with several new features and cleanups.</p>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Added support for keeping track of the source of variables being used to
+  evaluate a formula. Refer to the <code>ModelSpec</code> documentation for more details.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>All functions and methods now have type signatures that are statically checked
+  during unit testing.</li>
+<li>Removed <code>OrderedDict</code> usage, since Python guarantees the orderedness of
+  dictionaries in Python 3.7+.</li>
+<li>Suppress terms/factors in model matrices for which the factors evaluate to
+  <code>None</code>.</li>
+</ul>
+<h2 id="063-26-june-2023">0.6.3 (26 June 2023)</h2>
+<p>This is a minor release with a bugfix.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed a regression introduced in the previous release when materializing
+  categorical encodings of variables with no levels.</li>
+</ul>
+<h2 id="062-22-june-2023">0.6.2 (22 June 2023)</h2>
+<p>This is a minor release with several bugfixes.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed issues handling empty data sets in formulae that used categorical
+  encoding.</li>
+<li>Added the MIT license to distribution classifiers.</li>
+</ul>
+<h2 id="061-2-may-2023">0.6.1 (2 May 2023)</h2>
+<p>This is a minor release with one new feature.</p>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Added support for treating individual categorical features as though they do not span the intercept (useful for intentionally generating over-specified model matrices in e.g. regularized models).</li>
+</ul>
+<h2 id="060-26-apr-2023">0.6.0 (26 Apr 2023)</h2>
+<p>This is a major release with some important consistency and completeness
+improvements. It should be treated as <em>almost</em> being the first release candidate
+of 1.0.0, which will land after some small amount of further feature extensions
+and documentation improvements. All users are recommended to upgrade.</p>
+<p><strong>Breaking changes:</strong></p>
+<p>Although there are some internal changes to API, as documented below, there are
+no breaking changes to user-facing APIs.</p>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Formula terms are now consistently ordered regardless of providence (formulae or
+  manual term specification), and sorted according to R conventions by default
+  rather than lexically. This can be changed using the <code>_ordering</code> keyword to
+  the <code>Formula</code> constructor.</li>
+<li>Greater compatibility with R and patsy formulae:</li>
+<li>for patsy: added <code>standardize</code>, <code>Q</code> and treatment contrasts shims.</li>
+<li>for patsy: added <code>cluster_by='numerical_factors</code> option to <code>ModelSpec</code> to enable
+    patsy style clustering of output columns by involved numerical factors.</li>
+<li>for R: added support for exponentiation with <code>^</code> and <code>%in%</code>.</li>
+<li>Diff and Helmert contrast codings gained support for additional variants.</li>
+<li>Greatly improved the performance of generating sparse dummy encodings when
+  there are many categories.</li>
+<li>Context scoping operators (like paretheses) are now tokenized as their own special
+  type.</li>
+<li>Add support for merging <code>Structured</code> instances, and use this functionality during
+  AST evaluation where relevant.</li>
+<li><code>ModelSpec.term_indices</code> is now a list rather than a tuple, to allow direct use when
+  indexing pandas and numpy model matrices.</li>
+<li>Add official support for Python 3.11.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fix parsing formulae starting with a parenthesis.</li>
+<li>Fix iteration over root nodes of <code>Structured</code> instances for non-sequential iterable values.</li>
+<li>Bump testing versions and fix <code>poly</code> unit tests.</li>
+<li>Fix use of deprecated automatic casting of factors to numpy arrays during dense
+  column evaluation in <code>PandasMaterializer</code>.</li>
+<li><code>Factor.EvalMethod.UNKNOWN</code> was removed, defaulting instead to <code>LOOKUP</code>.</li>
+<li>Remove <code>sympy</code> version constraint now that a bug has been fixed upstream.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>Substantial updates to documentation, which is now mostly complete for end-user
+  use-cases. Developer and API docs are still pending.</li>
+</ul>
+<hr />
+<h2 id="052-17-sep-2022">0.5.2 (17 Sep 2022)</h2>
+<p>This is a minor patch releases that fixes one bug.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed alignment between the length of a <code>Structured</code> instance and iteration
+  over this instance (including <code>Formula</code> instances). Formerly the length would
+  only count the number of keys in its structure, rather than the number of
+  objects that would be yielded during iteration.</li>
+</ul>
+<h2 id="051-9-sep-2022">0.5.1 (9 Sep 2022)</h2>
+<p>This is a minor patch release that fixes two bugs.</p>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed generation of string representation of <code>Formula</code> objects.</li>
+<li>Fixed generation of <code>formulaic.__version__</code> during package build.</li>
+</ul>
+<h2 id="050-28-aug-2022">0.5.0 (28 Aug 2022)</h2>
+<p>This is a major new release with some minor API changes, some ergonomic
+improvements, and a few bug fixes.</p>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li>Accessing named substructures of <code>Formula</code> objects (e.g. <code>formula.lhs</code>) no
+  longer returns a list of terms; but rather a <code>Formula</code> object, so that the
+  helper methods can remain accessible. You can access the raw terms by
+  iterating over the formula (<code>list(formula)</code>) or looking up the root node
+  (<code>formula.root</code>).</li>
+</ul>
+<p><strong>New features and improvements:</strong></p>
+<ul>
+<li>The <code>ModelSpec</code> object is now the source of truth in all <code>ModelMatrix</code>
+  generations, and can be constructed directly from any supported specification
+  using <code>ModelSpec.from_spec(...)</code>. Supported specifications include formula
+  strings, parsed formulae, model matrices and prior model specs.</li>
+<li>The <code>.get_model_matrix()</code> helper methods across <code>Formula</code>,
+  <code>FormulaMaterializer</code>, <code>ModelSpec</code> and <code>model_matrix</code> objects/helpers
+  functions are now consistent, and all use <code>ModelSpec</code> directly under the hood.</li>
+<li>When accessing substructures of <code>Formula</code> objects (e.g. <code>formula.lhs</code>), the
+  term lists will be wrapped as trivial <code>Formula</code> instances rather than returned
+  as raw lists (so that the helper methods like <code>.get_model_matrix()</code> can still
+  be used).</li>
+<li><code>FormulaSpec</code> is now exported from the top-level module.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed <code>ModelSpec</code> specifications being overriden by default arguments to
+  <code>FormulaMaterializer.get_model_matrix</code>.</li>
+<li><code>Structured._flatten()</code> now correctly flattens unnamed substructures.</li>
+</ul>
+<hr />
+<h2 id="040-10-aug-2022">0.4.0 (10 Aug 2022)</h2>
+<p>This is a major new release with some new features, greatly improved ergonomics
+for structured formulae, matrices and specs, and a few small breaking changes
+(most with backward compatibility shims). All users are encouraged to upgrade.</p>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li><code>include_intercept</code> is no longer an argument to <code>FormulaParser.get_terms</code>;
+  and is instead an argument of the <code>DefaultFormulaParser</code> constructor. If you
+  want to modify the <code>include_intercept</code> behaviour, please use:
+  <div class="highlight"><pre><span></span><code><span class="n">Formula</span><span class="p">(</span><span class="s2">&quot;y ~ x&quot;</span><span class="p">,</span> <span class="n">_parser</span><span class="o">=</span><span class="n">DefaultFormulaParser</span><span class="p">(</span><span class="n">include_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div></li>
+<li>Accessing terms via <code>Formula.terms</code> is deprecated since <code>Formula</code> became a
+  subclass of <code>Structured[List[Terms]]</code>. You can directly iterate over, and/or
+  access nested structure on the <code>Formula</code> instance itself. <code>Formula.terms</code>
+  has a deprecated property which will return a reference to itself in order to
+  support legacy use-cases. This will be removed in 1.0.0.</li>
+<li><code>ModelSpec.feature_names</code> and <code>ModelSpec.feature_columns</code> are deprecated in
+  favour of <code>ModelSpec.column_names</code> and <code>ModelSpec.column_indices</code>. Deprecated
+  properties remain in-place to support legacy use-cases. These will be removed
+  in 1.0.0.</li>
+</ul>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Structured formulae (and their derived matrices and specs) are now mutable.
+  Internally <code>Formula</code> has been refactored as a subclass of
+  <code>Structured[List[Terms]]</code>, and can be incrementally built and modified. The
+  matrix and spec outputs now have explicit subclasses of <code>Structured</code>
+  (<code>ModelMatrices</code> and <code>ModelSpecs</code> respectively) to expose convenience methods
+  that allow these objects to be largely used interchangeably with their
+  singular counterparts.</li>
+<li><code>ModelMatrices</code> and <code>ModelSpecs</code> arenow surfaced as top-level exports of the
+  <code>formulaic</code> module.</li>
+<li><code>Structured</code> (and its subclasses) gained improved integration of nested tuple
+  structure, as well as support for flattened iteration, explicit mapping
+  output types, and lots of cleanups.</li>
+<li><code>ModelSpec</code> was made into a dataclass, and gained several new
+  properties/methods to support better introspection and mutation of the model
+  spec.</li>
+<li><code>FormulaParser</code> was renamed <code>DefaultFormulaParser</code>, and made a subclass of the
+  new formula parser interface <code>FormulaParser</code>. In this process
+  <code>include_intercept</code> was removed from the API, and made an instance attribute
+  of the default parser implementation.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed AST evaluation for large formulae that caused the evaluation to hit the
+  recursion limit.</li>
+<li>Fixed sparse categorical encoding when the dataframe index is not the standard
+  range index.</li>
+<li>Fixed a bug in the linear constraints parser when more than two constraints
+  were specified in a comma-separated string.</li>
+<li>Avoid implicit changing of the sparsity structure of CSC matrices.</li>
+<li>If manually constructed <code>ModelSpec</code>s are provided by the user during
+  materialization, they are updated to reflect the output-type chosen by the
+  user, as well as whether to ensure full rank/etc.</li>
+<li>Allowed use of older pandas versions. All versions &gt;=1.0.0 are now supported.</li>
+<li>Various linting cleanups as <code>pylint</code> was added to the CI testing.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>Apart from the <code>.materializer</code> submodule, most code now has inline
+  documentation and annotations.</li>
+</ul>
+<hr />
+<h2 id="034-1-may-2022">0.3.4 (1 May 2022)</h2>
+<p>This is a backward compatible major release that adds several new features.</p>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Added support for customizing the contrasts generated for categorical
+  features, including treatment, sum, deviation, helmert and custom contrasts.</li>
+<li>Added support for the generation of linear constraints for <code>ModelMatrix</code>
+  instances (see <code>ModelMatrix.model_spec.get_linear_constraints</code>).</li>
+<li>Added support for passing <code>ModelMatrix</code>, <code>ModelSpec</code> and other formula-like
+  objects to the <code>model_matrix</code> sugar method so that pre-processed formulae can
+  be used.</li>
+<li>Improved the way tokens are manipulated for the right-hand-side intercept and
+  substitutions of <code>0</code> with <code>-1</code> to avoid substitutions in quoted contexts.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed variable sanitization during evaluation, allowing variables with
+  special characters to be used in Python transforms; for example:
+  <code>bs(`my|feature%is^cool`)</code>.</li>
+<li>Fixed the parsing of dictionaries and sets within python expressions in the
+  formula; for example: <code>C(x, {"a": [1,2,3]})</code>.</li>
+<li>Bumped requirement on <code>astor</code> to &gt;=0.8 to fix issues with ast-generation in
+  Python 3.8+ when numerical constants are present in the parsed python
+  expression (e.g. "bs(x, df=10)").</li>
+</ul>
+<h2 id="033-4-april-2022">0.3.3 (4 April 2022)</h2>
+<p>This is a minor patch release that migrates the package tooling to
+<a href="https://python-poetry.org/">poetry</a>; solving a version inconsistency when
+packaging for <code>conda</code>.</p>
+<h2 id="032-17-march-2022">0.3.2 (17 March 2022)</h2>
+<p>This is a minor patch release that fixes an attempt to import <code>numpy.typing</code>
+when numpy is not version 1.20 or later.</p>
+<h2 id="031-15-march-2022">0.3.1 (15 March 2022)</h2>
+<p>This is a minor patch release that fixes the maintaining of output types,
+NA-handling, and assurance of full-rank for factors that evaluate to pre-encoded
+columns when constructing a model matrix from a pre-defined ModelSpec. The
+benchmarks were also updated.</p>
+<h2 id="030-14-march-2022">0.3.0 (14 March 2022)</h2>
+<p>This is a major new release with many new features, and a few small breaking
+changes. All users are encouraged to upgrade.</p>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li>The minimum supported version of Python is now 3.7 (up from 3.6).</li>
+<li>Moved transform implementations from <code>formulaic.materializers.transforms</code> to
+  the top-level <code>formulaic.transforms</code> module, and ported all existing
+  transforms to output <code>FactorValues</code> types rather than dictionaries.
+  <code>FactorValues</code> is an object proxy that allows output types like
+  <code>pandas.DataFrame</code>s to be used as they normally would, with some additional
+  metadata for formulaic accessible via the <code>__formulaic_metadata__</code>
+  attribute. This makes non-formula direct usage of these transforms much more
+  pleasant.</li>
+<li><code>~</code> is no longer a generic formula separator, and can only be used once in a
+  formula. Please use the newly added <code>|</code> operator to separate a formula into
+  multiple parts.</li>
+</ul>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>Added support for "structured" formulas, and updated the <code>~</code> operator to use
+  them. Structured formulas can have named substructures, for example: <code>lhs</code>
+  and <code>rhs</code> for the <code>~</code> operator. The representation of formulas has been
+  updated to show this structure.</li>
+<li>Added support for context-sensitivity during the resolution of operators,
+  allowing more flexible operators to be implemented (this is exploited by the
+  <code>|</code> operator which splits formulas into multiple parts).</li>
+<li>The <code>formulaic.model_matrix</code> syntactic sugar function now accepts <code>ModelSpec</code>
+  and <code>ModelMatrix</code> instances as the "formula" spec, making generation of
+  matrices with the same form as previously generated matrices more
+  convenient.</li>
+<li>Added the <code>poly</code> transform (compatible with R and patsy).</li>
+<li><code>numpy</code> is now always available in formulas via <code>np</code>, allowing formulas like
+  <code>np.sum(x)</code>. For convenience, <code>log</code>, <code>log10</code>, <code>log2</code>, <code>exp</code>, <code>exp10</code> and
+  <code>exp2</code> are now exposed as transforms independent of user context.</li>
+<li>Pickleability is now guaranteed and tested via unit tests. Failure to pickle
+  any formulaic metadata object (such as formulas, model specs, etc) is
+  considered a bug.</li>
+<li>The capturing of user context for use in formula materialization has been
+  split out into a utility method <code>formulaic.utils.context.capture_context()</code>.
+  This can be used by libraries that wrap Formulaic to capture the variables
+  and/or transforms available in a users' environment where appropriate.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Migrated all code to use the Black style.</li>
+<li>Increased unit testing coverage to 100%.</li>
+<li>Fixed mis-alignment in the right- and left-hand sides of formulas if there
+  were nulls at different indices.</li>
+<li>Fixed basis spline transforms ignoring state, fixed generated splines for
+  large numbers of knots, and fixed specification of knots via non-list
+  datatypes.</li>
+<li>Fixed category order being inconsistent if categories are explicitly ordered
+  differently in the underlying data.</li>
+<li>Lots of other minor nits and cleanups.</li>
+</ul>
+<p><strong>Documentation:</strong></p>
+<ul>
+<li>The structure of the docsite has been improved (but is still incomplete).</li>
+<li>The <code>.parser</code> and <code>.utils</code> modules of Formulaic are now inline documented
+  and annotated.</li>
+</ul>
+<hr />
+<h2 id="024-9-july-2021">0.2.4 (9 July 2021)</h2>
+<p>This is a minor release that fixes an issue whereby the ModelSpec instances
+attached to ModelMatrix objects would keep reference to the original data,
+greatly inflating the size of the ModelSpec.</p>
+<h2 id="023-4-february-2021">0.2.3 (4 February 2021)</h2>
+<p>This release is identical to v0.2.2, except that the source distribution now
+includes the docs, license, and tox configuration.</p>
+<h2 id="022-4-february-2021">0.2.2 (4 February 2021)</h2>
+<p>This is a minor release with one bugfix.</p>
+<ul>
+<li>Fix pandas model matrix outputs when constants are generated as part of model
+  matrix construction and the incoming dataframe has a custom rather than range
+  index.</li>
+</ul>
+<h2 id="021-22-january-2021">0.2.1 (22 January 2021)</h2>
+<p>This is a minor patch release that brings in some valuable improvements.</p>
+<ul>
+<li>Keep track of the pandas dataframe index if outputting a pandas <code>DataFrame</code>.</li>
+<li>Fix using functions in formulae that are nested within a module or class.</li>
+<li>Avoid crashing when an attempt is made to generate an empty model matrix.</li>
+<li>Enriched setup.py with long description for a better experience on PyPI.</li>
+</ul>
+<h2 id="020-21-january-2021">0.2.0 (21 January 2021)</h2>
+<p>This is major release that brings in a large number of improvements, with a huge
+number of commits. Some API breakage from the experimental 0.1.x series is
+likely in various edge-cases.</p>
+<p>Highlights include:</p>
+<ul>
+<li>Enriched formula parser to support quoting, and evaluation of formulas involving fields with invalid Python names.</li>
+<li>Added commonly used stateful transformations (identity, center, scale, bs)</li>
+<li>Improved the helpfulness of error messages reported by the formula parser.</li>
+<li>Added support for basic calculus on formulas (useful when taking the gradient of linear models).</li>
+<li>Made it easier to extend Formulaic with additional materializers.</li>
+<li>Many internal improvements to code quality and reliability, including 100% test coverage.</li>
+<li>Added benchmarks for Formulaic against R and patsy.</li>
+<li>Added documentation.</li>
+<li>Miscellaneous other bugfixes and cleanups.</li>
+</ul>
+<hr />
+<h2 id="012-6-november-2019">0.1.2 (6 November 2019)</h2>
+<p>Performance improvements around the encoding of categorical features.</p>
+<div class="highlight"><pre><span></span><code>Matthew Wardrop (1):
+    Improve the performance of encoding operations.
+</code></pre></div>
+<h2 id="011-31-october-2019">0.1.1 (31 October 2019)</h2>
+<p>No code changes here, just a verification that GitHub CI integration was working.</p>
+<div class="highlight"><pre><span></span><code>Matthew Wardrop (1):
+    Update Github workflow triggers.
+</code></pre></div>
+<h2 id="010-31-october-2019">0.1.0 (31 October 2019)</h2>
+<p>This release added support for keeping track of encoding choices during
+model matrix generation, so that they can be reused on similarly structured
+data. It also added comprehensive unit testing and CI integration using
+GitHub actions.</p>
+<div class="highlight"><pre><span></span><code>Matthew Wardrop (5):
+    Add support for stateful transforms (including encoding).
+    Fix tokenizing of nested Python function calls.
+    Add support for nested transforms that return multiple columns, as well as passing through of materializer config through to transforms.
+    Add comprehensive unit testing along with several small miscellaneous bug fixes and improvements.
+    Add GitHub actions configuration.
+</code></pre></div>
+<hr />
+<h2 id="001-1-september-2019">0.0.1 (1 September 2019)</h2>
+<p>Initial open sourcing of <code>formulaic</code>.</p>
+<div class="highlight"><pre><span></span><code>Matthew Wardrop (1):
+    Initial (mostly) working implementation of Wilkinson formulas.
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
