@@ -43,6 +43,7 @@ from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.null_handling import find_nulls
 from formulaic.utils.stateful_transforms import stateful_eval
 from formulaic.utils.variables import Variable
 
@@ -638,7 +639,27 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _check_for_nulls(
         self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
     ) -> None:
-        pass  # pragma: no cover
+        if na_action is NAAction.IGNORE:
+            return
+
+        try:
+            null_indices = find_nulls(values)
+
+            if na_action is NAAction.RAISE:
+                if null_indices:
+                    raise ValueError(f"`{name}` contains null values after evaluation.")
+
+            elif na_action is NAAction.DROP:
+                drop_rows.update(null_indices)
+
+            else:
+                raise ValueError(
+                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
+                )  # pragma: no cover; this is currently impossible to reach
+        except ValueError as e:
+            raise ValueError(
+                f"Error encountered while checking for nulls in `{name}`: {e}"
+            ) from e
 
     def _encode_evaled_factor(
         self,

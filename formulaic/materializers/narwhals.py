@@ -47,32 +47,6 @@ class NarwhalsMaterializer(FormulaMaterializer):
         return super()._is_categorical(values)
 
     @override
-    def _check_for_nulls(
-        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
-    ) -> None:
-        if na_action is NAAction.IGNORE:
-            return
-
-        try:
-            null_indices = find_nulls(values)
-
-            if na_action is NAAction.RAISE:
-                if null_indices:
-                    raise ValueError(f"`{name}` contains null values after evaluation.")
-
-            elif na_action is NAAction.DROP:
-                drop_rows.update(null_indices)
-
-            else:
-                raise ValueError(
-                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
-                )  # pragma: no cover; this is currently impossible to reach
-        except ValueError as e:
-            raise ValueError(
-                f"Error encountered while checking for nulls in `{name}`: {e}"
-            ) from e
-
-    @override
     def _encode_constant(
         self,
         value: Any,
