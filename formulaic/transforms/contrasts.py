@@ -160,7 +160,7 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
         data = pandas.Series(data).astype("category")
 
     # Perform dummy encoding
-    if output in ("pandas", "numpy"):
+    if output in ("narwhals", "pandas", "numpy"):
         categories = list(data.cat.categories)
         encoded = pandas.get_dummies(data)
     elif output == "sparse":
@@ -226,9 +226,14 @@ class Contrasts(metaclass=InterfaceMeta):
                 raise ValueError(
                     f"Cannot impute output type for dummies of type `{type(dummies)}`."
                 )
-        elif output not in ("pandas", "numpy", "sparse"):  # pragma: no cover
+        elif output not in (
+            "narwhals",
+            "pandas",
+            "numpy",
+            "sparse",
+        ):  # pragma: no cover
             raise ValueError(
-                "Output type for contrasts must be one of: 'pandas', 'numpy' or 'sparse'."
+                "Output type for contrasts must be one of: 'narwhals', 'pandas', 'numpy' or 'sparse'."
             )
 
         # Short-circuit when we know the output encoding will be empty

@@ -3,9 +3,8 @@ from __future__ import annotations
 import functools
 import itertools
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
-import narwhals.dtypes as nwd
 import narwhals.stable.v1 as nw
 import numpy
 import pandas
@@ -23,12 +22,15 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class NarwhalsMaterializer(FormulaMaterializer):
     REGISTER_NAME = "narwhals"
-    REGISTER_INPUTS: Sequence[str] = ("pandas.core.frame.DataFrame", "pandas.DataFrame")
+    REGISTER_INPUTS: Sequence[str] = (
+        "narwhals.DataFrame",
+        "narwhals.stable.v1.DataFrame",
+    )
     REGISTER_OUTPUTS: Sequence[str] = ("narwhals", "pandas", "numpy", "sparse")
 
     @override
     def _init(self) -> None:
-        self.__narwhals_data = nw.from_native(self.data)
+        self.__narwhals_data = nw.from_native(self.data, eager_only=True)
         self.__data_context = self.__narwhals_data.to_dict()
 
     @override  # type: ignore
@@ -38,8 +40,8 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        if isinstance(values, nw.Series):
-            if not isinstance(values.dtype, nwd.NumericType):
+        if nw.dependencies.is_narwhals_series(values):
+            if not values.dtype.is_numeric():
                 return True
         return super()._is_categorical(values)
 
@@ -92,7 +94,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
         if drop_rows:
             values = drop_nulls(values, indices=drop_rows)
-        if isinstance(values, nw.Series):
+        if nw.dependencies.is_narwhals_series(values):
             values = values.to_pandas()
 
         return as_columns(
@@ -164,16 +166,6 @@ class NarwhalsMaterializer(FormulaMaterializer):
     def _combine_columns(
         self, cols: Sequence[tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
     ) -> pandas.DataFrame:
-        # If we are outputing a pandas DataFrame, explicitly override index
-        # in case transforms/etc have lost track of it.
-        pandas_index = None
-        if spec.output == "pandas" and isinstance(self.data, pandas.DataFrame):
-            pandas_index = cast(pandas.DataFrame, self.data).index
-            if drop_rows:
-                pandas_index = pandas_index.drop(
-                    cast(pandas.DataFrame, self.data_context).index[drop_rows]
-                )
-
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:
             values = numpy.empty((self.data.shape[0], 0))
@@ -181,14 +173,10 @@ class NarwhalsMaterializer(FormulaMaterializer):
                 return spsparse.csc_matrix(values)
             if spec.output == "narwhals":
                 # TODO: Inconsistent with non-empty case below (where we use to-native)
-                return nw.from_native(values)
+                return nw.from_native(values, eager_only=True)
             if spec.output == "numpy":
                 return values
-            return (
-                pandas.DataFrame(index=pandas_index)
-                if pandas_index is not None
-                else pandas.DataFrame(values)
-            )
+            return pandas.DataFrame(values)
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":
@@ -197,20 +185,15 @@ class NarwhalsMaterializer(FormulaMaterializer):
         # TODO: Can we do better than this? Having to reconstitute raw data
         # does not seem ideal.
         combined = nw.from_dict(
-            {
-                name: (nw.to_native(col) if isinstance(col, nw.Series) else col)
-                for name, col in cols
-            },
+            {name: nw.to_native(col, pass_through=True) for name, col in cols},
             native_namespace=nw.get_native_namespace(self.__narwhals_data),
         )
         if spec.output == "narwhals":
-            if isinstance(self.data, nw.DataFrame):
+            if nw.dependencies.is_narwhals_dataframe(self.data):
                 return combined
-            return nw.to_native(combined)
+            return combined.to_native()
         if spec.output == "pandas":
             df = combined.to_pandas()
-            if pandas_index is not None:
-                return df.set_index(pandas_index, drop=True)
             return df
         if spec.output == "numpy":
             return combined.to_numpy()

@@ -16,6 +16,7 @@ from typing import (
     cast,
 )
 
+import narwhals.stable.v1 as nw
 from interface_meta import InterfaceMeta, inherit_docs
 
 from formulaic.errors import (
@@ -85,6 +86,15 @@ class FormulaMaterializerMeta(InterfaceMeta):
     def for_data(cls, data: Any, output: Hashable = None) -> type[FormulaMaterializer]:
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
+
+        if (
+            input_type not in cls.REGISTERED_INPUTS
+            and "narwhals.DataFrame" in cls.REGISTERED_INPUTS
+            and nw.dependencies.is_into_dataframe(data)
+        ):
+            data = nw.from_native(data, eager_only=True)
+            datacls = data.__class__
+            input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
         if input_type not in cls.REGISTERED_INPUTS:
             raise FormulaMaterializerNotFoundError(
