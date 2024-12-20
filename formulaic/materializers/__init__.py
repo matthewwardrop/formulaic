@@ -1,11 +1,11 @@
-from .arrow import ArrowMaterializer
 from .base import FormulaMaterializer
+from .narwhals import NarwhalsMaterializer
 from .pandas import PandasMaterializer
 from .types import ClusterBy, FactorValues, NAAction
 
 __all__ = [
-    "ArrowMaterializer",
     "FormulaMaterializer",
+    "NarwhalsMaterializer",
     "PandasMaterializer",
     # Useful types
     "ClusterBy",
