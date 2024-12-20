@@ -3,6 +3,18 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+## 1.1.1 (20 December 2024)
+
+**New features and enhancements:**
+
+* `Formula.differentiate()` is now considered stable, with
+  `ModelMatrix.differentiate()` to follow in a future release.
+
+**Bugfixes and cleanups:**
+
+* Fixed a regression introduced in v1.1.0 regarding ordering of terms in a 
+  differentiated formula.
+
 ## 1.1.0 (15 December 2024)
 
 **Breaking changes:**
