@@ -197,6 +197,9 @@ class TestFormula:
         assert f.differentiate("a") == ["1", "0", "0"]
         assert f.differentiate("c") == ["0", "0", "0"]
 
+        g = Formula("a:b + b:c + c:d - 1")
+        assert g.differentiate("b") == ["a", "c", "0"]  # order preserved
+
     def test_differentiate_with_sympy(self):
         pytest.importorskip("sympy")
         f = Formula("a + b + log(c) - 1")
@@ -207,6 +210,9 @@ class TestFormula:
             "lhs": ["0"],
             "rhs": ["0", "(1/x)"],
         }
+
+        h = Formula("a + {a**2} + b - 1").differentiate("a", use_sympy=True)
+        assert h == ["1", "(2*a)", "0"]  # order preserved
 
     def test_repr(self, formula_expr, formula_exprs):
         assert repr(formula_expr) == "1 + a + b + c + a:b + a:c + b:c + a:b:c"
