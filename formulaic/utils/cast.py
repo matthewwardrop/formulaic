@@ -1,5 +1,6 @@
+from collections.abc import Hashable
 from functools import singledispatch, wraps
-from typing import Any, Callable, Dict, Hashable, Union
+from typing import Any, Callable, Union
 
 import numpy
 import pandas
@@ -34,13 +35,13 @@ def as_columns(data: Any) -> Any:
 
 @as_columns.register
 @propagate_metadata
-def _(data: pandas.DataFrame) -> Dict[Hashable, pandas.Series]:
+def _(data: pandas.DataFrame) -> dict[Hashable, pandas.Series]:
     return dict(data.items())
 
 
 @as_columns.register
 @propagate_metadata
-def _(data: numpy.ndarray) -> Union[numpy.ndarray, Dict[Hashable, numpy.ndarray]]:
+def _(data: numpy.ndarray) -> Union[numpy.ndarray, dict[Hashable, numpy.ndarray]]:
     if len(data.shape) == 1:
         return data
     if len(data.shape) > 2:
@@ -60,7 +61,7 @@ def _(data: numpy.ndarray) -> Union[numpy.ndarray, Dict[Hashable, numpy.ndarray]
 
 @as_columns.register
 @propagate_metadata
-def _(data: scipy.sparse.csc_matrix) -> Dict[Hashable, scipy.sparse.spmatrix]:
+def _(data: scipy.sparse.csc_matrix) -> dict[Hashable, scipy.sparse.spmatrix]:
     if (
         hasattr(data, "__formulaic_metadata__")
         and data.__formulaic_metadata__.column_names

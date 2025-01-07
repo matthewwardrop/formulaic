@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, Set
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 from formulaic.materializers.types.evaluated_factor import EvaluatedFactor
 from formulaic.utils.variables import Variable
@@ -87,7 +88,7 @@ class ScopedTerm:
         )
 
     @property
-    def variables(self) -> Set[Variable]:
+    def variables(self) -> set[Variable]:
         return Variable.union(
             *(
                 factor.factor.variables

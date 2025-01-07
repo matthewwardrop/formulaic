@@ -3,18 +3,12 @@ from __future__ import annotations
 import ast
 import functools
 import itertools
+from collections.abc import Iterable, Mapping, Sequence
 from numbers import Number
 from typing import (
     Any,
-    Dict,
-    Iterable,
-    List,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -34,9 +28,9 @@ from formulaic.parser.utils import exc_for_token
 
 LinearConstraintSpec = Union[
     str,
-    List[str],
-    Dict[str, Number],
-    Tuple["numpy.typing.ArrayLike", "numpy.typing.ArrayLike"],
+    list[str],
+    dict[str, Number],
+    tuple["numpy.typing.ArrayLike", "numpy.typing.ArrayLike"],
     "numpy.typing.ArrayLike",
 ]
 
@@ -120,8 +114,8 @@ class LinearConstraints:
 
     def __init__(
         self,
-        constraint_matrix: "numpy.typing.ArrayLike",
-        constraint_values: "numpy.typing.ArrayLike",
+        constraint_matrix: numpy.typing.ArrayLike,
+        constraint_values: numpy.typing.ArrayLike,
         variable_names: Optional[Sequence[str]] = None,
     ):
         """
@@ -246,7 +240,7 @@ class LinearConstraintParser:
 
     def get_terms(
         self, formula: str
-    ) -> Union[None, List[ScaledFactor], Tuple[List[ScaledFactor], ...]]:
+    ) -> Union[None, list[ScaledFactor], tuple[list[ScaledFactor], ...]]:
         """
         Build the `ScaledFactor` instances for a constraint formula string.
 
@@ -257,13 +251,13 @@ class LinearConstraintParser:
         if not ast:
             return None
         return cast(
-            Union[None, List[ScaledFactor], Tuple[List[ScaledFactor], ...]],
+            Union[None, list[ScaledFactor], tuple[list[ScaledFactor], ...]],
             ast.to_terms(),
         )
 
     def get_matrix(
         self, formula: str
-    ) -> Tuple["numpy.typing.ArrayLike", "numpy.typing.ArrayLike"]:
+    ) -> tuple[numpy.typing.ArrayLike, numpy.typing.ArrayLike]:
         """
         Build the constraint matrix and constraint values vector associated with
         the parsed string.
@@ -323,7 +317,7 @@ class ConstraintToken(Token):
 
     def to_terms(  # type: ignore[override]
         self, *, context: Optional[Mapping[str, Any]] = None
-    ) -> Set[ScaledFactor]:
+    ) -> set[ScaledFactor]:
         if self.kind is Token.Kind.VALUE:
             factor = ast.literal_eval(self.token)
             if isinstance(factor, (int, float)):
@@ -384,8 +378,8 @@ class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessa
     """
 
     @property
-    def operators(self) -> List[Operator]:
-        def join_tuples(lhs: Any, rhs: Any) -> Tuple:
+    def operators(self) -> list[Operator]:
+        def join_tuples(lhs: Any, rhs: Any) -> tuple:
             if not isinstance(lhs, tuple):
                 lhs = (lhs,)
             if not isinstance(rhs, tuple):
@@ -393,8 +387,8 @@ class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessa
             return lhs + rhs
 
         def add_terms(
-            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
-        ) -> Set[ScaledFactor]:
+            terms_left: set[ScaledFactor], terms_right: set[ScaledFactor]
+        ) -> set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
@@ -409,8 +403,8 @@ class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessa
             return added
 
         def sub_terms(
-            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
-        ) -> Set[ScaledFactor]:
+            terms_left: set[ScaledFactor], terms_right: set[ScaledFactor]
+        ) -> set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
@@ -426,16 +420,16 @@ class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessa
 
             return added
 
-        def negate_terms(terms: Set[ScaledFactor]) -> Set[ScaledFactor]:
+        def negate_terms(terms: set[ScaledFactor]) -> set[ScaledFactor]:
             return {-term for term in terms}
 
         def mul_terms(
-            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
-        ) -> Set[ScaledFactor]:
+            terms_left: set[ScaledFactor], terms_right: set[ScaledFactor]
+        ) -> set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
-            terms: Set[ScaledFactor] = set()
+            terms: set[ScaledFactor] = set()
 
             for term_left, term_right in itertools.product(terms_left, terms_right):
                 terms = add_terms(terms, {mul_term(term_left, term_right)})
@@ -456,12 +450,12 @@ class ConstraintOperatorResolver(OperatorResolver):  # pylint: disable=unnecessa
             )
 
         def div_terms(
-            terms_left: Set[ScaledFactor], terms_right: Set[ScaledFactor]
-        ) -> Set[ScaledFactor]:
+            terms_left: set[ScaledFactor], terms_right: set[ScaledFactor]
+        ) -> set[ScaledFactor]:
             terms_left = {term: term for term in terms_left}
             terms_right = {term: term for term in terms_right}
 
-            terms: Set[ScaledFactor] = set()
+            terms: set[ScaledFactor] = set()
 
             for term_left, term_right in itertools.product(terms_left, terms_right):
                 terms = add_terms(terms, {div_term(term_left, term_right)})

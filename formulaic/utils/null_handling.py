@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from functools import singledispatch
-from typing import Any, Sequence, Set, Union
+from typing import Any, Union
 
 import numpy
 import pandas
@@ -9,7 +10,7 @@ from formulaic.materializers.types import FactorValues
 
 
 @singledispatch
-def find_nulls(values: Any) -> Set[int]:
+def find_nulls(values: Any) -> set[int]:
     """
     Find the indices of rows in `values` that have null/nan values.
 
@@ -22,27 +23,27 @@ def find_nulls(values: Any) -> Set[int]:
 
 
 @find_nulls.register
-def _(values: None) -> Set[int]:
+def _(values: None) -> set[int]:
     # Literal `None` values have special meaning and are checked elsewhere.
     return set()
 
 
 @find_nulls.register
-def _(values: str) -> Set[int]:
+def _(values: str) -> set[int]:
     return set()
 
 
 @find_nulls.register
-def _(values: int) -> Set[int]:
+def _(values: int) -> set[int]:
     return _drop_nulls_scalar(values)
 
 
 @find_nulls.register
-def _(values: float) -> Set[int]:
+def _(values: float) -> set[int]:
     return _drop_nulls_scalar(values)
 
 
-def _drop_nulls_scalar(values: Union[int, float]) -> Set[int]:
+def _drop_nulls_scalar(values: Union[int, float]) -> set[int]:
     if isinstance(values, FactorValues):
         values = values.__wrapped__
     if numpy.isnan(values):
@@ -51,7 +52,7 @@ def _drop_nulls_scalar(values: Union[int, float]) -> Set[int]:
 
 
 @find_nulls.register
-def _(values: list) -> Set[int]:
+def _(values: list) -> set[int]:
     if isinstance(values, FactorValues):
         # Older versions of pandas (<1.2) cannot unpack this automatically.
         values = values.__wrapped__
@@ -59,7 +60,7 @@ def _(values: list) -> Set[int]:
 
 
 @find_nulls.register
-def _(values: dict) -> Set[int]:
+def _(values: dict) -> set[int]:
     indices = set()
     for vs in values.values():
         indices.update(find_nulls(vs))
@@ -67,12 +68,12 @@ def _(values: dict) -> Set[int]:
 
 
 @find_nulls.register
-def _(values: pandas.Series) -> Set[int]:
+def _(values: pandas.Series) -> set[int]:
     return set(numpy.flatnonzero(values.isnull().values))
 
 
 @find_nulls.register
-def _(values: numpy.ndarray) -> Set[int]:
+def _(values: numpy.ndarray) -> set[int]:
     if len(values.shape) == 0:
         if numpy.isnan(values):
             raise ValueError("Constant value is null, invalidating all rows.")
@@ -90,7 +91,7 @@ def _(values: numpy.ndarray) -> Set[int]:
 
 
 @find_nulls.register
-def _(values: spsparse.spmatrix) -> Set[int]:
+def _(values: spsparse.spmatrix) -> set[int]:
     rows, _, data = spsparse.find(values)
     null_data_indices = numpy.flatnonzero(numpy.isnan(data))
     return set(rows[null_data_indices])

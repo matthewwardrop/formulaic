@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sys
+from collections.abc import Iterable
 from hashlib import md5
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import numpy as np
 
@@ -16,10 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def md5_to_int(s: str) -> int:  # pragma: no cover; branched code
-    if sys.version_info >= (3, 9):
-        hashed = md5(s.encode(), usedforsecurity=False)
-    else:
-        hashed = md5(s.encode())  # noqa: S324 ; use of insecure hash function
+    hashed = md5(s.encode(), usedforsecurity=False)  # noqa: S324 ; use of insecure hash function
     return int(hashed.hexdigest(), 16)
 
 
@@ -27,7 +24,7 @@ def hashed(
     data: Any,
     levels: int,
     contrasts: Optional[
-        Union[Contrasts, Dict[str, Iterable[Number]], np.ndarray]
+        Union[Contrasts, dict[str, Iterable[Number]], np.ndarray]
     ] = None,
     *,
     hash_func: Callable[[str], int] = md5_to_int,
@@ -56,8 +53,8 @@ def hashed(
     def encoder(
         values: Any,
         reduced_rank: bool,
-        drop_rows: List[int],
-        encoder_state: Dict[str, Any],
+        drop_rows: list[int],
+        encoder_state: dict[str, Any],
         model_spec: ModelSpec,
     ) -> FactorValues:
         values = np.array(values)

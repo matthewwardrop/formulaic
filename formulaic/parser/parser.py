@@ -4,17 +4,11 @@ import ast
 import functools
 import itertools
 import re
+from collections.abc import Generator, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
 from enum import Flag, auto
 from typing import (
     Any,
-    Generator,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -82,7 +76,7 @@ class DefaultFormulaParser(FormulaParser):
 
         @classmethod
         def from_spec(
-            cls, flags: Union[DefaultFormulaParser.FeatureFlags, Set[str]]
+            cls, flags: Union[DefaultFormulaParser.FeatureFlags, set[str]]
         ) -> DefaultFormulaParser.FeatureFlags:
             if isinstance(flags, DefaultFormulaParser.FeatureFlags):
                 return flags
@@ -109,7 +103,7 @@ class DefaultFormulaParser(FormulaParser):
             self.operator_resolver.set_feature_flags(self.feature_flags)
 
     def set_feature_flags(
-        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+        self, flags: DefaultFormulaParser.FeatureFlags | set[str]
     ) -> Self:
         self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
         self.__post_init__()
@@ -159,7 +153,7 @@ class DefaultFormulaParser(FormulaParser):
                 )
             )
 
-            def find_rhs_index(tokens: List[Token]) -> int:
+            def find_rhs_index(tokens: list[Token]) -> int:
                 """
                 Find the top-level index of the tilde operator starting the
                 right hand side of the formula (or -1 if not found).
@@ -310,7 +304,7 @@ class DefaultOperatorResolver(OperatorResolver):
             )
 
     def set_feature_flags(
-        self, flags: DefaultFormulaParser.FeatureFlags | Set[str]
+        self, flags: DefaultFormulaParser.FeatureFlags | set[str]
     ) -> Self:
         self.feature_flags = DefaultFormulaParser.FeatureFlags.from_spec(flags)
         if "operator_table" in self.__dict__:
@@ -318,10 +312,10 @@ class DefaultOperatorResolver(OperatorResolver):
         return self
 
     @property
-    def operators(self) -> List[Operator]:
+    def operators(self) -> list[Operator]:
         def formula_part_expansion(
             lhs: OrderedSet[Term], rhs: OrderedSet[Term]
-        ) -> Tuple[OrderedSet[Term], ...]:
+        ) -> tuple[OrderedSet[Term], ...]:
             terms = (lhs, rhs)
 
             out = []
@@ -360,7 +354,7 @@ class DefaultOperatorResolver(OperatorResolver):
         def multistage_formula(
             lhs: OrderedSet[Term], rhs: OrderedSet[Term]
         ) -> Structured[OrderedSet[Term]]:
-            def get_terms(terms: OrderedSet[Term]) -> List[Term]:
+            def get_terms(terms: OrderedSet[Term]) -> list[Term]:
                 return [
                     Term(
                         factors=[Factor(str(t) + "_hat", eval_method="lookup")],
@@ -378,7 +372,7 @@ class DefaultOperatorResolver(OperatorResolver):
 
         def insert_unused_terms(context: Mapping[str, Any]) -> OrderedSet[Term]:
             available_variables: OrderedSet[str]
-            used_variables: Set[str] = set(context["__formulaic_variables_used_lhs__"])
+            used_variables: set[str] = set(context["__formulaic_variables_used_lhs__"])
 
             # Populate `available_variables` or raise.
             if "__formulaic_variables_available__" in context:
@@ -540,7 +534,7 @@ class DefaultOperatorResolver(OperatorResolver):
     def resolve(
         self,
         token: Token,
-    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
+    ) -> Generator[tuple[Token, Iterable[Operator]], None, None]:
         if token.token in self.operator_table:
             yield from super().resolve(token)
             return

@@ -1,7 +1,7 @@
 import abc
 from collections import defaultdict
+from collections.abc import Generator, Iterable
 from functools import cached_property
-from typing import Dict, Generator, Iterable, List, Tuple
 
 from ..utils import exc_for_token
 from .operator import Operator
@@ -28,14 +28,14 @@ class OperatorResolver(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def operators(self) -> List[Operator]:
+    def operators(self) -> list[Operator]:
         """
         The `Operator` instance pool which can be matched to tokens by
         `.resolve()`.
         """
 
     @cached_property
-    def operator_table(self) -> Dict[str, List[Operator]]:
+    def operator_table(self) -> dict[str, list[Operator]]:
         operator_table = defaultdict(list)
         for operator in self.operators:
             operator_table[operator.symbol].append(operator)
@@ -49,7 +49,7 @@ class OperatorResolver(metaclass=abc.ABCMeta):
 
     def resolve(
         self, token: Token
-    ) -> Generator[Tuple[Token, Iterable[Operator]], None, None]:
+    ) -> Generator[tuple[Token, Iterable[Operator]], None, None]:
         """
         Generate the sets of operator candidates that may be viable for the
         given token (which may include multiple adjacent operators concatenated
@@ -73,7 +73,7 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         self,
         token: Token,
         symbol: str,
-    ) -> Tuple[Token, Iterable[Operator]]:
+    ) -> tuple[Token, Iterable[Operator]]:
         """
         The default operator resolving logic.
         """
@@ -82,5 +82,5 @@ class OperatorResolver(metaclass=abc.ABCMeta):
         return token, self.operator_table[symbol]
 
     # The operator table cache may not be pickleable, so let's drop it.
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         return {}

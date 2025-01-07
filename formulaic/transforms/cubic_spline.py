@@ -32,8 +32,9 @@ The original license of the code is as follows:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from functools import partial
-from typing import Iterable, Literal, cast
+from typing import Literal, cast
 
 import numpy
 import pandas

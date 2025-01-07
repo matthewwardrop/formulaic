@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Optional, Set
+from typing import Any, Optional
 
 from formulaic.parser.types import Factor
 from formulaic.utils.variables import Variable
@@ -27,7 +27,7 @@ class EvaluatedFactor:
 
     factor: Factor
     values: FactorValues[Any]
-    variables: Optional[Set[Variable]] = None
+    variables: Optional[set[Variable]] = None
 
     @property
     def expr(self) -> str:

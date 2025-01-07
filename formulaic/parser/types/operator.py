@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Callable, List, Mapping, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from .token import Token
 
@@ -61,7 +62,7 @@ class Operator:
         fixity: Union[str, Fixity] = Fixity.INFIX,
         to_terms: Optional[Callable[..., Any]] = None,
         accepts_context: Optional[
-            Callable[[List[Union[Token, Operator]]], bool]
+            Callable[[list[Union[Token, Operator]]], bool]
         ] = None,
         structural: bool = False,
         disabled: bool = False,
@@ -99,7 +100,7 @@ class Operator:
             return self._to_terms(*args, context=context or {})
         return self._to_terms(*args)
 
-    def accepts_context(self, context: List[Union[Token, Operator]]) -> bool:
+    def accepts_context(self, context: list[Union[Token, Operator]]) -> bool:
         if self._accepts_context:
             # We only need to pass on tokens and operators with precedence less
             # than or equal to ourselves, since all other operators will be

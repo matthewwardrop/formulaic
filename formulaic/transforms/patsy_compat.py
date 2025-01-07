@@ -1,4 +1,5 @@
-from typing import Any, Dict, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 
 from formulaic.utils.stateful_transforms import stateful_transform
 
@@ -19,7 +20,7 @@ def standardize(
     center: bool = True,
     rescale: bool = True,
     ddof: int = 0,
-    _state: Optional[Dict[str, Any]] = None,
+    _state: Optional[dict[str, Any]] = None,
 ) -> Any:
     return scale(x, center=center, scale=rescale, ddof=ddof, _state=_state)
 

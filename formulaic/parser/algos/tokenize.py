@@ -1,5 +1,6 @@
 import re
-from typing import Iterable, List, Pattern
+from collections.abc import Iterable
+from re import Pattern
 
 from ..types import Token
 from ..utils import exc_for_token
@@ -53,7 +54,7 @@ def tokenize(
         A generator over the tokens found in the formula string.
 
     """
-    quote_context: List[str] = []
+    quote_context: list[str] = []
     take = 0
 
     token = Token(source=formula)

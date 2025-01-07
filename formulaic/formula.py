@@ -2,20 +2,12 @@ from __future__ import annotations
 
 import sys
 from abc import ABCMeta, abstractmethod
-from collections.abc import MutableSequence
+from collections.abc import Generator, Iterable, Mapping, MutableSequence
 from enum import Enum
 from typing import (
     Any,
     Callable,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Mapping,
     Optional,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -38,10 +30,10 @@ from .utils.variables import Variable, get_expression_variables
 FormulaSpec: TypeAlias = Union[
     "Formula",
     str,
-    List[Union[str, Term]],
-    Set[Union[str, Term]],
-    Dict[str, "FormulaSpec"],
-    Tuple["FormulaSpec", ...],
+    list[Union[str, Term]],
+    set[Union[str, Term]],
+    dict[str, "FormulaSpec"],
+    tuple["FormulaSpec", ...],
     Structured["FormulaSpec"],
 ]
 _SelfType = TypeVar("_SelfType", bound="Formula")
@@ -281,7 +273,7 @@ class Formula(metaclass=_FormulaMeta):
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
         """
@@ -302,7 +294,7 @@ class Formula(metaclass=_FormulaMeta):
 
     @property
     @abstractmethod
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required to be in the data to materialize this
         formula.
@@ -504,7 +496,7 @@ class SimpleFormula(
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
         """
@@ -529,7 +521,7 @@ class SimpleFormula(
         )
 
     @property
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required in the data order to materialize this
         formula.
@@ -542,7 +534,7 @@ class SimpleFormula(
         evaluation context rather than the data context.
         """
 
-        variables: List[Variable] = [
+        variables: list[Variable] = [
             variable
             for term in self.__terms
             for factor in term.factors
@@ -605,11 +597,11 @@ class SimpleFormula(
         self,
         func: Union[
             Callable[[SimpleFormula], Any],
-            Callable[[SimpleFormula, Tuple[Union[str, int], ...]], Any],
+            Callable[[SimpleFormula, tuple[Union[str, int], ...]], Any],
         ],
         recurse: bool = True,
-        as_type: Optional[Type[Structured]] = None,
-        _context: Tuple[Union[str, int], ...] = (),
+        as_type: Optional[type[Structured]] = None,
+        _context: tuple[Union[str, int], ...] = (),
     ) -> Any:
         try:
             return func(self, ())  # type: ignore
@@ -629,7 +621,7 @@ class SimpleFormula(
         as_of=(1, 1),
         removed_in=(2, 0),
     )
-    def _to_dict(self) -> Dict[str, SimpleFormula]:
+    def _to_dict(self) -> dict[str, SimpleFormula]:
         return {"root": self}
 
     @deprecated(
@@ -726,7 +718,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, Structured[ModelMatrix]]:
         """
@@ -751,7 +743,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
         )
 
     @property
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required in the data order to materialize this
         formula.
@@ -764,7 +756,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
         evaluation context rather than the data context.
         """
 
-        variables: List[Variable] = []
+        variables: list[Variable] = []
 
         # Recurse through formula to collect all variables
         self._map(
@@ -797,7 +789,7 @@ class StructuredFormula(Structured[SimpleFormula], Formula):
         )
 
     # Ensure pickling never includes context
-    def __getstate__(self) -> Tuple[None, Dict[str, Any]]:
+    def __getstate__(self) -> tuple[None, dict[str, Any]]:
         slots = self.__slots__ + Structured.__slots__
         return (
             None,

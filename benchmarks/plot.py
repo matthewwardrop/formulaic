@@ -24,7 +24,7 @@ def grouped_barplot(df, cat, subcat, val, err, subcats=None, **kwargs):
             x + offsets[i],
             dfg[val].values,
             width=width,
-            label="{}".format(gr),
+            label=f"{gr}",
             yerr=dfg[err].values,
             capsize=6,
             **kwargs,

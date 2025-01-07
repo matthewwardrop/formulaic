@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import functools
 import itertools
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Set, Tuple, cast
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy
 import pandas
@@ -51,7 +51,7 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _check_for_nulls(
-        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
+        self, name: str, values: Any, na_action: NAAction, drop_rows: set[int]
     ) -> None:
         if na_action is NAAction.IGNORE:
             return
@@ -80,7 +80,7 @@ class PandasMaterializer(FormulaMaterializer):
         self,
         value: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
     ) -> Any:
@@ -95,7 +95,7 @@ class PandasMaterializer(FormulaMaterializer):
         self,
         values: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
     ) -> Any:
@@ -112,7 +112,7 @@ class PandasMaterializer(FormulaMaterializer):
         self,
         values: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
         reduced_rank: bool = False,
@@ -136,8 +136,8 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _get_columns_for_term(
-        self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1
-    ) -> Dict[str, Any]:
+        self, factors: list[dict[str, Any]], spec: ModelSpec, scale: float = 1
+    ) -> dict[str, Any]:
         out = {}
 
         names = [
@@ -190,7 +190,7 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _combine_columns(
-        self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
+        self, cols: Sequence[tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
     ) -> pandas.DataFrame:
         # If we are outputing a pandas DataFrame, explicitly override index
         # in case transforms/etc have lost track of it.

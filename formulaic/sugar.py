@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, Set, Union
+from collections.abc import Mapping
+from typing import Any, Optional, Union
 
 from .formula import FormulaSpec
 from .model_matrix import ModelMatrices, ModelMatrix
@@ -11,7 +12,7 @@ def model_matrix(
     data: Any,
     *,
     context: Union[int, Mapping[str, Any]] = 0,
-    drop_rows: Optional[Set[int]] = None,
+    drop_rows: Optional[set[int]] = None,
     **spec_overrides: Any,
 ) -> Union[ModelMatrix, ModelMatrices]:
     """

@@ -1,14 +1,14 @@
 import functools
 import warnings
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 
 def deprecated(
     func: Optional[Callable] = None,
     *,
     message: Optional[str] = None,
-    as_of: Optional[Tuple[int, ...]] = None,
-    removed_in: Optional[Tuple[int, ...]] = None,
+    as_of: Optional[tuple[int, ...]] = None,
+    removed_in: Optional[tuple[int, ...]] = None,
 ) -> Callable:
     if func is None:
         return functools.partial(

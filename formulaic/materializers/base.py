@@ -7,20 +7,11 @@ import itertools
 import operator
 from abc import abstractmethod
 from collections import defaultdict, namedtuple
+from collections.abc import Generator, Hashable, Iterable, Mapping, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
     Union,
     cast,
 )
@@ -58,8 +49,8 @@ EncodedTermStructure = namedtuple(
 class FormulaMaterializerMeta(InterfaceMeta):
     INTERFACE_RAISE_ON_VIOLATION = True
 
-    REGISTERED_NAMES: Dict[str, Type[FormulaMaterializer]] = {}
-    REGISTERED_INPUTS: Dict[str, List[Type[FormulaMaterializer]]] = defaultdict(list)
+    REGISTERED_NAMES: dict[str, type[FormulaMaterializer]] = {}
+    REGISTERED_INPUTS: dict[str, list[type[FormulaMaterializer]]] = defaultdict(list)
 
     def __register_implementation__(cls) -> None:
         if "REGISTER_NAME" in cls.__dict__ and cls.REGISTER_NAME:
@@ -74,8 +65,8 @@ class FormulaMaterializerMeta(InterfaceMeta):
                     )
 
     def for_materializer(
-        cls, materializer: Union[str, FormulaMaterializer, Type[FormulaMaterializer]]
-    ) -> Type[FormulaMaterializer]:
+        cls, materializer: Union[str, FormulaMaterializer, type[FormulaMaterializer]]
+    ) -> type[FormulaMaterializer]:
         if isinstance(materializer, str):
             if materializer not in cls.REGISTERED_NAMES:
                 raise FormulaMaterializerNotFoundError(materializer)
@@ -90,7 +81,7 @@ class FormulaMaterializerMeta(InterfaceMeta):
             )
         return materializer
 
-    def for_data(cls, data: Any, output: Hashable = None) -> Type[FormulaMaterializer]:
+    def for_data(cls, data: Any, output: Hashable = None) -> type[FormulaMaterializer]:
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
@@ -106,7 +97,7 @@ class FormulaMaterializerMeta(InterfaceMeta):
             if output in materializer.REGISTER_OUTPUTS:
                 return materializer
 
-        output_types: Set[Hashable] = set(
+        output_types: set[Hashable] = set(
             *itertools.chain(
                 materializer.REGISTER_OUTPUTS
                 for materializer in cls.REGISTERED_INPUTS[input_type]
@@ -140,8 +131,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             LayeredMapping(TRANSFORMS, name="transforms"),
         )
 
-        self.factor_cache: Dict[str, EvaluatedFactor] = {}
-        self.encoded_cache: Dict[Union[str, Tuple[str, bool]], Any] = {}
+        self.factor_cache: dict[str, EvaluatedFactor] = {}
+        self.encoded_cache: dict[Union[str, tuple[str, bool]], Any] = {}
 
     def _init(self) -> None:
         pass  # pragma: no cover
@@ -157,7 +148,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def get_model_matrix(
         self,
         spec: Union[FormulaSpec, ModelMatrix, ModelMatrices, ModelSpec, ModelSpecs],
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **spec_overrides: Any,
     ) -> Union[ModelMatrix, ModelMatrices]:
         from formulaic import ModelSpec
@@ -178,7 +169,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
-        drop_rows: Set[int] = drop_rows if drop_rows is not None else set()
+        drop_rows: set[int] = drop_rows if drop_rows is not None else set()
         for factor in factors:
             self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
         drop_rows: Sequence[int] = sorted(drop_rows)
@@ -220,7 +211,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         # (reusing pre-generated structure if it is available)
         if spec.structure:
             scoped_terms_for_terms: Generator[
-                Tuple[Term, Iterable[ScopedTerm]], None, None
+                tuple[Term, Iterable[ScopedTerm]], None, None
             ] = (
                 (s.term, [st.rehydrate(self.factor_cache) for st in s.scoped_terms])
                 for s in spec.structure
@@ -297,7 +288,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             spec = ModelSpecs(spec)
 
         def prepare_model_spec(model_spec: ModelSpec) -> ModelSpec:
-            overrides: Dict[str, Any] = {
+            overrides: dict[str, Any] = {
                 "materializer": self.REGISTER_NAME,
                 "materializer_params": self.params,
             }
@@ -315,13 +306,13 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _prepare_factor_evaluation_model_spec(
         self, model_specs: ModelSpecs
-    ) -> Tuple[Set[Factor], ModelSpec]:
+    ) -> tuple[set[Factor], ModelSpec]:
         from formulaic.model_spec import ModelSpec
 
         output = set()
         na_action = set()
         ensure_full_rank = set()
-        factors: Set[Factor] = set()
+        factors: set[Factor] = set()
         transform_state = {}
 
         def update_pooled_spec(model_spec: ModelSpec) -> None:
@@ -376,7 +367,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _get_scoped_terms(
         self, terms: Iterable[Term], ensure_full_rank: bool = True
-    ) -> Generator[Tuple[Term, Iterable[ScopedTerm]], None, None]:
+    ) -> Generator[tuple[Term, Iterable[ScopedTerm]], None, None]:
         """
         Generate the terms to be used in the model matrix.
 
@@ -395,7 +386,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         Returns:
             list<ScopedTerm>: A list of appropriately scoped terms.
         """
-        spanned: Set[ScopedTerm] = set()
+        spanned: set[ScopedTerm] = set()
 
         for term in terms:
             evaled_factors = [
@@ -454,7 +445,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             The scoped terms for the nominated `evaled_factors`.
         """
         scale = 1
-        factors: List[Tuple[Union[ScopedFactor, int], ...]] = []
+        factors: list[tuple[Union[ScopedFactor, int], ...]] = []
         for factor in evaled_factors:
             if factor.metadata.kind is Factor.Kind.CONSTANT:
                 scale *= factor.values
@@ -525,7 +516,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     # Methods related to looking-up, evaluating and encoding terms and factors
 
     def _evaluate_factor(
-        self, factor: Factor, spec: ModelSpec, drop_rows: Set[int]
+        self, factor: Factor, spec: ModelSpec, drop_rows: set[int]
     ) -> EvaluatedFactor:
         if factor.expr not in self.factor_cache:
             try:
@@ -595,7 +586,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             )
         return self.factor_cache[factor.expr]
 
-    def _lookup(self, name: str) -> Tuple[Any, Set[Variable]]:
+    def _lookup(self, name: str) -> tuple[Any, set[Variable]]:
         sentinel = object()
         values, layer = self.layered_context.get_with_layer_name(name, default=sentinel)
         if values is sentinel:
@@ -606,8 +597,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _evaluate(
         self, expr: str, metadata: Any, spec: ModelSpec
-    ) -> Tuple[Any, Set[Variable]]:
-        variables: Set[Variable] = set()
+    ) -> tuple[Any, set[Variable]]:
+        variables: set[Variable] = set()
         return (
             stateful_eval(
                 expr,
@@ -626,7 +617,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return False
 
     def _check_for_nulls(
-        self, name: str, values: Any, na_action: NAAction, drop_rows: Set[int]
+        self, name: str, values: Any, na_action: NAAction, drop_rows: set[int]
     ) -> None:
         pass  # pragma: no cover
 
@@ -636,7 +627,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         spec: ModelSpec,
         drop_rows: Sequence[int],
         reduced_rank: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not factor.metadata.encoded:
             if factor.expr in self.encoded_cache:
                 encoded = self.encoded_cache[factor.expr]
@@ -656,7 +647,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                     def wrapped(
                         values: Any,
                         metadata: Any,
-                        state: Dict[str, Any],
+                        state: dict[str, Any],
                         *args: Any,
                         **kwargs: Any,
                     ) -> Any:
@@ -681,7 +672,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                     return wrapped
 
-                encoder_state: Dict[str, Any] = spec.encoder_state.get(
+                encoder_state: dict[str, Any] = spec.encoder_state.get(
                     factor.expr, [None, {}]
                 )[1]
 
@@ -736,7 +727,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
                 # Only encode once for encodings where we can just drop a field
                 # later on below.
-                cache_key: Union[str, Tuple[str, bool]] = (
+                cache_key: Union[str, tuple[str, bool]] = (
                     factor.expr
                     if isinstance(encoded, dict) and factor.metadata.drop_field
                     else (factor.expr, reduced_rank)
@@ -770,7 +761,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _extract_columns_for_encoding(
         self, factor: EvaluatedFactor
-    ) -> Union[Any, Dict[str, Any]]:
+    ) -> Union[Any, dict[str, Any]]:
         """
         If incoming factor has values that need to be unpacked into columns
         (e.g. a two-dimensions numpy array), do that expansion here. Otherwise,
@@ -780,7 +771,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _flatten_encoded_evaled_factor(
         self, name: str, values: FactorValues[dict]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not isinstance(values, dict):
             return {name: values}
 
@@ -808,7 +799,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         self,
         value: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
     ) -> Any:
@@ -819,7 +810,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         self,
         values: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
         reduced_rank: bool = False,
@@ -831,7 +822,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         self,
         values: Any,
         metadata: Any,
-        encoder_state: Dict[str, Any],
+        encoder_state: dict[str, Any],
         spec: ModelSpec,
         drop_rows: Sequence[int],
     ) -> Any:
@@ -841,12 +832,12 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     def _enforce_structure(
         self,
-        cols: List[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]]],
+        cols: list[tuple[Term, Iterable[ScopedTerm], dict[str, Any]]],
         spec: ModelSpec,
         drop_rows: Sequence[int],
-    ) -> Generator[Tuple[Term, Iterable[ScopedTerm], Dict[str, Any]], None, None]:
+    ) -> Generator[tuple[Term, Iterable[ScopedTerm], dict[str, Any]], None, None]:
         # TODO: Verify that imputation strategies are intuitive and make sense.
-        structure = cast(List[EncodedTermStructure], spec.structure)
+        structure = cast(list[EncodedTermStructure], spec.structure)
         if not len(cols) == len(structure):  # pragma: no cover
             raise RuntimeError(
                 "Specification structure and columns are mismatched. Please report this error with examples!"
@@ -880,8 +871,8 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             )
 
     def _get_columns_for_term(
-        self, factors: List[Dict[str, Any]], spec: ModelSpec, scale: float = 1
-    ) -> Dict[str, Any]:
+        self, factors: list[dict[str, Any]], spec: ModelSpec, scale: float = 1
+    ) -> dict[str, Any]:
         """
         Assemble the columns for a model matrix given factors and a scale.
 
@@ -908,6 +899,6 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
     @abstractmethod
     def _combine_columns(
-        self, cols: Sequence[Tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
+        self, cols: Sequence[tuple[str, Any]], spec: ModelSpec, drop_rows: Sequence[int]
     ) -> Any:
         pass  # pragma: no cover

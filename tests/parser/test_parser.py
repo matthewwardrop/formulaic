@@ -1,7 +1,6 @@
 import pickle
 import re
 from io import BytesIO
-from typing import List
 from xml.etree.ElementInclude import include
 
 import pytest
@@ -159,7 +158,7 @@ class TestFormulaParser:
 
     @pytest.mark.parametrize("formula,terms", FORMULA_TO_TERMS.items())
     def test_to_terms(self, formula, terms):
-        generated_terms: Structured[List[Term]] = PARSER.get_terms(
+        generated_terms: Structured[list[Term]] = PARSER.get_terms(
             formula, context=PARSER_CONTEXT
         )
         if generated_terms._has_keys:

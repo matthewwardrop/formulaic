@@ -1,4 +1,5 @@
-from typing import Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Optional
 
 import numpy
 import pandas
@@ -7,7 +8,7 @@ import scipy.sparse as spsparse
 
 def categorical_encode_series_to_sparse_csc_matrix(
     series: Iterable, levels: Optional[Iterable[str]] = None, drop_first: bool = False
-) -> Tuple[List, spsparse.csc_matrix]:
+) -> tuple[list, spsparse.csc_matrix]:
     """
     Categorically encode (via dummy encoding) a `series` as a sparse matrix.
 

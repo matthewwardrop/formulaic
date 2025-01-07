@@ -9,5 +9,5 @@ def test_ordered_set():
     assert repr(OrderedSet(["z", "b", "c"])) == "{'z', 'b', 'c'}"
 
     assert OrderedSet(["z", "k"]) | ["a", "b"] == OrderedSet(["z", "k", "a", "b"])
-    assert OrderedSet(("z", "k")) - ("z",) == OrderedSet(("k"))
+    assert OrderedSet(("z", "k")) - ("z",) == OrderedSet("k")
     assert ["b"] | OrderedSet("a") == OrderedSet("ba")

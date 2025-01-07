@@ -3,17 +3,12 @@ from __future__ import annotations
 import copy
 import itertools
 from collections import defaultdict
+from collections.abc import Generator, Iterable
 from typing import (
     Any,
     Callable,
-    Dict,
-    Generator,
     Generic,
-    Iterable,
-    List,
     Optional,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -92,7 +87,7 @@ class Structured(Generic[_ItemType]):
         self,
         root: Any = MISSING,
         *,
-        _metadata: Optional[Dict[str, Any]] = None,
+        _metadata: Optional[dict[str, Any]] = None,
         **structure: Any,
     ):
         if any(key.startswith("_") for key in structure):
@@ -150,11 +145,11 @@ class Structured(Generic[_ItemType]):
         self,
         func: Union[
             Callable[[_ItemType], Any],
-            Callable[[_ItemType, Tuple[Union[str, int], ...]], Any],
+            Callable[[_ItemType, tuple[Union[str, int], ...]], Any],
         ],
         recurse: bool = True,
-        as_type: Optional[Type[Structured]] = None,
-        _context: Tuple[Union[str, int], ...] = (),
+        as_type: Optional[type[Structured]] = None,
+        _context: tuple[Union[str, int], ...] = (),
     ) -> Structured[Any]:
         """
         Map a callable object onto all the structured objects, returning a
@@ -178,7 +173,7 @@ class Structured(Generic[_ItemType]):
             but with all objects transformed under `func`.
         """
 
-        def apply_func(obj: Any, context: Tuple[Union[str, int], ...]) -> Any:
+        def apply_func(obj: Any, context: tuple[Union[str, int], ...]) -> Any:
             if recurse and isinstance(obj, Structured):
                 return obj._map(func, recurse=True, as_type=as_type, _context=context)
             if isinstance(obj, tuple):
@@ -214,7 +209,7 @@ class Structured(Generic[_ItemType]):
             else:
                 yield value
 
-    def _to_dict(self, recurse: bool = True) -> Dict[Optional[str], Any]:
+    def _to_dict(self, recurse: bool = True) -> dict[Optional[str], Any]:
         """
         Generate a dictionary representation of this structure.
 
@@ -285,8 +280,8 @@ class Structured(Generic[_ItemType]):
         if recurse:
 
             def simplify_obj(
-                obj: Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]],
-            ) -> Tuple[Union[_ItemType, Tuple[_ItemType], Structured[_ItemType]], bool]:
+                obj: Union[_ItemType, tuple[_ItemType], Structured[_ItemType]],
+            ) -> tuple[Union[_ItemType, tuple[_ItemType], Structured[_ItemType]], bool]:
                 """
                 Return the simplified object, and a flag indicating whether the
                 object was modified.
@@ -342,8 +337,8 @@ class Structured(Generic[_ItemType]):
         cls,
         *objects: Any,
         merger: Optional[Callable] = None,
-        _context: Tuple[str, ...] = (),
-    ) -> Union[_ItemType, Structured[_ItemType], Tuple]:
+        _context: tuple[str, ...] = (),
+    ) -> Union[_ItemType, Structured[_ItemType], tuple]:
         """
         Merge arbitrarily many objects into a single `Structured` instance.
 
@@ -407,7 +402,7 @@ class Structured(Generic[_ItemType]):
 
         return cls(
             **cast(
-                Dict[str, Any],
+                dict[str, Any],
                 {
                     key: (
                         cls._merge(*values, merger=merger, _context=_context + (key,))
@@ -433,7 +428,7 @@ class Structured(Generic[_ItemType]):
             "Please specify `merger` explicitly."
         )
 
-    def __dir__(self) -> List[str]:
+    def __dir__(self) -> list[str]:
         return [*super().__dir__(), *self._structure]
 
     def __getattr__(self, attr: str) -> Any:
@@ -451,7 +446,7 @@ class Structured(Generic[_ItemType]):
             return
         self._structure[attr] = self.__prepare_item(attr, value)
 
-    def __lookup_path(self, path: Tuple[Union[str, int], ...]) -> Any:
+    def __lookup_path(self, path: tuple[Union[str, int], ...]) -> Any:
         obj = self
         idx = 0
 

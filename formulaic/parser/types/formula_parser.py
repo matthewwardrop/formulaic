@@ -1,15 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import (
     Any,
-    Iterable,
     Literal,
-    Mapping,
-    MutableMapping,
     Optional,
-    Tuple,
     Union,
     overload,
 )
@@ -180,7 +177,7 @@ class FormulaParser:
             return Structured([])
 
         terms: Union[
-            OrderedSet[Term], Tuple[OrderedSet[Term]], Structured[OrderedSet[Term]]
+            OrderedSet[Term], tuple[OrderedSet[Term]], Structured[OrderedSet[Term]]
         ] = ast.to_terms(context=context)
         if not isinstance(terms, Structured):
             terms = Structured[OrderedSet[Term]](terms)

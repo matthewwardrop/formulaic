@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from collections.abc import Iterable
 
 from formulaic.utils.code import format_expr, sanitize_variable_names
 
@@ -27,7 +27,7 @@ def sanitize_python_code(expr: str) -> str:
     Ensure than python code is consistently formatted, and that quoted portions
     (by backticks) are properly handled.
     """
-    aliases: Dict[str, str] = {}
+    aliases: dict[str, str] = {}
     expr = format_expr(
         sanitize_variable_names(expr, {}, aliases, template="_formulaic_{}")
     )

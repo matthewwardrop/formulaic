@@ -1,7 +1,8 @@
 import ast
 import keyword
 import re
-from typing import MutableMapping, Union
+from collections.abc import MutableMapping
+from typing import Union
 
 import numpy
 

@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -116,16 +111,16 @@ class ModelSpec:
     # Configuration attributes
     formula: SimpleFormula
     materializer: Optional[str] = None
-    materializer_params: Optional[Dict[str, Any]] = None
+    materializer_params: Optional[dict[str, Any]] = None
     ensure_full_rank: bool = True
     na_action: NAAction = NAAction.DROP
     output: Optional[str] = None
     cluster_by: ClusterBy = ClusterBy.NONE
 
     # State attributes
-    structure: Optional[List[EncodedTermStructure]] = None
-    transform_state: Dict = field(default_factory=dict)
-    encoder_state: Dict = field(default_factory=dict)
+    structure: Optional[list[EncodedTermStructure]] = None
+    transform_state: dict = field(default_factory=dict)
+    encoder_state: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.__dict__["formula"] = SimpleFormula.from_spec(self.formula)
@@ -148,7 +143,7 @@ class ModelSpec:
     # Derived features
 
     @property
-    def __structure(self) -> List[EncodedTermStructure]:
+    def __structure(self) -> list[EncodedTermStructure]:
         """
         A reference to `.structure` if it is populated, or otherwise an
         exception is raised.
@@ -169,14 +164,14 @@ class ModelSpec:
         return tuple(feature for row in self.__structure for feature in row.columns)
 
     @cached_property
-    def column_indices(self) -> Dict[str, int]:
+    def column_indices(self) -> dict[str, int]:
         """
         An ordered mapping from column names to the column index in generated
         model matrices.
         """
         return {name: i for i, name in enumerate(self.column_names)}
 
-    def get_column_indices(self, columns: Union[str, Sequence[str]]) -> List[int]:
+    def get_column_indices(self, columns: Union[str, Sequence[str]]) -> list[int]:
         """
         Generate a list of column indices corresponding to the nominated column
         names. This is useful when you want to slice a model matrix by specific
@@ -190,7 +185,7 @@ class ModelSpec:
         return [self.column_indices[column] for column in columns]
 
     @property
-    def terms(self) -> List[Term]:
+    def terms(self) -> list[Term]:
         """
         The terms used to generate model matrices from this `ModelSpec`
         instance.
@@ -198,7 +193,7 @@ class ModelSpec:
         return list(self.formula)
 
     @cached_property
-    def term_indices(self) -> Dict[Term, List[int]]:
+    def term_indices(self) -> dict[Term, list[int]]:
         """
         An ordered mapping of `Term` instances to the generated column indices.
 
@@ -216,7 +211,7 @@ class ModelSpec:
 
     def get_term_indices(
         self, terms_spec: FormulaSpec, **formula_kwargs: Any
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Generate a list of column indices corresponding to the columns
         associated with the nominated `term_spec`.
@@ -240,13 +235,13 @@ class ModelSpec:
             formula_kwargs: Additional keyword arguments to pass to the
                 `Formula.from_spec` constructor to control (e.g.) ordering.
         """
-        terms: List[Term] = list(
+        terms: list[Term] = list(
             self.__get_restricted_formula(terms_spec, **formula_kwargs)
         )
         return [idx for term in terms for idx in self.term_indices[term]]
 
     @cached_property
-    def term_slices(self) -> Dict[Term, slice]:
+    def term_slices(self) -> dict[Term, slice]:
         """
         An ordered mapping of `Term` instances to a slice that when used on
         the columns of the model matrix will subsample the model matrix down to
@@ -262,19 +257,19 @@ class ModelSpec:
         }
 
     @cached_property
-    def term_factors(self) -> Dict[Term, Set[Factor]]:
+    def term_factors(self) -> dict[Term, set[Factor]]:
         """
         A mapping from `Term` instances to the factors which were used to
         generate them.
         """
-        term_factors: Dict[Term, Set[Factor]] = defaultdict(set)
+        term_factors: dict[Term, set[Factor]] = defaultdict(set)
         for term in self.terms:
             for factor in term.factors:
                 term_factors[term].add(factor)
         return dict(term_factors)
 
     @cached_property
-    def term_variables(self) -> Dict[Term, Set[Variable]]:
+    def term_variables(self) -> dict[Term, set[Variable]]:
         """
         An ordered mapping of `Term` instances to the set of `Variable`
         instances corresponding to the variables used in the evaluation of that
@@ -289,7 +284,7 @@ class ModelSpec:
         return term_variables
 
     @cached_property
-    def factors(self) -> Set[Factor]:
+    def factors(self) -> set[Factor]:
         """
         The factors used to generate model matrices from this `ModelSpec`
         instance.
@@ -297,24 +292,24 @@ class ModelSpec:
         return {factor for term in self.terms for factor in term.factors}
 
     @cached_property
-    def factor_terms(self) -> Dict[Factor, Set[Term]]:
+    def factor_terms(self) -> dict[Factor, set[Term]]:
         """
         A mapping from `Factor` instances to the terms which used it. This is
         the reverse mapping of `.term_factors`.
         """
-        factor_terms: Dict[Factor, Set[Term]] = defaultdict(set)
+        factor_terms: dict[Factor, set[Term]] = defaultdict(set)
         for term, factors in self.term_factors.items():
             for factor in factors:
                 factor_terms[factor].add(term)
         return dict(factor_terms)
 
     @cached_property
-    def factor_variables(self) -> Dict[Factor, Set[Variable]]:
+    def factor_variables(self) -> dict[Factor, set[Variable]]:
         """
         A mapping from `Factor` instances to the variables used in the evaluation
         of that factor.
         """
-        factor_variables: Dict[Factor, List[Variable]] = defaultdict(list)
+        factor_variables: dict[Factor, list[Variable]] = defaultdict(list)
         for s in self.__structure:
             for scoped_term in s.scoped_terms:
                 for scoped_factor in scoped_term.factors:
@@ -328,7 +323,7 @@ class ModelSpec:
         }
 
     @cached_property
-    def factor_contrasts(self) -> Dict[Factor, ContrastsState]:
+    def factor_contrasts(self) -> dict[Factor, ContrastsState]:
         """
         A mapping of `Factor` instances to their contrasts state. This is useful
         if you would like to introspect some of the coding choices, or reuse
@@ -358,7 +353,7 @@ class ModelSpec:
         }
 
     @cached_property
-    def variables(self) -> Set[Variable]:
+    def variables(self) -> set[Variable]:
         """
         The variables used during the materialization of the entire formula.
         """
@@ -367,19 +362,19 @@ class ModelSpec:
         )
 
     @cached_property
-    def variable_terms(self) -> Dict[Variable, Set[Term]]:
+    def variable_terms(self) -> dict[Variable, set[Term]]:
         """
         A mapping from `Variable` instances to the terms which used it. This is
         the reverse mapping of `.term_variables`.
         """
-        variable_terms: Dict[Variable, Set[Term]] = defaultdict(set)
+        variable_terms: dict[Variable, set[Term]] = defaultdict(set)
         for term, variables in self.term_variables.items():
             for variable in variables:
                 variable_terms[variable].add(term)
         return dict(variable_terms)
 
     @cached_property
-    def variable_indices(self) -> Dict[Variable, List[int]]:
+    def variable_indices(self) -> dict[Variable, list[int]]:
         """
         A mapping from `Variable` instances to the indices in the model matrix
         where they were used.
@@ -393,7 +388,7 @@ class ModelSpec:
 
     def get_variable_indices(
         self, variables: Sequence[Union[str, Variable]]
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Generate a list of column indices corresponding to the columns associated
         with the nominated variables. This is useful when you want to slice a model
@@ -410,19 +405,19 @@ class ModelSpec:
         ]
 
     @cached_property
-    def variables_by_source(self) -> Dict[Optional[str], Set[Variable]]:
+    def variables_by_source(self) -> dict[Optional[str], set[Variable]]:
         """
         A mapping of source name to the set of variables drawn from that source.
         Formulaic, by default, has three top-level sources of variables:
         'data', 'transforms', and 'context'.
         """
-        variables_by_source: Dict[Optional[str], Set[Variable]] = defaultdict(set)
+        variables_by_source: dict[Optional[str], set[Variable]] = defaultdict(set)
         for variable in self.variables:
             variables_by_source[variable.source].add(variable)
         return dict(variables_by_source)
 
     @property
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required to be in the data to materialize this
         model specification.
@@ -500,7 +495,7 @@ class ModelSpec:
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **attr_overrides: Any,
     ) -> ModelMatrix:
         """
@@ -585,8 +580,8 @@ class ModelSpec:
         formula: SimpleFormula = self.__get_restricted_formula(
             terms_spec, **formula_kwargs
         )
-        terms: List[Term] = list(formula)
-        terms_set: Set[Term] = set(terms)
+        terms: list[Term] = list(formula)
+        terms_set: set[Term] = set(terms)
         term_structure = {s.term: s for s in self.__structure if s.term in terms_set}
 
         return self.update(
@@ -615,7 +610,7 @@ class ModelSpec:
         )
 
     # Only include dataclass fields when pickling.
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         return {
             k: v for k, v in self.__dict__.items() if k in self.__dataclass_fields__
         }
@@ -643,7 +638,7 @@ class ModelSpec:
                 "Cannot subset a `ModelSpec` using a formula that has structure."
             )
 
-        missing_terms: Set[Term] = set(formula).difference(self.terms)
+        missing_terms: set[Term] = set(formula).difference(self.terms)
         if missing_terms:
             raise ValueError(
                 f"Cannot subset a model spec with terms not present in the original model spec: {missing_terms}."
@@ -669,12 +664,12 @@ class ModelSpecs(Structured[ModelSpec]):
         return item
 
     @property
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required to be in the data to materialize all of
         the model specifications in this `ModelSpecs` instance.
         """
-        variables: Set[Variable] = set()
+        variables: set[Variable] = set()
         self._map(lambda ms: variables.update(ms.required_variables))
         return variables
 
@@ -682,7 +677,7 @@ class ModelSpecs(Structured[ModelSpec]):
         self,
         data: Any,
         context: Optional[Mapping[str, Any]] = None,
-        drop_rows: Optional[Set[int]] = None,
+        drop_rows: Optional[set[int]] = None,
         **attr_overrides: Any,
     ) -> ModelMatrices:
         """
@@ -768,7 +763,7 @@ class ModelSpecs(Structured[ModelSpec]):
         """
 
         def map_formula_structure_onto_model_spec(
-            formula: SimpleFormula, context: Tuple[Union[int, str], ...]
+            formula: SimpleFormula, context: tuple[Union[int, str], ...]
         ) -> ModelSpec:
             try:
                 return self[context].subset(formula)

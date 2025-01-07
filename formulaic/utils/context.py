@@ -1,5 +1,6 @@
 import sys
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any, Optional, Union
 
 from .layered_mapping import LayeredMapping
 

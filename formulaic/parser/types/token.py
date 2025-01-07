@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import copy
 import re
+from collections.abc import Iterable, Mapping
 from enum import Enum
-from typing import Any, Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from formulaic.utils.variables import Variable, get_expression_variables
 
@@ -76,7 +77,7 @@ class Token:
 
     def update(
         self, char: str, source_index: int, kind: Union[None, str, Kind] = None
-    ) -> "Token":
+    ) -> Token:
         """
         Add a character to the token string, keeping track of the source
         indices.
@@ -117,7 +118,7 @@ class Token:
         return NotImplemented
 
     @property
-    def source_loc(self) -> Tuple[Optional[int], Optional[int]]:
+    def source_loc(self) -> tuple[Optional[int], Optional[int]]:
         """
         The indices of the first and last character represented by this token in
         the source string.
@@ -182,7 +183,7 @@ class Token:
         return f"{self.source[:self.source_start]}⧛{self.source[self.source_start:self.source_end+1]}⧚{self.source[self.source_end+1:]}"
 
     @property
-    def required_variables(self) -> Set[Variable]:
+    def required_variables(self) -> set[Variable]:
         """
         The set of variables required to evaluate this token.
 
@@ -255,7 +256,7 @@ class Token:
         last_index = 0
         separators = pattern.finditer(self.token)
 
-        def get_next_token(next_index: int) -> Tuple[int, Token]:
+        def get_next_token(next_index: int) -> tuple[int, Token]:
             return next_index, self.copy_with_attrs(
                 token=self.token[last_index:next_index]
             )

@@ -1,15 +1,12 @@
 import ast
 import functools
 import inspect
+from collections.abc import Mapping, MutableMapping
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Mapping,
-    MutableMapping,
     Optional,
-    Set,
     cast,
 )
 
@@ -94,7 +91,7 @@ def stateful_eval(
     metadata: Optional[Mapping],
     state: Optional[MutableMapping],
     spec: Optional["ModelSpec"],
-    variables: Optional[Set[Variable]] = None,
+    variables: Optional[set[Variable]] = None,
 ) -> Any:
     """
     Evaluate an expression in a nominated environment and with a nominated state.
@@ -133,7 +130,7 @@ def stateful_eval(
 
     # Ensure that variable names in code are valid for Python's interpreter
     # If not, create new variable in mutable env layer, and update code.
-    aliases: Dict[str, str] = {}
+    aliases: dict[str, str] = {}
     expr = sanitize_variable_names(expr, env, aliases)
 
     # Parse Python code
@@ -143,7 +140,7 @@ def stateful_eval(
         variables.update(get_expression_variables(code, env, aliases))
 
     # Extract the nodes of the graph that correspond to stateful transforms
-    stateful_nodes: Dict[str, ast.Call] = {}
+    stateful_nodes: dict[str, ast.Call] = {}
     for node in ast.walk(code):
         if _is_stateful_transform(node, env):
             stateful_nodes[format_expr(node)] = cast(ast.Call, node)

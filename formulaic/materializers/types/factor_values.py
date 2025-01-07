@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Hashable
 from dataclasses import dataclass, replace
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Generic,
-    Hashable,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -65,11 +62,11 @@ class FactorValuesMetadata:
     """
 
     kind: Factor.Kind = Factor.Kind.UNKNOWN
-    column_names: Optional[Tuple[str]] = None
+    column_names: Optional[tuple[str]] = None
     format: str = "{name}[{field}]"
     encoded: bool = False
     encoder: Optional[
-        Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any]
+        Callable[[Any, bool, list[int], dict[str, Any], ModelSpec], Any]
     ] = None
 
     # Rank-Reduction Attributes
@@ -106,12 +103,12 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         metadata: Union[FactorValuesMetadata, MissingType] = MISSING,
         *,
         kind: Union[str, Factor.Kind, MissingType] = MISSING,
-        column_names: Union[Tuple[Hashable, ...], MissingType] = MISSING,
+        column_names: Union[tuple[Hashable, ...], MissingType] = MISSING,
         format: Union[str, MissingType] = MISSING,  # pylint: disable=redefined-builtin
         encoded: Union[bool, MissingType] = MISSING,
         encoder: Union[
             None,
-            Callable[[Any, bool, List[int], Dict[str, Any], ModelSpec], Any],
+            Callable[[Any, bool, list[int], dict[str, Any], ModelSpec], Any],
             MissingType,
         ] = MISSING,
         spans_intercept: Union[bool, MissingType] = MISSING,
@@ -168,8 +165,8 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
 
     def __reduce_ex__(
         self, protocol: SupportsIndex
-    ) -> Tuple[
+    ) -> tuple[
         Callable[[Any, Union[FactorValuesMetadata, MissingType]], FactorValues],
-        Tuple[Any, Union[FactorValuesMetadata, MissingType]],
+        tuple[Any, Union[FactorValuesMetadata, MissingType]],
     ]:
         return FactorValues, (self.__wrapped__, self._self_metadata)

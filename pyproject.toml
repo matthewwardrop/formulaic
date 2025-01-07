@@ -129,8 +129,10 @@ select = [
     "W",    # pycodestyle
     "S",    # bandit
     "I001", # import sorting
+    "UP",  # syntax upgrades
     # "D", # documentation
 ]
+pyupgrade = { keep-runtime-typing = true }
 
 ignore = [
     "C901",

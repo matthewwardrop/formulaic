@@ -1,6 +1,7 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from enum import Enum
-from typing import Dict, Iterable, List, Optional, Union, cast
+from typing import Optional, Union, cast
 
 import numpy
 import pandas
@@ -157,7 +158,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
                     f"{upper_bound}), no data points are available for knot selection."
                 )
             knots = cast(
-                List[float],
+                list[float],
                 numpy.nanquantile(knots_x, numpy.linspace(0, 1, nknots + 2))[
                     1:-1
                 ].tolist(),
@@ -172,7 +173,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     # The following code is equivalent to [B(i, j=degree) for in range(len(knots)-d-1)], with B(i, j) as defined below.
     # B = lambda i, j: ((x >= knots[i]) & (x < knots[i+1])).astype(float) if j == 0 else alpha(i, j, x) * B(i, j-1, x) + (1 - alpha(i+1, j, x)) * B(i+1, j-1, x)
     # We don't directly use this recurrence relation so that we can memoise the B(i, j).
-    cache: Dict[int, Dict[int, float]] = defaultdict(dict)
+    cache: dict[int, dict[int, float]] = defaultdict(dict)
     alpha = (
         lambda i, j: (x - knots[i]) / (knots[i + j] - knots[i])
         if knots[i + j] != knots[i]

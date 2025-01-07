@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Set
-from typing import Any, Generic, Iterable, Iterator, TypeVar
+from collections.abc import Iterable, Iterator, Set
+from typing import Any, Generic, TypeVar
 
 ItemType = TypeVar("ItemType")
 

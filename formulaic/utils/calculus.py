@@ -1,4 +1,5 @@
-from typing import Iterable, Set, cast
+from collections.abc import Iterable
+from typing import cast
 
 from formulaic.parser.types import Factor, Term
 from formulaic.parser.types.ordered_set import OrderedSet
@@ -48,7 +49,7 @@ def differentiate_term(
     return Term(factors or {Factor("1", eval_method="literal")})
 
 
-def _factor_symbols(factor: Factor, use_sympy: bool = False) -> Set[str]:
+def _factor_symbols(factor: Factor, use_sympy: bool = False) -> set[str]:
     """
     Extract the symbols represented in a factor.
 
@@ -73,8 +74,8 @@ def _factor_symbols(factor: Factor, use_sympy: bool = False) -> Set[str]:
 
 
 def _differentiate_factors(
-    factors: Set[Factor], var: str, use_sympy: bool = False
-) -> Set[Factor]:
+    factors: set[Factor], var: str, use_sympy: bool = False
+) -> set[Factor]:
     """
     Differentiate the nominated `factors` by `var`.
 

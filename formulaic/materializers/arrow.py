@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 import pandas
 from interface_meta import override
@@ -30,7 +30,7 @@ class LazyArrowTableProxy(Mapping):
     def __init__(self, table: pyarrow.Table):
         self.table = table
         self.column_names = set(self.table.column_names)
-        self._cache: Dict[str, pandas.Series] = {}
+        self._cache: dict[str, pandas.Series] = {}
         self.index = pandas.RangeIndex(len(table))
 
     def __contains__(self, value: Any) -> Any:

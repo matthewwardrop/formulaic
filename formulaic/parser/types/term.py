@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Optional
 
 from .ordered_set import OrderedSet
 
@@ -24,7 +25,7 @@ class Term:
 
     FACTOR_MATCHER = re.compile(r"(?:^|(?<=:))(`?)(?P<factor>[^`]+?)\1(?=:|$)")
 
-    def __init__(self, factors: Iterable["Factor"], origin: Optional[Term] = None):
+    def __init__(self, factors: Iterable[Factor], origin: Optional[Term] = None):
         self.factors = tuple(dict.fromkeys(factors))
         self.origin = origin
         self._factor_key = tuple(factor.expr for factor in sorted(self.factors))

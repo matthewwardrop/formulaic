@@ -1,5 +1,6 @@
 from collections import namedtuple
-from typing import Iterable, List, Set, Union
+from collections.abc import Iterable
+from typing import Union
 
 from ..types import ASTNode, Operator, OperatorResolver, Token
 from ..utils import exc_for_missing_operator, exc_for_token
@@ -40,16 +41,16 @@ def tokens_to_ast(
     Returns:
         The generated abstract syntax tree as a nested `ASTNode` instance.
     """
-    output_queue: List[Union[Token, ASTNode]] = []
-    operator_stack: List[OrderedOperator] = []
-    disabled_operators: Set[Token] = set()
+    output_queue: list[Union[Token, ASTNode]] = []
+    operator_stack: list[OrderedOperator] = []
+    disabled_operators: set[Token] = set()
 
     def stack_operator(operator: Union[Token, Operator], token: Token) -> None:
         operator_stack.append(OrderedOperator(operator, token, len(output_queue)))
 
     def operate(
-        ordered_operator: OrderedOperator, output_queue: List[Union[Token, ASTNode]]
-    ) -> List[Union[Token, ASTNode]]:
+        ordered_operator: OrderedOperator, output_queue: list[Union[Token, ASTNode]]
+    ) -> list[Union[Token, ASTNode]]:
         operator, token, index = ordered_operator
 
         if operator.fixity is Operator.Fixity.INFIX:

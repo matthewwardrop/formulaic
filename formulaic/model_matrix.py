@@ -8,7 +8,6 @@ from typing import (
     Generic,
     Optional,
     SupportsIndex,
-    Tuple,
     TypeVar,
     cast,
 )
@@ -69,8 +68,8 @@ class ModelMatrix(Generic[MatrixType], wrapt.ObjectProxy):
 
     def __reduce_ex__(
         self, protocol: SupportsIndex
-    ) -> Tuple[
-        Callable[[Any, ModelSpec], ModelMatrix], Tuple[Any, Optional[ModelSpec]]
+    ) -> tuple[
+        Callable[[Any, ModelSpec], ModelMatrix], tuple[Any, Optional[ModelSpec]]
     ]:
         return ModelMatrix, (self.__wrapped__, self._self_model_spec)
 

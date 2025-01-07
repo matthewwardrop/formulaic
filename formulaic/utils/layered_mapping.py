@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import MutableMapping
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from functools import cached_property
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Optional
 
 
 class LayeredMapping(MutableMapping):
@@ -24,11 +24,11 @@ class LayeredMapping(MutableMapping):
         layers.
         """
         self.name = name
-        self._mutations: Dict = {}
-        self._layers: List[Mapping] = self.__filter_layers(layers)
+        self._mutations: dict = {}
+        self._layers: list[Mapping] = self.__filter_layers(layers)
 
     @staticmethod
-    def __filter_layers(layers: Iterable[Optional[Mapping]]) -> List[Mapping]:
+    def __filter_layers(layers: Iterable[Optional[Mapping]]) -> list[Mapping]:
         """
         Filter incoming `layers` down to those which are not null.
         """
@@ -100,7 +100,7 @@ class LayeredMapping(MutableMapping):
     # Named layer lookups and caching
 
     @cached_property
-    def named_layers(self) -> Dict[str, LayeredMapping]:
+    def named_layers(self) -> dict[str, LayeredMapping]:
         """
         A mapping from string names to named `LayeredMapping` instances. If no
         children mappings are named, this will be an empty dictionary. If more
@@ -119,8 +119,8 @@ class LayeredMapping(MutableMapping):
         return named_layers
 
     def get_with_layer_name(
-        self, key: Any, default: Any = None, *, _path: Tuple[str, ...] = ()
-    ) -> Tuple[Any, Optional[str]]:
+        self, key: Any, default: Any = None, *, _path: tuple[str, ...] = ()
+    ) -> tuple[Any, Optional[str]]:
         """
         Return the value for the nominated `key` (or `default` if `key` is not
         in this mapping); and the name of the layer from which the value is

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from .ordered_set import OrderedSet
 from .term import Term
@@ -51,7 +52,7 @@ class Factor:
         *,
         eval_method: Optional[Union[str, EvalMethod]] = None,
         kind: Optional[Union[str, Kind]] = None,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
         token: Optional[Token] = None,
     ):
         self.expr = expr

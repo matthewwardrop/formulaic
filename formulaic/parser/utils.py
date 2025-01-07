@@ -1,5 +1,6 @@
 import re
-from typing import Iterable, Optional, Sequence, Set, Tuple, Type, Union
+from collections.abc import Iterable, Sequence
+from typing import Optional, Union
 
 from formulaic.errors import FormulaSyntaxError
 
@@ -12,7 +13,7 @@ from .types.token import Token
 def exc_for_token(
     token: Union[Token, ASTNode],
     message: str,
-    errcls: Type[Exception] = FormulaSyntaxError,
+    errcls: type[Exception] = FormulaSyntaxError,
 ) -> Exception:
     """
     Return an exception ready to be raised with a helpful token/source context.
@@ -33,7 +34,7 @@ def exc_for_token(
 def exc_for_missing_operator(
     lhs: Union[Token, ASTNode],
     rhs: Union[Token, ASTNode],
-    errcls: Type[Exception] = FormulaSyntaxError,
+    errcls: type[Exception] = FormulaSyntaxError,
     extra: Optional[str] = None,
 ) -> Exception:
     """
@@ -84,7 +85,7 @@ def __get_token_for_ast(ast: Union[Token, ASTNode]) -> Token:  # pragma: no cove
 
 def __get_tokens_for_gap(
     lhs: Union[Token, ASTNode], rhs: Union[Token, ASTNode]
-) -> Tuple[Token, Token, Token]:
+) -> tuple[Token, Token, Token]:
     """
     Ensure that incoming `lhs` and `rhs` objects are `Token`s, or else generate
     some for debugging purposes (note that these tokens will not be valid
@@ -166,7 +167,7 @@ def insert_tokens_after(
     *,
     kind: Optional[Token.Kind] = None,
     join_operator: Optional[str] = None,
-    no_join_for_operators: Union[bool, Set[str]] = True,
+    no_join_for_operators: Union[bool, set[str]] = True,
 ) -> Iterable[Token]:
     """
     Insert additional tokens into a sequence of tokens after (within token)
@@ -232,7 +233,7 @@ def insert_tokens_after(
 
 
 def merge_operator_tokens(
-    tokens: Iterable[Token], symbols: Optional[Set[str]] = None
+    tokens: Iterable[Token], symbols: Optional[set[str]] = None
 ) -> Iterable[Token]:
     """
     Merge operator tokens within a sequence of tokens.

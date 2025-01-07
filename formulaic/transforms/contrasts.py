@@ -3,18 +3,13 @@ from __future__ import annotations
 import inspect
 import warnings
 from abc import abstractmethod
+from collections.abc import Hashable, Iterable, Sequence
 from dataclasses import dataclass
 from numbers import Number
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Hashable,
-    Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     Union,
     cast,
 )
@@ -40,7 +35,7 @@ if TYPE_CHECKING:
 def C(
     data: Any,
     contrasts: Optional[
-        Union[Contrasts, Dict[str, Iterable[Number]], numpy.ndarray]
+        Union[Contrasts, dict[str, Iterable[Number]], numpy.ndarray]
     ] = None,
     *,
     levels: Optional[Iterable[str]] = None,
@@ -70,8 +65,8 @@ def C(
     def encoder(
         values: Any,
         reduced_rank: bool,
-        drop_rows: List[int],
-        encoder_state: Dict[str, Any],
+        drop_rows: list[int],
+        encoder_state: dict[str, Any],
         model_spec: ModelSpec,
     ) -> FactorValues:
         values = pandas.Series(values)
@@ -98,7 +93,7 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
     data: Any,
     contrasts: Union[
         Contrasts,
-        Dict[Hashable, Sequence[float]],
+        dict[Hashable, Sequence[float]],
         Sequence[Sequence[float]],
         numpy.ndarray,
         None,
@@ -107,7 +102,7 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
     levels: Optional[Iterable[str]] = None,
     reduced_rank: bool = False,
     output: Optional[str] = None,
-    _state: Dict[str, Any] = {},
+    _state: dict[str, Any] = {},
     _spec: Optional[ModelSpec] = None,
 ) -> FactorValues[Union[pandas.DataFrame, spsparse.spmatrix]]:
     """
@@ -143,7 +138,7 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
         contrasts = CustomContrasts(
             cast(
                 Union[
-                    Dict[Hashable, Sequence[float]],
+                    dict[Hashable, Sequence[float]],
                     Sequence[Sequence[float]],
                     numpy.ndarray,
                 ],
@@ -257,7 +252,7 @@ class Contrasts(metaclass=InterfaceMeta):
             return FactorValues(
                 encoded,
                 kind="categorical",
-                column_names=cast(Tuple[Hashable], ()),
+                column_names=cast(tuple[Hashable], ()),
                 spans_intercept=False,
                 format=self.get_factor_format(levels, reduced_rank=reduced_rank),
                 format_reduced=self.get_factor_format(levels, reduced_rank=True),
@@ -846,7 +841,7 @@ class CustomContrasts(Contrasts):
     def __init__(
         self,
         contrasts: Union[
-            Dict[Hashable, Sequence[float]], Sequence[Sequence[float]], numpy.ndarray
+            dict[Hashable, Sequence[float]], Sequence[Sequence[float]], numpy.ndarray
         ],
         names: Optional[Sequence[Hashable]] = None,
     ):

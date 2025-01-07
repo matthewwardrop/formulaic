@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import functools
 import graphlib
+from collections.abc import Iterable, Mapping
 from typing import (
     Any,
-    Dict,
     Generic,
-    Iterable,
-    List,
-    Mapping,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -44,7 +40,7 @@ class ASTNode(Generic[ItemType]):
 
     def to_terms(
         self, *, context: Optional[Mapping[str, Any]] = None
-    ) -> Union[OrderedSet[Term], Structured[OrderedSet[Term]], Tuple]:
+    ) -> Union[OrderedSet[Term], Structured[OrderedSet[Term]], tuple]:
         """
         Evaluate this AST node and return the resulting set of `Term` instances.
 
@@ -59,7 +55,7 @@ class ASTNode(Generic[ItemType]):
         g = graphlib.TopologicalSorter(self.__generate_evaluation_graph())
         g.prepare()
 
-        results: Dict[ASTNode, Any] = {}
+        results: dict[ASTNode, Any] = {}
 
         while g.is_active():
             for node in g.get_ready():
@@ -86,7 +82,7 @@ class ASTNode(Generic[ItemType]):
         except RecursionError:
             return f"<ASTNode {self.operator}: ...>"
 
-    def flatten(self, str_args: bool = False) -> List[Any]:
+    def flatten(self, str_args: bool = False) -> list[Any]:
         """
         Flatten this `ASTNode` instance into a list of form: [<operator>, *<args>].
 
@@ -111,7 +107,7 @@ class ASTNode(Generic[ItemType]):
 
     # Helpers
 
-    def __generate_evaluation_graph(self) -> Dict[ASTNode, List[ASTNode]]:
+    def __generate_evaluation_graph(self) -> dict[ASTNode, list[ASTNode]]:
         nodes_to_parse = [self]
         graph = {}
         while nodes_to_parse:

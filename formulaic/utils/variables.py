@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import ast
 from collections import deque
+from collections.abc import Iterable, Mapping
 from enum import Enum
-from typing import Dict, Iterable, List, Mapping, Optional, Set, Union
+from typing import Optional, Union
 
 from formulaic.utils.layered_mapping import LayeredMapping
 
@@ -14,7 +15,7 @@ class Variable(str):
         VALUE = "value"
         CALLABLE = "callable"
 
-    roles: Set[Role]
+    roles: set[Role]
     source: Optional[str]
 
     def __new__(
@@ -30,8 +31,8 @@ class Variable(str):
         return s
 
     @classmethod
-    def union(cls, *variable_sets: Iterable[Variable]) -> Set[Variable]:
-        variables: Dict[Variable, Variable] = {}
+    def union(cls, *variable_sets: Iterable[Variable]) -> set[Variable]:
+        variables: dict[Variable, Variable] = {}
         for variable_set in variable_sets:
             for variable in variable_set:
                 if variable in variables:
@@ -49,7 +50,7 @@ def get_expression_variables(
     expr: Union[str, ast.AST],
     context: Optional[Mapping] = None,
     aliases: Optional[Mapping] = None,
-) -> Set[Variable]:
+) -> set[Variable]:
     """
     Extract the variables that are used in the nominated Python expression.
 
@@ -73,8 +74,8 @@ def get_expression_variables(
     return set(variables)
 
 
-def _get_ast_node_variables(node: ast.AST, aliases: Mapping) -> List[Variable]:
-    variables: List[Variable] = []
+def _get_ast_node_variables(node: ast.AST, aliases: Mapping) -> list[Variable]:
+    variables: list[Variable] = []
 
     todo = deque([node])
     while todo:
