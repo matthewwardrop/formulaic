@@ -171,6 +171,19 @@ class ModelSpec:
         """
         return {name: i for i, name in enumerate(self.column_names)}
 
+    # @cached_property
+    # def column_factors(self) -> Dict[str, Set[Factor]]:
+    #     """
+    #     A mapping from column names to the factors which were used to generate them.
+    #     """
+    #     column_factors: Dict[str, Set[Factor]] = defaultdict(set)
+    #     for row in self.__structure:
+    #         for column in row.columns:
+    #             for term in row.terms:
+    #                 for factor in term.factors:
+    #                     column_factors[column].add(factor)
+    #     return dict(column_factors)
+
     def get_column_indices(self, columns: Union[str, Sequence[str]]) -> list[int]:
         """
         Generate a list of column indices corresponding to the nominated column

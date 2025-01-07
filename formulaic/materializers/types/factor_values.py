@@ -59,6 +59,12 @@ class FactorValuesMetadata:
             format_reduced: The format to use when exploding factors (as above), but
                 in the case where the rank has been reduced by dropping a field.
                 (This defaults to `format`.)
+
+        Subselection Attributes:
+            key_path: The path of keys by which a structured set of factor
+                has been subselected. This is used during materialization to
+                keep track of which columns correspond to which categorical
+                levels.
     """
 
     kind: Factor.Kind = Factor.Kind.UNKNOWN
@@ -74,6 +80,9 @@ class FactorValuesMetadata:
     drop_field: Optional[str] = None
     reduced: bool = False
     format_reduced: Optional[str] = None
+
+    # Subselection Attributes
+    key_path: tuple[str] = ()
 
     def get_format(self) -> str:
         return (
@@ -115,6 +124,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
         drop_field: Union[None, Hashable, MissingType] = MISSING,
         reduced: Union[bool, MissingType] = MISSING,
         format_reduced: Union[str, MissingType] = MISSING,
+        key_path: Union[tuple[str], MissingType] = MISSING,
     ):
         metadata_constructor: Callable = FactorValuesMetadata
         metadata_kwargs = dict(
@@ -127,6 +137,7 @@ class FactorValues(Generic[T], wrapt.ObjectProxy):
             drop_field=drop_field,
             reduced=reduced,
             format_reduced=format_reduced,
+            key_path=key_path,
         )
         for key in set(metadata_kwargs):
             if metadata_kwargs[key] is MISSING:

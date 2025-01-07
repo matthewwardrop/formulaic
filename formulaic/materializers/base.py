@@ -6,8 +6,9 @@ import inspect
 import itertools
 import operator
 from abc import abstractmethod
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from collections.abc import Generator, Hashable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -41,9 +42,45 @@ from .types import EvaluatedFactor, FactorValues, ScopedFactor, ScopedTerm
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic import FormulaSpec, ModelSpec, ModelSpecs
 
-EncodedTermStructure = namedtuple(
-    "EncodedTermStructure", ("term", "scoped_terms", "columns")
-)
+
+@dataclass
+class EncodedColumn:
+
+    name: str
+    values: Any
+
+    factor_levels: Mapping[ScopedFactor, tuple[str]]
+
+@dataclass
+class EncodedTermStructure(Sequence):
+    @dataclass
+    class ColumnMetadata:
+        name: str
+        factor_levels: Mapping[ScopedFactor, tuple[str]]
+
+    term: Term
+    column_metadata_by_scoped_term: Mapping[ScopedTerm, list[ColumnMetadata]]
+
+    @property
+    def scoped_terms(self) -> list[ScopedTerm]:
+        return list(self.column_metadata_by_scoped_term.keys())
+
+    @property
+    def columns(self) -> list[str]:
+        return [
+            column_metadata.name
+            for column_metadata in itertools.chain.from_iterable(
+                self.column_metadata_by_scoped_term.values()
+            )
+        ]
+
+    # Backwards compatibility named-tuple like shims (remove in v2.0)
+
+    def __getitem__(self, index):
+        return (self.term, self.scoped_terms, self.columns)[index]
+
+    def __len__(self):
+        return 3
 
 
 class FormulaMaterializerMeta(InterfaceMeta):
@@ -223,31 +260,50 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             )
 
         # Step 2: Generate the columns which will be collated into the full matrix
-        cols = []
+        cols_with_structure: list[tuple[dict[str, Any], EncodedTermStructure]] = []
         for term, scoped_terms in scoped_terms_for_terms:
-            scoped_cols = {}
+            scoped_cols: dict[str, Any] = {}
+            scoped_cols_metadata: list[EncodedTermStructure.ColumnMetadata] = []
             for scoped_term in scoped_terms:
                 if not scoped_term.factors:
                     scoped_cols["Intercept"] = (
                         scoped_term.scale
                         * self._encode_constant(1, None, {}, spec, drop_rows)
                     )
+                    scoped_cols_metadata.append(
+                        EncodedTermStructure.ColumnMetadata(
+                            "Intercept",
+                            {},
+                        )
+                    )
                 else:
+                    encoded_factors = [
+                        self._encode_evaled_factor(
+                            scoped_factor.factor,
+                            spec,
+                            drop_rows,
+                            reduced_rank=scoped_factor.reduced,
+                        )
+                        for scoped_factor in scoped_term.factors
+                    ]
                     scoped_cols.update(
                         self._get_columns_for_term(
-                            [
-                                self._encode_evaled_factor(
-                                    scoped_factor.factor,
-                                    spec,
-                                    drop_rows,
-                                    reduced_rank=scoped_factor.reduced,
-                                )
-                                for scoped_factor in scoped_term.factors
-                            ],
+                            encoded_factors,
                             spec=spec,
                             scale=scoped_term.scale,
                         )
                     )
+                    scoped_cols_metadata.extend(
+                        EncodedTermStructure.ColumnMetadata(
+
+                    )
+            cols_with_structure.append(
+                scoped_cols,
+                EncodedTermStructure(
+                    term,
+                    column_metadata_by_scoped_term,
+                ),
+            )
             cols.append((term, scoped_terms, scoped_cols))
 
         # Step 3: Populate remaining model spec fields
@@ -770,7 +826,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         return as_columns(factor.values)
 
     def _flatten_encoded_evaled_factor(
-        self, name: str, values: FactorValues[dict]
+        self, name: str, values: FactorValues[dict], *, key_path: tuple[str] = ()
     ) -> dict[str, Any]:
         if not isinstance(values, dict):
             return {name: values}
@@ -788,9 +844,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 continue
             subname = name_format.format(name=name, field=subfield)
             if isinstance(value, dict):
-                flattened.update(self._flatten_encoded_evaled_factor(subname, value))  # type: ignore
+                flattened.update(self._flatten_encoded_evaled_factor(subname, value, key_path=key_path+(subfield,)))  # type: ignore
             else:
-                flattened[subname] = value
+                flattened[subname] = FactorValues(value, key_path=key_path + (subfield,))
 
         return flattened
 
@@ -869,6 +925,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 col_spec[1],
                 {col: scoped_cols[col] for col in target_cols},
             )
+
+    def _get_columns_for_factors(self, factors: Mapping[ScopedFactor, dict[str, Any]], spec: ModelSpec, scale: float=1) -> list[tuple[str, dict[str, Any], Any]]:
+        pass
 
     def _get_columns_for_term(
         self, factors: list[dict[str, Any]], spec: ModelSpec, scale: float = 1
