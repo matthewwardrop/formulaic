@@ -1505,7 +1505,8 @@ as a module in scikit-learn pipelines along the lines of:</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">sklearn.base</span> <span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">TransformerMixin</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span>
@@ -1545,7 +1546,7 @@ as a module in scikit-learn pipelines along the lines of:</p>
 
     <span class="k">def</span> <span class="nf">get_feature_names_out</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        Expose model spec column names to scikit learn to allow column transforms later in the pipeline.</span>
 <span class="sd">        """</span>
@@ -1567,7 +1568,8 @@ as a module in scikit-learn pipelines along the lines of:</p>
 <span class="c1"># Note: You could optionally serialize `pipe_fit` here.</span>
 <span class="c1"># Then: Use the pipe to predict outcomes for new data.</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-2">from typing import Iterable, List, Optional
+<div class="clipboard-copy-txt" id="cell-2">from collections.abc import Iterable
+from typing import Optional
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LinearRegression
@@ -1607,7 +1609,7 @@ class FormulaicTransformer(TransformerMixin, BaseEstimator):
 
     def get_feature_names_out(
         self, input_features: Optional[Iterable[str]] = None
-    ) -&gt; List[str]:
+    ) -&gt; list[str]:
         """
         Expose model spec column names to scikit learn to allow column transforms later in the pipeline.
         """
