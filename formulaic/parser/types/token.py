@@ -6,10 +6,10 @@ from collections.abc import Iterable, Mapping
 from enum import Enum
 from typing import Any, Optional, Union
 
+from formulaic.utils.ordered_set import OrderedSet
 from formulaic.utils.variables import Variable, get_expression_variables
 
 from .factor import Factor
-from .ordered_set import OrderedSet
 from .term import Term
 
 

@@ -11,8 +11,8 @@ from typing import (
     overload,
 )
 
-from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.ordered_set import OrderedSet
 from formulaic.utils.structured import Structured
 
 from .ast_node import ASTNode

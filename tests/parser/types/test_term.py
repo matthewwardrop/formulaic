@@ -1,7 +1,7 @@
 import pytest
 
 from formulaic.parser.types import Factor, Term
-from formulaic.parser.types.ordered_set import OrderedSet
+from formulaic.utils.ordered_set import OrderedSet
 
 
 class TestTerm:

@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Optional
 
-from .ordered_set import OrderedSet
+from formulaic.utils.ordered_set import OrderedSet
 
 if TYPE_CHECKING:
     from .factor import Factor  # pragma: no cover
