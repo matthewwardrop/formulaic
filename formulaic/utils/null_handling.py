@@ -71,7 +71,9 @@ def _(values: dict) -> set[int]:
 
 @find_nulls.register
 def _(values: narwhals.Series) -> set[int]:
-    return set(values.is_null().arg_true().to_list())
+    return set(  # pragma: no cover; TODO: experimental
+        values.is_null().arg_true().to_list()
+    )
 
 
 @find_nulls.register
