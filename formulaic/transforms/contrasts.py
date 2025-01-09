@@ -69,7 +69,10 @@ def C(
         encoder_state: dict[str, Any],
         model_spec: ModelSpec,
     ) -> FactorValues:
-        values = pandas.Series(values)
+        # wrapped numpy arrays are problematic
+        values = pandas.Series(
+            values.__wrapped__ if isinstance(values, FactorValues) else values
+        )
         values = values.drop(index=values.index[drop_rows])
         return encode_contrasts(
             values,
@@ -129,6 +132,8 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
     levels = (
         levels if levels is not None else _state.get("categories")
     )  # TODO: Is this too early to provide useful feedback to users?
+    if isinstance(data, FactorValues):  # wrapped numpy arrays are problematic
+        data = data.__wrapped__
 
     if contrasts is None:
         contrasts = TreatmentContrasts()
