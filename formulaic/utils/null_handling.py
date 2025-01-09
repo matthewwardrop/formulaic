@@ -2,6 +2,8 @@ from collections.abc import Sequence
 from functools import singledispatch
 from typing import Any, Union
 
+import narwhals
+import narwhals.stable.v1 as nw
 import numpy
 import pandas
 import scipy.sparse as spsparse
@@ -68,6 +70,13 @@ def _(values: dict) -> set[int]:
 
 
 @find_nulls.register
+def _(values: narwhals.Series) -> set[int]:
+    return set(  # pragma: no cover; TODO: experimental
+        values.is_null().arg_true().to_list()
+    )
+
+
+@find_nulls.register
 def _(values: pandas.Series) -> set[int]:
     return set(numpy.flatnonzero(values.isnull().values))
 
@@ -114,6 +123,16 @@ def drop_rows(values: Any, indices: Sequence[int]) -> Any:
 @drop_rows.register
 def _(values: list, indices: Sequence[int]) -> list:
     return [value for i, value in enumerate(values) if i not in indices]
+
+
+@drop_rows.register
+def _(values: narwhals.Series, indices: Sequence[int]) -> narwhals.Series:
+    tmp_name = f"{values.name}_tmp"
+    return (
+        values.to_frame()
+        .with_row_index(tmp_name)
+        .filter(~nw.col(tmp_name).is_in(indices))[values.name]
+    )
 
 
 @drop_rows.register

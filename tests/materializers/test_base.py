@@ -1,8 +1,12 @@
+import re
+
 import pandas
+import pyarrow
 import pytest
 
 from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
 from formulaic.materializers.base import FormulaMaterializer
+from formulaic.materializers.narwhals import NarwhalsMaterializer
 from formulaic.materializers.pandas import PandasMaterializer
 from formulaic.materializers.types import (
     EvaluatedFactor,
@@ -16,13 +20,17 @@ from formulaic.parser.types import Factor
 
 class TestFormulaMaterializer:
     def test_registrations(self):
-        assert sorted(FormulaMaterializer.REGISTERED_NAMES) == ["arrow", "pandas"]
+        assert sorted(FormulaMaterializer.REGISTERED_NAMES) == [
+            "narwhals",
+            "pandas",
+        ]
         assert sorted(FormulaMaterializer.REGISTERED_INPUTS) == [
             "dict",
+            "narwhals.DataFrame",
+            "narwhals.stable.v1.DataFrame",
             "numpy.rec.recarray",
             "pandas.DataFrame",
             "pandas.core.frame.DataFrame",
-            "pyarrow.lib.Table",
         ]
 
     def test_retrieval(self):
@@ -39,19 +47,30 @@ class TestFormulaMaterializer:
             FormulaMaterializer.for_data(pandas.DataFrame(), output="numpy")
             is PandasMaterializer
         )
+        assert (
+            FormulaMaterializer.for_data(pyarrow.Table.from_pandas(pandas.DataFrame()))
+            is NarwhalsMaterializer
+        )
 
         with pytest.raises(FormulaMaterializerNotFoundError):
             FormulaMaterializer.for_materializer("invalid_materializer")
 
         with pytest.raises(
             FormulaMaterializerNotFoundError,
-            match=r"No materializer has been registered for input type",
+            match=re.escape(
+                "No materializer is available for input type 'builtins.str'. Explicitly "
+                "registered input types are: ",
+            ),
         ):
             FormulaMaterializer.for_data("str")
 
         with pytest.raises(
             FormulaMaterializerNotFoundError,
-            match=r"No materializer has been registered for input type .* that supports output type",
+            match=re.escape(
+                "No materializer is available for input type 'pandas.core.frame.DataFrame' "
+                "that also supports output type 'invalid_output'. Available output types "
+                "for 'pandas.core.frame.DataFrame' are: "
+            ),
         ):
             FormulaMaterializer.for_data(pandas.DataFrame(), output="invalid_output")
 

@@ -33,6 +33,7 @@ from formulaic.parser.types.ordered_set import OrderedSet
 from formulaic.transforms import TRANSFORMS
 from formulaic.utils.cast import as_columns
 from formulaic.utils.layered_mapping import LayeredMapping
+from formulaic.utils.null_handling import find_nulls
 from formulaic.utils.stateful_transforms import stateful_eval
 from formulaic.utils.variables import Variable
 
@@ -85,26 +86,44 @@ class FormulaMaterializerMeta(InterfaceMeta):
         datacls = data.__class__
         input_type = f"{datacls.__module__}.{datacls.__qualname__}"
 
-        if input_type not in cls.REGISTERED_INPUTS:
+        materializers_supporting_input = []
+
+        if input_type in cls.REGISTERED_INPUTS:
+            materializers_supporting_input.extend(cls.REGISTERED_INPUTS[input_type])
+
+        if output is None and materializers_supporting_input:
+            return materializers_supporting_input[0]
+
+        for materializer in sorted(
+            set(cls.REGISTERED_NAMES.values()),
+            key=lambda x: x.REGISTER_PRECEDENCE,
+            reverse=True,
+        ):
+            if materializer.SUPPORTS_INPUT(data):
+                materializers_supporting_input.append(materializer)
+
+        if not materializers_supporting_input:
             raise FormulaMaterializerNotFoundError(
-                f"No materializer has been registered for input type {repr(input_type)}. Available input types are: {set(cls.REGISTER_INPUTS)}."
+                f"No materializer is available for input type {repr(input_type)}. Explicitly registered input types are: {tuple(sorted(cls.REGISTERED_INPUTS))}."
             )
 
         if output is None:
-            return cls.REGISTERED_INPUTS[input_type][0]
+            return materializers_supporting_input[0]
 
-        for materializer in cls.REGISTERED_INPUTS[input_type]:
+        for materializer in materializers_supporting_input:
             if output in materializer.REGISTER_OUTPUTS:
                 return materializer
 
         output_types: set[Hashable] = set(
-            *itertools.chain(
-                materializer.REGISTER_OUTPUTS
-                for materializer in cls.REGISTERED_INPUTS[input_type]
+            itertools.chain(
+                *[
+                    materializer.REGISTER_OUTPUTS
+                    for materializer in materializers_supporting_input
+                ]
             )
         )
         raise FormulaMaterializerNotFoundError(
-            f"No materializer has been registered for input type {repr(input_type)} that supports output type {repr(output)}. Available output types for {repr(input_type)} are: {output_types}."
+            f"No materializer is available for input type {repr(input_type)} that also supports output type {repr(output)}. Available output types for {repr(input_type)} are: {tuple(sorted(output_types, key=lambda x: str(x)))}."
         )
 
 
@@ -113,6 +132,19 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     REGISTER_INPUTS: Sequence[str] = ()
     REGISTER_OUTPUTS: Sequence[Hashable] = ()
     REGISTER_PRECEDENCE: float = 100
+
+    @classmethod
+    def SUPPORTS_INPUT(cls, data: Any) -> bool:
+        """
+        Check whether this materializer materializer supports the given data.
+        This allows for non-explicit input registration where additional
+        dynamism is required, or where this materializer should act as a
+        fallback.
+
+        Note: meterializers with explicitly registered inputs will always take
+        priority.
+        """
+        return False
 
     # Public API
 
@@ -619,7 +651,27 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
     def _check_for_nulls(
         self, name: str, values: Any, na_action: NAAction, drop_rows: set[int]
     ) -> None:
-        pass  # pragma: no cover
+        if na_action is NAAction.IGNORE:
+            return
+
+        try:
+            null_indices = find_nulls(values)
+
+            if na_action is NAAction.RAISE:
+                if null_indices:
+                    raise ValueError(f"`{name}` contains null values after evaluation.")
+
+            elif na_action is NAAction.DROP:
+                drop_rows.update(null_indices)
+
+            else:
+                raise ValueError(
+                    f"Do not know how to interpret `na_action` = {repr(na_action)}."
+                )  # pragma: no cover; this is currently impossible to reach
+        except ValueError as e:
+            raise ValueError(
+                f"Error encountered while checking for nulls in `{name}`: {e}"
+            ) from e
 
     def _encode_evaled_factor(
         self,
