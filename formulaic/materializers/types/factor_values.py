@@ -13,15 +13,15 @@ from typing import (
     Union,
 )
 
-try:
-    from typing import SupportsIndex
-except ImportError:  # pragma: no cover
-    from typing_extensions import SupportsIndex
-
 import wrapt
 
 from formulaic.parser.types import Factor
 from formulaic.utils.sentinels import MISSING, MissingType
+
+try:
+    from typing import SupportsIndex
+except ImportError:  # pragma: no cover
+    from typing_extensions import SupportsIndex
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
