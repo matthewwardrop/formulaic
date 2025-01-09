@@ -63,7 +63,7 @@ class TestToken:
             token_c.to_factor()
 
     def test_to_terms(self, token_a):
-        assert token_a.to_terms() == {Term([token_a.to_factor()])}
+        assert token_a.to_terms() == [Term([token_a.to_factor()])]
 
     def test_flatten(self, token_a):
         assert token_a.flatten(str_args=False) is token_a

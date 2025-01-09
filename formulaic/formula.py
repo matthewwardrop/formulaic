@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import sys
 from abc import ABCMeta, abstractmethod
-from collections.abc import Generator, Iterable, Mapping, MutableSequence
+from collections import Counter
+from collections.abc import Generator, Iterable, Mapping
 from enum import Enum
 from typing import (
     Any,
@@ -11,7 +11,6 @@ from typing import (
     TypeVar,
     Union,
     cast,
-    overload,
 )
 
 from typing_extensions import Self, TypeAlias
@@ -330,12 +329,12 @@ class Formula(metaclass=_FormulaMeta):
 
 
 class SimpleFormula(
-    MutableSequence[Term] if sys.version_info >= (3, 9) else MutableSequence,  # type: ignore
+    OrderedSet[Term],
     Formula,
 ):
     """
     The atomic component of all formulae represented by Formulaic, which in turn
-    is a mutable sequence of `Term` instances. `StructuredFormula` uses
+    is a mutable ordered set of `Term` instances. `StructuredFormula` uses
     `SimpleFormula` as its nodes.
 
     Instances of this class can be used directly as a mutable sequence of
@@ -355,7 +354,9 @@ class SimpleFormula(
 
     def __init__(
         self,
-        root: Union[Iterable[Term], MissingType] = MISSING,
+        root: Union[
+            Iterable[Term], Mapping[Term, int], OrderedSet[Term], MissingType
+        ] = MISSING,
         *,
         _ordering: Union[OrderingMethod, str] = OrderingMethod.DEGREE,
         _parser: Optional[FormulaParser] = None,
@@ -376,12 +377,16 @@ class SimpleFormula(
                 "`SimpleFormula` does not support nested structure. To create a "
                 "structured formula, use `StructuredFormula` instead."
             )
-        self.__terms = list(root)
         self.ordering = OrderingMethod(_ordering)
 
-        self.__validate_terms(self.__terms)
+        self.__validate_terms(root)
+        super().__init__(root)
 
         self._reorder()
+
+    def _prepare_item(self, item) -> Term:
+        self.__validate_terms([item])
+        return item
 
     @classmethod
     def __validate_terms(cls, terms: Any) -> None:
@@ -392,6 +397,9 @@ class SimpleFormula(
             raise FormulaInvalidError(
                 f"All components of a `SimpleFormula` should be `Term` instances. Found: {repr(terms)}. To use formula strings, please use `Formula` or `StructuredFormula` instead."
             )
+
+    def _post_update(self) -> None:
+        self._reorder()
 
     def _reorder(self, ordering: Optional[OrderingMethod] = None) -> None:
         """
@@ -405,6 +413,8 @@ class SimpleFormula(
         """
         ordering = OrderingMethod(ordering if ordering is not None else self.ordering)
         orderer = None
+
+        print(ordering)
         if ordering is OrderingMethod.DEGREE:
             orderer = lambda terms: sorted(terms, key=lambda term: term.degree)
         elif ordering is OrderingMethod.SORT:
@@ -413,56 +423,9 @@ class SimpleFormula(
             )
 
         if orderer is not None:
-            self.__terms = orderer(self.__terms)
-
-    # MutableSequence implementation
-
-    @overload
-    def __getitem__(self, key: int) -> Term: ...
-
-    @overload
-    def __getitem__(self, key: slice) -> SimpleFormula: ...
-
-    def __getitem__(self, key: Union[int, slice]) -> Union[Term, SimpleFormula]:
-        if isinstance(key, slice):
-            return self.__class__(self.__terms[key], _ordering=self.ordering)
-        else:
-            return self.__terms[key]
-
-    @overload
-    def __setitem__(self, key: int, value: Term) -> None: ...
-
-    @overload
-    def __setitem__(self, key: slice, value: Iterable[Term]) -> None: ...
-
-    def __setitem__(self, key, value):  # type: ignore
-        self.__validate_terms([value])
-        self.__terms[key] = value
-        self._reorder()
-
-    @overload
-    def __delitem__(self, key: int) -> None: ...
-
-    @overload
-    def __delitem__(self, key: slice) -> None: ...
-
-    def __delitem__(self, key):  # type: ignore
-        del self.__terms[key]
-
-    def __len__(self) -> int:
-        return len(self.__terms)
-
-    def insert(self, index: int, value: Term) -> None:
-        self.__validate_terms([value])
-        self.__terms.insert(index, value)
-        self._reorder()
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, SimpleFormula):
-            other = list(other)
-        if isinstance(other, list):
-            return self.__terms == other
-        return NotImplemented
+            self._values = Counter(
+                {item: self._values[item] for item in orderer(self._values)}
+            )
 
     # Transforms
 
@@ -487,7 +450,7 @@ class SimpleFormula(
         return SimpleFormula(
             [
                 differentiate_term(term, wrt, use_sympy=use_sympy)
-                for term in self.__terms
+                for term in self._values
             ],
             # Preserve term ordering even if differentiation modifies degrees/etc.
             _ordering=OrderingMethod.NONE,
@@ -537,7 +500,7 @@ class SimpleFormula(
 
         variables: list[Variable] = [
             variable
-            for term in self.__terms
+            for term in self._values
             for factor in term.factors
             for variable in get_expression_variables(factor.expr, {})
             if "value" in variable.roles
@@ -555,7 +518,7 @@ class SimpleFormula(
         )
 
     def __repr__(self) -> str:
-        return " + ".join([str(t) for t in self.__terms])
+        return " + ".join([str(t) for t in self])
 
     # Deprecated shims for legacy `Structured`-like behaviour (previously there
     # was no distinction between `SimpleFormula` and `StructuredFormula`, and
