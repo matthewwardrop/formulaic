@@ -29,6 +29,11 @@ class NarwhalsMaterializer(FormulaMaterializer):
     REGISTER_OUTPUTS: Sequence[str] = ("narwhals", "pandas", "numpy", "sparse")
 
     @override
+    @classmethod
+    def SUPPORTS_INPUT(cls, data: Any) -> bool:
+        return nw.dependencies.is_into_dataframe(data)
+
+    @override
     def _init(self) -> None:
         self.__narwhals_data = nw.from_native(self.data, eager_only=True)
         self.__data_context = self.__narwhals_data.to_dict()
