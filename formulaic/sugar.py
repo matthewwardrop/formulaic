@@ -22,7 +22,7 @@ def model_matrix(
     ```
     Formula(
         spec,
-        context={"__formulaic_variables_available__": ...},  # used for the `.` operator
+        _context={"__formulaic_variables_available__": ...},  # used for the `.` operator
     ).get_model_matrix(data, context=LayeredMapping(locals(), globals()), **kwargs)
     ```
     or

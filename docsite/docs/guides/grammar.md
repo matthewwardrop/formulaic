@@ -127,4 +127,4 @@ and conventions of which you should be aware.
 [^6]: Implemented by an R package called [Formula](https://cran.r-project.org/web/packages/Formula/index.html) that extends the default formula syntax.
 [^7]: Patsy uses the `rescale` keyword rather than `scale`, but provides the same functionality.
 [^8]: For increased compatibility with patsy, we use patsy's signature for `standardize`.
-[^9]: Requires additional context to be passed in when directly using the `Formula` constructor. e.g. `Formula("y ~ .", context={"__formulaic_variables_available__": ["x", "y", "z"]})`; or you can use `model_matrix`, `ModelSpec.get_model_matrix()`, or `FormulaMaterializer.get_model_matrix()` without further specification.
+[^9]: Requires additional context to be passed in when directly using the `Formula` constructor. e.g. `Formula("y ~ .", _context={"__formulaic_variables_available__": ["x", "y", "z"]})`; or you can use `model_matrix`, `ModelSpec.get_model_matrix()`, or `FormulaMaterializer.get_model_matrix()` without further specification.
