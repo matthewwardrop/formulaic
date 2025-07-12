@@ -187,7 +187,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":
-            return spsparse.hstack([col[1] for col in cols])
+            return spsparse.hstack([col[1] for col in cols], format="csc")
 
         # TODO: Can we do better than this? Having to reconstitute raw data
         # does not seem ideal.

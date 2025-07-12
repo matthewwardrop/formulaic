@@ -184,7 +184,7 @@ class PandasMaterializer(FormulaMaterializer):
 
         # Otherwise, concatenate columns into model matrix
         if spec.output == "sparse":
-            return spsparse.hstack([col[1] for col in cols])
+            return spsparse.hstack([col[1] for col in cols], format="csc")
         if spec.output == "numpy":
             return numpy.stack([col[1] for col in cols], axis=1)
         return pandas.DataFrame(
