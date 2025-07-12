@@ -1359,7 +1359,7 @@ and conventions of which you should be aware.</p>
 <p>For increased compatibility with patsy, we use patsy's signature for <code>standardize</code>.&#160;<a class="footnote-backref" href="#fnref:8" title="Jump back to footnote 8 in the text">&#8617;</a></p>
 </li>
 <li id="fn:9">
-<p>Requires additional context to be passed in when directly using the <code>Formula</code> constructor. e.g. <code>Formula("y ~ .", context={"__formulaic_variables_available__": ["x", "y", "z"]})</code>; or you can use <code>model_matrix</code>, <code>ModelSpec.get_model_matrix()</code>, or <code>FormulaMaterializer.get_model_matrix()</code> without further specification.&#160;<a class="footnote-backref" href="#fnref:9" title="Jump back to footnote 9 in the text">&#8617;</a></p>
+<p>Requires additional context to be passed in when directly using the <code>Formula</code> constructor. e.g. <code>Formula("y ~ .", _context={"__formulaic_variables_available__": ["x", "y", "z"]})</code>; or you can use <code>model_matrix</code>, <code>ModelSpec.get_model_matrix()</code>, or <code>FormulaMaterializer.get_model_matrix()</code> without further specification.&#160;<a class="footnote-backref" href="#fnref:9" title="Jump back to footnote 9 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>
