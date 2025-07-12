@@ -11,10 +11,10 @@ from typing import (
     Union,
 )
 
+from formulaic.utils.ordered_set import OrderedSet
 from formulaic.utils.structured import Structured
 
 from .operator import Operator
-from .ordered_set import OrderedSet
 from .term import Term
 
 ItemType = TypeVar("ItemType")
