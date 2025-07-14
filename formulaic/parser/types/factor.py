@@ -102,6 +102,6 @@ class Factor:
         return OrderedSet((Term([self]),))
 
     def __repr__(self) -> str:
-        if ":" in self.expr:
+        if ":" in self.expr and self.eval_method == Factor.EvalMethod.LOOKUP:
             return f"`{self.expr}`"
         return self.expr
