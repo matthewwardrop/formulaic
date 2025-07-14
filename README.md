@@ -23,11 +23,15 @@ It provides:
 - extensible data input/output plugins, with implementations for:
   - input:
     - `pandas.DataFrame`
-    - `pyarrow.Table`
+    - Any dataframe representation supported by [`narwhals`](https://narwhals-dev.github.io/narwhals/) including
+      - `pyarrow.Table`
+      - `polars.DataFrame`
+      - ...
   - output:
     - `pandas.DataFrame`
     - `numpy.ndarray`
     - `scipy.sparse.CSCMatrix`
+    - `narwhals` dataframe passthrough when using narwhals dataframes.
 - support for symbolic differentiation of formulas (and hence model matrices).
 - and much more.
 

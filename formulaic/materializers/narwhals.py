@@ -179,8 +179,9 @@ class NarwhalsMaterializer(FormulaMaterializer):
             if spec.output == "sparse":
                 return spsparse.csc_matrix(values)
             if spec.output == "narwhals":
-                # TODO: Inconsistent with non-empty case below (where we use to-native)
-                return nw.from_native(values, eager_only=True)
+                # TODO: This output type is inconsistent with the `.to_native()`
+                # below.
+                return nw.from_native(pandas.DataFrame(values), eager_only=True)
             if spec.output == "numpy":
                 return values
             return pandas.DataFrame(values)
@@ -204,4 +205,4 @@ class NarwhalsMaterializer(FormulaMaterializer):
             return df
         if spec.output == "numpy":
             return combined.to_numpy()
-        raise ValueError(f"Invalid output type: {spec.output}")
+        raise ValueError(f"Invalid output type: {spec.output}")  # pragma: no cover
