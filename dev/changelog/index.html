@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#111-20-december-2024" class="md-skip">
+        <a href="#120-13-july-2025" class="md-skip">
           Skip to content
         </a>
       
@@ -401,6 +401,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -428,6 +430,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+  
+    
   
   
     <label class="md-nav__title" for="__toc">
@@ -1102,6 +1106,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1394,10 +1400,39 @@
                   
 
 
-  <h1>Changelog</h1>
-
 <p>For changes since the latest tagged release, please refer to the
 <a href="https://github.com/matthewwardrop/formulaic/commits/main">git commit log</a>.</p>
+<hr />
+<h1 id="120-13-july-2025">1.2.0 (13 July 2025)</h1>
+<p><strong>Breaking changes:</strong></p>
+<ul>
+<li>Formulaic now targets Python 3.9+ (dropping support for 3.7 and 3.8).</li>
+<li><code>ModelSpec.required_variables</code> (and all other <code>.required_variables</code>
+  implementations) now only include the root variable name (e.g. <code>a.fillna</code> -&gt; 
+  <code>a</code>), since this is expected to be used to validate that dataframes have the
+  expected columns. The full variable usage is still exposed via <code>.variables</code> 
+  and related attributes. You can lookup the the root variable using the <code>.root</code>
+  property of each <code>Variable</code> instance.</li>
+</ul>
+<p><strong>New features and enhancements:</strong></p>
+<ul>
+<li>We now use <code>narwhals</code> for all non-pandas dataframe types supported by narwhals
+  (including polars dataframes and pyarrow tables). This should substantially
+  improve performance for these types since historically the relevant parts of
+  these dataframes were converted lazily to pandas objects.</li>
+</ul>
+<p><strong>Bugfixes and cleanups:</strong></p>
+<ul>
+<li>Fixed compatibility with Scipy 1.16+.</li>
+<li><code>Factor</code> instances no longer include backticks around factors evaluated using
+  Python so that string representations can be interpreted correctly when
+  parsed anew.</li>
+<li><code>FactorValue</code> types are now always unwrapped during categorical encoding due 
+  to issues with wrapped numpy arrays.</li>
+<li>The entire code-base was updated to use Python 3.9+ typing annotation idioms.</li>
+<li>The docsite is now versioned (allowing historical versions to be explored).</li>
+<li>Various documentation typo fixes.</li>
+</ul>
 <hr />
 <h2 id="111-20-december-2024">1.1.1 (20 December 2024)</h2>
 <p><strong>New features and enhancements:</strong></p>
