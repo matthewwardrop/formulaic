@@ -3,6 +3,39 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+# 1.2.0 (13 July 2025)
+
+**Breaking changes:**
+
+* Formulaic now targets Python 3.9+ (dropping support for 3.7 and 3.8).
+* `ModelSpec.required_variables` (and all other `.required_variables`
+  implementations) now only include the root variable name (e.g. `a.fillna` -> 
+  `a`), since this is expected to be used to validate that dataframes have the
+  expected columns. The full variable usage is still exposed via `.variables` 
+  and related attributes. You can lookup the the root variable using the `.root`
+  property of each `Variable` instance.
+
+**New features and enhancements:**
+
+* We now use `narwhals` for all non-pandas dataframe types supported by narwhals
+  (including polars dataframes and pyarrow tables). This should substantially
+  improve performance for these types since historically the relevant parts of
+  these dataframes were converted lazily to pandas objects.
+
+**Bugfixes and cleanups:**
+
+* Fixed compatibility with Scipy 1.16+.
+* `Factor` instances no longer include backticks around factors evaluated using
+  Python so that string representations can be interpreted correctly when
+  parsed anew.
+* `FactorValue` types are now always unwrapped during categorical encoding due 
+  to issues with wrapped numpy arrays.
+* The entire code-base was updated to use Python 3.9+ typing annotation idioms.
+* The docsite is now versioned (allowing historical versions to be explored).
+* Various documentation typo fixes.
+
+---
+
 ## 1.1.1 (20 December 2024)
 
 **New features and enhancements:**
