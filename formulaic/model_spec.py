@@ -420,7 +420,9 @@ class ModelSpec:
     def required_variables(self) -> set[Variable]:
         """
         The set of variables required to be in the data to materialize this
-        model specification.
+        model specification. Note that unlike `.variables`, this attribute
+        considers only the root variables (e.g. `a.fillna(0)` -> `a` vs.
+        `a.fillna`).
 
         If `.structure` has not been populated (which contains metadata about
         which columns where ultimate drawn from the data during
@@ -429,7 +431,7 @@ class ModelSpec:
         """
         if self.structure is None:
             return self.formula.required_variables
-        return self.variables_by_source.get("data", set())
+        return {v.root for v in self.variables_by_source.get("data", set())}
 
     def get_slice(self, columns_identifier: Union[int, str, Term, slice]) -> slice:
         """
