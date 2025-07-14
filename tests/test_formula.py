@@ -262,6 +262,7 @@ class TestFormula:
             "a",
             "b",
         }
+        assert Formula("a.fillna(0)").required_variables == {"a"}
         assert Formula("y ~ x").required_variables == {"x", "y"}
 
 

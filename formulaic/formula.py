@@ -533,24 +533,16 @@ class SimpleFormula(
         more advanced formulae that insert constants into the formula via the
         evaluation context rather than the data context.
         """
-
-        variables: list[Variable] = [
-            variable
-            for term in self.__terms
-            for factor in term.factors
-            for variable in get_expression_variables(factor.expr, {})
-            if "value" in variable.roles
-        ]
+        from formulaic.transforms import TRANSFORMS
 
         # Filter out constants like `contr` that are already present in the
         # TRANSFORMS namespace.
-        from formulaic.transforms import TRANSFORMS
-
-        return set(
-            filter(
-                lambda variable: variable.split(".", 1)[0] not in TRANSFORMS,
-                Variable.union(variables),
-            )
+        return Variable.union(
+            variable_root
+            for term in self.__terms
+            for factor in term.factors
+            for variable in get_expression_variables(factor.expr, {})
+            if (variable_root := variable.root) not in TRANSFORMS
         )
 
     def __repr__(self) -> str:

@@ -196,7 +196,8 @@ class Token:
         values present in the evaluation namespace by default (e.g. `y ~ C(x)`
         would include only `y` and `x`). This may not always be possible for
         more advanced formulae that insert constants into the formula via the
-        evaluation context rather than the data context.
+        evaluation context rather than the data context. We also only consider
+        the root variable (e.g. `a.fillna(0)` -> `a` vs. `a.fillna`).
         """
         if self.kind is Token.Kind.NAME:
             return {Variable(self.token)}
@@ -207,10 +208,9 @@ class Token:
                 from formulaic.transforms import TRANSFORMS
 
                 return set(
-                    filter(
-                        lambda variable: variable.split(".", 1)[0] not in TRANSFORMS,
-                        get_expression_variables(self.token),
-                    )
+                    variable.root
+                    for variable in get_expression_variables(self.token)
+                    if variable.split(".", 1)[0] not in TRANSFORMS
                 )
             except Exception:  # noqa: S110
                 pass

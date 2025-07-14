@@ -45,6 +45,20 @@ class Variable(str):
                     variables[variable] = variable
         return set(variables.values())
 
+    @property
+    def root(self) -> Variable:
+        """
+        Get a `Variable` instance corresponding to the underlying root/data
+        variable (e.g. `a.fillna(0)` -> `a`).
+        """
+        if "." not in self:
+            return self
+        return Variable(
+            self.split(".", 1)[0],
+            roles=self.roles.difference({self.Role.CALLABLE}),
+            source=self.source,
+        )
+
 
 def get_expression_variables(
     expr: Union[str, ast.AST],
@@ -96,13 +110,6 @@ def _get_ast_node_variables(node: ast.AST, aliases: Mapping) -> list[Variable]:
 
 
 def _get_ast_node_name(node: ast.AST) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
     if isinstance(node, ast.Call):
         return _get_ast_node_name(node.func)
-    if isinstance(node, ast.Attribute):
-        return f"{_get_ast_node_name(node.value)}.{node.attr}"
-    raise ValueError(  # pragma: no cover
-        f"Unknown AST node type during variable extraction: {type(node)}. "
-        "Please report this!"
-    )
+    return ast.unparse(node)
