@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy
+import packaging.version
 import pandas
 import scipy.sparse as spsparse
 from interface_meta import override
@@ -17,6 +18,8 @@ from .base import FormulaMaterializer
 
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
+
+PANDAS3 = packaging.version.parse(pandas.__version__) > packaging.version.parse("2.99")
 
 
 class PandasMaterializer(FormulaMaterializer):
@@ -41,10 +44,12 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
+        pandas_dtypes = (pandas.CategoricalDtype,)
+        # pandas 3.0 changes object dtype to StringDtype for string data
+        if PANDAS3:
+            pandas_dtypes += (pandas.StringDtype,)
         if isinstance(values, (pandas.Series, pandas.Categorical)):
-            return values.dtype == object or isinstance(
-                values.dtype, pandas.CategoricalDtype
-            )
+            return values.dtype == object or isinstance(values.dtype, pandas_dtypes)
         return super()._is_categorical(values)
 
     @override
