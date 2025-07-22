@@ -19,7 +19,8 @@ from .base import FormulaMaterializer
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
 
-PANDAS3 = packaging.version.parse(pandas.__version__) > packaging.version.parse("2.99")
+pandas_version = packaging.version.parse(pandas.__version__)
+PANDAS3 = pandas_version >= packaging.version.parse("3.0.0.dev0")
 
 
 class PandasMaterializer(FormulaMaterializer):
