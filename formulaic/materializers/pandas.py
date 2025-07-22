@@ -44,7 +44,7 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        pandas_dtypes = (pandas.CategoricalDtype,)
+        pandas_dtypes: tuple[type, ...] = (pandas.CategoricalDtype,)
         # pandas 3.0 changes object dtype to StringDtype for string data
         if PANDAS3:
             pandas_dtypes += (pandas.StringDtype,)
