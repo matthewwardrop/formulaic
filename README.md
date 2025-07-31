@@ -37,7 +37,7 @@ It provides:
 
 ## Example code
 
-```
+```python
 import pandas
 from formulaic import Formula
 
@@ -112,7 +112,7 @@ y, X = Formula('y ~ x + z').get_model_matrix(df)
 
 Note that the above can be short-handed to:
 
-```
+```python
 from formulaic import model_matrix
 model_matrix('y ~ x + z', df)
 ```
