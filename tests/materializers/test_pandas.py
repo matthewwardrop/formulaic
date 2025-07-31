@@ -15,10 +15,15 @@ from formulaic.errors import (
 )
 from formulaic.materializers import PandasMaterializer
 from formulaic.materializers.base import EncodedTermStructure
+from formulaic.materializers.pandas import PANDAS3
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 from formulaic.utils.structured import Structured
+
+PANDAS_CATEGORICAL_DTYPES = [object, "category"]
+if PANDAS3:
+    PANDAS_CATEGORICAL_DTYPES += [pandas.StringDtype()]
 
 PANDAS_TESTS = {
     # '<formula>': (<full_rank_names>, <names>, <full_rank_null_names>, <null_rows>)
@@ -539,3 +544,26 @@ class TestPandasMaterializer:
         assert mm.shape == (0, 2)
         assert not list(mm.index)
         assert drop_rows == {0, 1, 2}
+
+    def test_pandas_alternative_dummy_dtypes(self):
+        data = pandas.DataFrame(
+            {
+                "x": pandas.Series(
+                    ["a", "a", "a", "a", "b", "b", "b", "b"], dtype=object
+                ),
+                "y": pandas.Series(
+                    ["c", "c", "d", "d", "c", "c", "d", "d"], dtype="category"
+                ),
+                "z": pandas.Series(["e", "f", "e", "f", "e", "f", "e", "f"], dtype=str),
+            }
+        )
+        assert data["x"].dtype == object
+        assert isinstance(data["y"].dtype, pandas.CategoricalDtype)
+        if PANDAS3:
+            assert isinstance(data["z"].dtype, pandas.StringDtype)
+        else:
+            assert data["z"].dtype == object
+        mm = PandasMaterializer(data).get_model_matrix("x + y + z + 0")
+        assert isinstance(mm, pandas.DataFrame)
+        assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]
+        assert mm.shape == (8, 4)

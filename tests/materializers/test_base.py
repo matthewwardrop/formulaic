@@ -7,7 +7,7 @@ import pytest
 from formulaic.errors import FactorEncodingError, FormulaMaterializerNotFoundError
 from formulaic.materializers.base import FormulaMaterializer
 from formulaic.materializers.narwhals import NarwhalsMaterializer
-from formulaic.materializers.pandas import PandasMaterializer
+from formulaic.materializers.pandas import PANDAS3, PandasMaterializer
 from formulaic.materializers.types import (
     EvaluatedFactor,
     FactorValues,
@@ -64,12 +64,14 @@ class TestFormulaMaterializer:
         ):
             FormulaMaterializer.for_data("str")
 
+        # pandas 3.0 changes DataFrame location pandas.DataFrame
+        submod = "" if PANDAS3 else "core.frame."
         with pytest.raises(
             FormulaMaterializerNotFoundError,
             match=re.escape(
-                "No materializer is available for input type 'pandas.core.frame.DataFrame' "
+                f"No materializer is available for input type 'pandas.{submod}DataFrame' "
                 "that also supports output type 'invalid_output'. Available output types "
-                "for 'pandas.core.frame.DataFrame' are: "
+                f"for 'pandas.{submod}DataFrame' are: "
             ),
         ):
             FormulaMaterializer.for_data(pandas.DataFrame(), output="invalid_output")
