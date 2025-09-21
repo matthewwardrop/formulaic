@@ -15,15 +15,11 @@ from formulaic.errors import (
 )
 from formulaic.materializers import PandasMaterializer
 from formulaic.materializers.base import EncodedTermStructure
-from formulaic.materializers.pandas import PANDAS3
+from formulaic.materializers.pandas import PANDAS_CATEGORICAL_TYPES
 from formulaic.materializers.types import EvaluatedFactor, FactorValues, NAAction
 from formulaic.model_spec import ModelSpec
 from formulaic.parser.types import Factor
 from formulaic.utils.structured import Structured
-
-PANDAS_CATEGORICAL_DTYPES = [object, "category"]
-if PANDAS3:
-    PANDAS_CATEGORICAL_DTYPES += [pandas.StringDtype()]
 
 PANDAS_TESTS = {
     # '<formula>': (<full_rank_names>, <names>, <full_rank_null_names>, <null_rows>)
@@ -559,10 +555,7 @@ class TestPandasMaterializer:
         )
         assert data["x"].dtype == object
         assert isinstance(data["y"].dtype, pandas.CategoricalDtype)
-        if PANDAS3:
-            assert isinstance(data["z"].dtype, pandas.StringDtype)
-        else:
-            assert data["z"].dtype == object
+        assert data["z"].dtype in ("object", "str")  # Pandas 3+ uses "str"; previously was "object"
         mm = PandasMaterializer(data).get_model_matrix("x + y + z + 0")
         assert isinstance(mm, pandas.DataFrame)
         assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]

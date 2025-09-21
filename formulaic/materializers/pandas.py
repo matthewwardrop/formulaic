@@ -19,8 +19,7 @@ from .base import FormulaMaterializer
 if TYPE_CHECKING:  # pragma: no cover
     from formulaic.model_spec import ModelSpec
 
-pandas_version = packaging.version.parse(pandas.__version__)
-PANDAS3 = pandas_version >= packaging.version.parse("3.0.0.dev0")
+PANDAS_CATEGORICAL_TYPES = ("object", "str", "category")
 
 
 class PandasMaterializer(FormulaMaterializer):
@@ -45,12 +44,8 @@ class PandasMaterializer(FormulaMaterializer):
 
     @override
     def _is_categorical(self, values: Any) -> bool:
-        pandas_dtypes: tuple[type, ...] = (pandas.CategoricalDtype,)
-        # pandas 3.0 changes object dtype to StringDtype for string data
-        if PANDAS3:
-            pandas_dtypes += (pandas.StringDtype,)
         if isinstance(values, (pandas.Series, pandas.Categorical)):
-            return values.dtype == object or isinstance(values.dtype, pandas_dtypes)
+            return values.dtype in PANDAS_CATEGORICAL_TYPES
         return super()._is_categorical(values)
 
     @override
