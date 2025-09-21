@@ -3,6 +3,12 @@ For changes since the latest tagged release, please refer to the
 
 ---
 
+# 1.2.1 (20 September 2025)
+
+**Bugfixes and cleanups:**
+
+* Fixed compatibility with the string dtype used in Pandas 3+.
+
 # 1.2.0 (13 July 2025)
 
 **Breaking changes:**
