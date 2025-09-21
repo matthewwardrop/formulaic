@@ -539,3 +539,26 @@ class TestPandasMaterializer:
         assert mm.shape == (0, 2)
         assert not list(mm.index)
         assert drop_rows == {0, 1, 2}
+
+    def test_pandas_alternative_dummy_dtypes(self):
+        data = pandas.DataFrame(
+            {
+                "x": pandas.Series(
+                    ["a", "a", "a", "a", "b", "b", "b", "b"], dtype=object
+                ),
+                "y": pandas.Series(
+                    ["c", "c", "d", "d", "c", "c", "d", "d"], dtype="category"
+                ),
+                "z": pandas.Series(["e", "f", "e", "f", "e", "f", "e", "f"], dtype=str),
+            }
+        )
+        assert data["x"].dtype == object
+        assert isinstance(data["y"].dtype, pandas.CategoricalDtype)
+        assert data["z"].dtype in (
+            "object",
+            "str",
+        )  # Pandas 3+ uses "str"; previously was "object"
+        mm = PandasMaterializer(data).get_model_matrix("x + y + z + 0")
+        assert isinstance(mm, pandas.DataFrame)
+        assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]
+        assert mm.shape == (8, 4)
