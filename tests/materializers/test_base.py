@@ -66,10 +66,10 @@ class TestFormulaMaterializer:
 
         with pytest.raises(
             FormulaMaterializerNotFoundError,
-            match=re.escape(
-                "No materializer is available for input type 'pandas.core.frame.DataFrame' "
-                "that also supports output type 'invalid_output'. Available output types "
-                "for 'pandas.core.frame.DataFrame' are: "
+            match=(
+                r"No materializer is available for input type 'pandas\.[a-z\.]+DataFrame' "
+                r"that also supports output type 'invalid_output'\. Available output types "
+                r"for 'pandas\.[a-z\.]+DataFrame' are: "
             ),
         ):
             FormulaMaterializer.for_data(pandas.DataFrame(), output="invalid_output")
