@@ -480,7 +480,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         factors: list[tuple[Union[ScopedFactor, int], ...]] = []
         for factor in evaled_factors:
             if factor.metadata.kind is Factor.Kind.CONSTANT:
-                scale *= factor.values
+                scale *= factor.values  # type: ignore[operator]
             elif factor.metadata.spans_intercept:
                 factors.append((ScopedFactor(factor, reduced=True), 1))
             else:

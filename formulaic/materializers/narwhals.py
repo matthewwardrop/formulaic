@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 import itertools
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import narwhals.stable.v1 as nw
@@ -42,7 +42,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
 
     @override  # type: ignore
     @property
-    def data_context(self):
+    def data_context(self) -> Mapping[str, Any]:
         return self.__data_context
 
     @override

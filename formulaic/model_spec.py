@@ -704,9 +704,9 @@ class ModelSpecs(Structured[ModelSpec]):
         from formulaic import ModelMatrices
 
         if attr_overrides:
-            return ModelSpec.from_spec(self, **attr_overrides).get_model_matrix(
-                data, context=context, drop_rows=drop_rows
-            )
+            return cast(
+                ModelSpecs, ModelSpec.from_spec(self, **attr_overrides)
+            ).get_model_matrix(data, context=context, drop_rows=drop_rows)
 
         # Check whether we can generate model matrices jointly (i.e. all
         # materializers and their params are the same)

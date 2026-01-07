@@ -32,7 +32,7 @@ jobs:
       - if: matrix.python-version == '3.9'
         name: Check works with min requirements
         run: hatch run test_min:pytest tests
-      - if: matrix.python-version == '3.9'
+      - if: matrix.python-version == '3.14'
         name: Lint
         run: hatch run lint:check
       - name: Upload coverage to Codecov

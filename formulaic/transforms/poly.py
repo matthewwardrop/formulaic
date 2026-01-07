@@ -126,4 +126,6 @@ def poly(  # pylint: disable=dangerous-default-value  # always replaced by state
     out[nonnull_indices, :] = P[:, 1:]
 
     # Return basis dropping the first (constant) column
-    return FactorValues(out, column_names=tuple(str(i) for i in range(1, degree + 1)))
+    return FactorValues[numpy.ndarray](  # type: ignore[return-value]
+        out, column_names=tuple(str(i) for i in range(1, degree + 1))
+    )
