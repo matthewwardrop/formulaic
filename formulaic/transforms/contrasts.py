@@ -40,6 +40,7 @@ def C(
     *,
     levels: Optional[Iterable[str]] = None,
     spans_intercept: bool = True,
+    reduce_rank: Optional[bool] = None,
 ) -> FactorValues:
     """
     Mark data as being categorical, and optionally specify the contrasts to be
@@ -78,7 +79,7 @@ def C(
             values,
             contrasts=contrasts,
             levels=levels,
-            reduced_rank=reduced_rank,
+            reduced_rank=reduce_rank if reduce_rank is not None else reduced_rank,
             _state=encoder_state,
             _spec=model_spec,
         )
@@ -86,7 +87,7 @@ def C(
     return FactorValues(
         data,
         kind="categorical",
-        spans_intercept=spans_intercept,
+        spans_intercept=not reduce_rank and spans_intercept,
         encoder=encoder,
     )
 
