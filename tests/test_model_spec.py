@@ -174,8 +174,13 @@ class TestModelSpec:
         assert lc.constraint_values == [3]
         assert lc.variable_names == model_spec.column_names
 
-    def test_differentiate(self, model_spec, formula):
+    def test_differentiate(self, data, model_spec, formula):
         assert model_spec.differentiate("a").formula == formula.differentiate("a")
+
+        model_spec2 = Formula("log(a)").get_model_matrix(data).model_spec
+        mm = model_spec2.differentiate("a").get_model_matrix(data)
+        assert mm.model_spec.column_names == model_spec2.column_names
+        assert mm.model_spec.formula == ["0", "(1/a)"]
 
     def test_empty(self):
         model_spec = ModelSpec([])
