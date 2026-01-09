@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from typing import Any
 
+import narwhals.stable.v1 as narwhals
 import numpy
 import pandas
 
@@ -24,7 +25,7 @@ def lag(data: Any, k: int = 1) -> Any:
       * `k` is chosen as the offset parameter for compatibility with R.
     """
     raise NotImplementedError(
-        f"No implementation of `shift` for data of type {type(data)}."
+        f"No implementation of `lag` for data of type {type(data)}."
     )
 
 
@@ -48,3 +49,7 @@ def _(data: numpy.ndarray, offset: int = 1) -> numpy.ndarray:
         data[offset:] = numpy.nan
 
     return data
+
+@lag.register
+def _(data: narwhals.Series, offset: int = 1) -> narwhals.Series:
+    return data.shift(offset)
