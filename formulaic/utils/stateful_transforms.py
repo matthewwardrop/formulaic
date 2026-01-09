@@ -15,6 +15,7 @@ from .layered_mapping import LayeredMapping
 from .variables import Variable, get_expression_variables
 
 if TYPE_CHECKING:
+    from formulaic.materializers import FormulaMaterializer  # pragma: no cover
     from formulaic.model_spec import ModelSpec  # pragma: no cover
 
 
@@ -26,6 +27,7 @@ def stateful_transform(func: Callable) -> Callable:
     - _state: The existing state or an empty dictionary.
     - _metadata: Any extra metadata passed about the factor being evaluated.
     - _spec: The `ModelSpec` instance being evaluated (or an empty `ModelSpec`).
+    - _materializer: The `FormulaMaterializer` instance being evaluated (or `None`).
     - _context: A mapping of the name to value for all the variables available
         in the formula evaluation context (including data column names).
     If the callable has any of these in its signature, these will be passed onto
@@ -46,7 +48,7 @@ def stateful_transform(func: Callable) -> Callable:
 
     @functools.wraps(func)
     def wrapper(  # type: ignore[no-untyped-def]
-        data, *args, _metadata=None, _state=None, _spec=None, _context=None, **kwargs
+        data, *args, _metadata=None, _state=None, _spec=None, _materializer=None, _context=None, **kwargs
     ):
         from formulaic.model_spec import ModelSpec
 
@@ -56,8 +58,10 @@ def stateful_transform(func: Callable) -> Callable:
             extra_params["_metadata"] = _metadata
         if "_spec" in params:
             extra_params["_spec"] = _spec or ModelSpec(formula=[])
+        if "_materializer" in params:
+            extra_params["_materializer"] = _materializer
         if "_context" in params:
-            extra_params["_context"] = _context
+            extra_params["_context"] = _context or {}
 
         if isinstance(data, dict):
             results = {}
@@ -91,6 +95,7 @@ def stateful_eval(
     metadata: Optional[Mapping],
     state: Optional[MutableMapping],
     spec: Optional["ModelSpec"],
+    materializer: Optional["FormulaMaterializer"] = None,
     variables: Optional[set[Variable]] = None,
 ) -> Any:
     """
@@ -111,6 +116,8 @@ def stateful_eval(
             stateful transforms).
         spec: The current `ModelSpec` instance being evaluated (passed through
             to stateful transforms).
+        materializer: The `FormulaMaterializer` instance for which the
+            expression is being evaluated.
         variables: A (optional) set of variables to update with the variables
             used in this stateful evaluation.
 
@@ -170,6 +177,9 @@ def stateful_eval(
         node.keywords.append(
             ast.keyword("_spec", ast.parse("__FORMULAIC_SPEC__", mode="eval").body)
         )
+        node.keywords.append(
+            ast.keyword("_materializer", ast.parse("__FORMULAIC_MATERIALIZER__", mode="eval").body)
+        )
 
     # Compile mutated AST
     compiled = compile(ast.fix_missing_locations(code), "", "eval")
@@ -179,6 +189,7 @@ def stateful_eval(
         "__FORMULAIC_METADATA__",
         "__FORMULAIC_STATE__",
         "__FORMULAIC_SPEC__",
+        "__FORMULAIC_MATERIALIZER__",
     }.intersection(env)
     if used_reserved:
         raise RuntimeError(
@@ -196,6 +207,7 @@ def stateful_eval(
                 "__FORMULAIC_METADATA__": metadata,
                 "__FORMULAIC_SPEC__": spec,
                 "__FORMULAIC_STATE__": state,
+                "__FORMULAIC_MATERIALIZER__": materializer,
             },
             env,
         ),

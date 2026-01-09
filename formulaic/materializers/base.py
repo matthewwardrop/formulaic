@@ -641,6 +641,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
                 {expr: metadata},
                 spec.transform_state,
                 spec,
+                materializer=self,
                 variables=variables,
             ),
             variables,
