@@ -494,6 +494,7 @@ class TreatmentContrasts(Contrasts):
     FACTOR_FORMAT_REDUCED = "{name}[T.{field}]"
 
     base: Hashable = UNSET
+    drop: bool = False
 
     @Contrasts.override
     def _apply(
@@ -503,7 +504,7 @@ class TreatmentContrasts(Contrasts):
         reduced_rank: bool = True,
         sparse: bool = False,
     ) -> Union[pandas.DataFrame, numpy.ndarray, spsparse.spmatrix]:
-        if reduced_rank:
+        if reduced_rank or self.drop:
             drop_index = self._find_base_index(levels)
             mask = numpy.ones(len(levels), dtype=bool)
             mask[drop_index] = False
@@ -536,7 +537,7 @@ class TreatmentContrasts(Contrasts):
             matrix = spsparse.eye(n).tocsc()
         else:
             matrix = numpy.eye(n)
-        if reduced_rank:
+        if reduced_rank or self.drop:
             drop_level = self._find_base_index(levels)
             matrix = matrix[:, [i for i in range(matrix.shape[1]) if i != drop_level]]
         return matrix
@@ -546,7 +547,7 @@ class TreatmentContrasts(Contrasts):
         self, levels: Sequence[Hashable], reduced_rank: bool = True
     ) -> Sequence[Hashable]:
         base_index = self._find_base_index(levels)
-        if reduced_rank:
+        if reduced_rank or self.drop:
             return [level for i, level in enumerate(levels) if i != base_index]
         return levels
 
@@ -555,7 +556,7 @@ class TreatmentContrasts(Contrasts):
         self, levels: Sequence[Hashable], reduced_rank: bool = True
     ) -> Sequence[Hashable]:
         base = levels[self._find_base_index(levels)]
-        if reduced_rank:
+        if reduced_rank or self.drop:
             return [base, *(f"{level}-{base}" for level in levels if level != base)]
         return levels
 
