@@ -50,6 +50,7 @@ def _(data: numpy.ndarray, offset: int = 1) -> numpy.ndarray:
 
     return data
 
+
 @lag.register
 def _(data: narwhals.Series, offset: int = 1) -> narwhals.Series:
     return data.shift(offset)
