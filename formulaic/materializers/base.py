@@ -144,6 +144,9 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         Note: meterializers with explicitly registered inputs will always take
         priority.
         """
+        input_type = f"{data.__class__.__module__}.{data.__class__.__qualname__}"
+        if input_type in cls.REGISTER_OUTPUTS:
+            return True
         return False
 
     # Public API

@@ -33,7 +33,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
     @override
     @classmethod
     def SUPPORTS_INPUT(cls, data: Any) -> bool:
-        return nw.dependencies.is_into_dataframe(data)
+        return super().SUPPORTS_INPUT(data) or nw.dependencies.is_into_dataframe(data)
 
     @override
     def _init(self) -> None:
