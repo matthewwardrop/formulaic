@@ -179,8 +179,8 @@ class Token:
         if colorize:
             RED_BOLD = "\x1b[1;31m"
             RESET = "\x1b[0m"
-            return f"{self.source[:self.source_start]}⧛{RED_BOLD}{self.source[self.source_start:self.source_end+1]}{RESET}⧚{self.source[self.source_end+1:]}"
-        return f"{self.source[:self.source_start]}⧛{self.source[self.source_start:self.source_end+1]}⧚{self.source[self.source_end+1:]}"
+            return f"{self.source[: self.source_start]}⧛{RED_BOLD}{self.source[self.source_start : self.source_end + 1]}{RESET}⧚{self.source[self.source_end + 1 :]}"
+        return f"{self.source[: self.source_start]}⧛{self.source[self.source_start : self.source_end + 1]}⧚{self.source[self.source_end + 1 :]}"
 
     @property
     def required_variables(self) -> set[Variable]:
