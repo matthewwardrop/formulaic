@@ -25,7 +25,7 @@ from .parser.types import FormulaParser, OrderedSet, Term
 from .utils.calculus import differentiate_term
 from .utils.deprecations import deprecated
 from .utils.structured import Structured
-from .utils.variables import Variable, get_expression_variables
+from .utils.variables import Variable
 
 FormulaSpec: TypeAlias = Union[
     "Formula",
@@ -541,7 +541,7 @@ class SimpleFormula(
             variable_root
             for term in self.__terms
             for factor in term.factors
-            for variable in get_expression_variables(factor.expr, {})
+            for variable in factor.required_variables
             if (variable_root := variable.root) not in TRANSFORMS
         )
 

@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from enum import Enum
 from typing import Any, Optional, Union
 
-from formulaic.utils.variables import Variable, get_expression_variables
+from formulaic.utils.variables import Variable, get_required_variables
 
 from .factor import Factor
 from .ordered_set import OrderedSet
@@ -209,8 +209,8 @@ class Token:
 
                 return set(
                     variable.root
-                    for variable in get_expression_variables(self.token)
-                    if variable.split(".", 1)[0] not in TRANSFORMS
+                    for variable in get_required_variables(self.token, TRANSFORMS)
+                    if variable.root not in TRANSFORMS
                 )
             except Exception:  # noqa: S110
                 pass

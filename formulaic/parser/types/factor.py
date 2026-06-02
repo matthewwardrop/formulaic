@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from formulaic.utils.variables import Variable, get_required_variables
+
 from .ordered_set import OrderedSet
 from .term import Term
 
@@ -100,6 +102,40 @@ class Factor:
         a single-element ordered set.
         """
         return OrderedSet((Term([self]),))
+
+    @property
+    def required_variables(self) -> set[Variable]:
+        """
+        The set of variables required to evaluate this token.
+
+        If this is a Python token, and the code is malformed and unable to be
+        parsed, an empty set is returned. The code will fail more gracefully
+        later on.
+
+        Attempts are made to restrict these variables only to those expected in
+        the data, and not, for example, those associated with transforms and/or
+        values present in the evaluation namespace by default (e.g. `y ~ C(x)`
+        would include only `y` and `x`). This may not always be possible for
+        more advanced formulae that insert constants into the formula via the
+        evaluation context rather than the data context. We also only consider
+        the root variable (e.g. `a.fillna(0)` -> `a` vs. `a.fillna`).
+        """
+        if self.eval_method == Factor.EvalMethod.LOOKUP:
+            return {Variable(self.expr, roles={Variable.Role.VALUE})}
+        if self.eval_method == Factor.EvalMethod.PYTHON:
+            from formulaic.transforms import TRANSFORMS
+
+            try:
+                # Filter out constants like `contr` that are already present in the
+                # TRANSFORMS namespace.
+                return set(
+                    variable.root
+                    for variable in get_required_variables(self.expr, TRANSFORMS)
+                    if variable.root not in TRANSFORMS
+                )
+            except Exception:  # noqa: S110
+                pass
+        return set()
 
     def __repr__(self) -> str:
         if ":" in self.expr and self.eval_method == Factor.EvalMethod.LOOKUP:
