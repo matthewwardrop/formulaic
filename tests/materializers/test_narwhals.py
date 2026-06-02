@@ -71,8 +71,8 @@ class TestNarwhalsMaterializer:
             get_cols = lambda mm: mm.model_spec.column_names
         else:
             target_type = type(data)
-            get_cols = (
-                lambda mm: mm.column_names if "pyarrow" in str(type(mm)) else mm.columns
+            get_cols = lambda mm: (
+                mm.column_names if "pyarrow" in str(type(mm)) else mm.columns
             )
 
         mm = materializer.get_model_matrix(

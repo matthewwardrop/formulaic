@@ -97,7 +97,7 @@ class ModelSpec:
                 obj = obj.model_spec
             if isinstance(obj, ModelSpec):
                 return obj.update(**attrs)
-            formula = Formula.from_spec(obj, context=context)
+            formula = Formula.from_spec(cast(FormulaSpec, obj), context=context)
             if isinstance(formula, StructuredFormula):
                 return cast(
                     ModelSpecs, formula._map(prepare_model_spec, as_type=ModelSpecs)

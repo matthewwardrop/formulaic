@@ -174,10 +174,8 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
     # B = lambda i, j: ((x >= knots[i]) & (x < knots[i+1])).astype(float) if j == 0 else alpha(i, j, x) * B(i, j-1, x) + (1 - alpha(i+1, j, x)) * B(i+1, j-1, x)
     # We don't directly use this recurrence relation so that we can memoise the B(i, j).
     cache: dict[int, dict[int, float]] = defaultdict(dict)
-    alpha = (
-        lambda i, j: (x - knots[i]) / (knots[i + j] - knots[i])
-        if knots[i + j] != knots[i]
-        else 0
+    alpha = lambda i, j: (
+        (x - knots[i]) / (knots[i + j] - knots[i]) if knots[i + j] != knots[i] else 0
     )
     for i in range(len(knots) - 1):
         if extrapolation is SplineExtrapolation.EXTEND:

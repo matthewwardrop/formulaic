@@ -280,8 +280,10 @@ class Structured(Generic[_ItemType]):
         if recurse:
 
             def simplify_obj(
-                obj: Union[_ItemType, tuple[_ItemType], Structured[_ItemType]],
-            ) -> tuple[Union[_ItemType, tuple[_ItemType], Structured[_ItemType]], bool]:
+                obj: Union[_ItemType, tuple[_ItemType, ...], Structured[_ItemType]],
+            ) -> tuple[
+                Union[_ItemType, tuple[_ItemType, ...], Structured[_ItemType]], bool
+            ]:
                 """
                 Return the simplified object, and a flag indicating whether the
                 object was modified.
@@ -291,8 +293,14 @@ class Structured(Generic[_ItemType]):
                     return simplified, simplified is not obj
                 if isinstance(obj, tuple):
                     simplified = tuple(simplify_obj(o) for o in obj)
-                    return tuple(s[0] for s in simplified), any(
-                        s[1] for s in simplified
+                    return (
+                        cast(
+                            Union[
+                                _ItemType, tuple[_ItemType, ...], Structured[_ItemType]
+                            ],
+                            tuple(s[0] for s in simplified),
+                        ),
+                        any(s[1] for s in simplified),
                     )
                 return obj, False
 
@@ -304,7 +312,7 @@ class Structured(Generic[_ItemType]):
 
         if not inplace and not structure_modified:
             # Avoid any further work if simplification has not occurred
-            return structured
+            return cast(_SelfType, structured)
         if not inplace:
             self = copy.copy(self)
         self._structure = structure
@@ -454,7 +462,7 @@ class Structured(Generic[_ItemType]):
             if isinstance(obj, Structured) and path[idx] in obj._structure:
                 obj = obj._structure[cast(str, path[idx])]
             elif isinstance(obj, tuple) and isinstance(path[idx], int):
-                obj = obj[path[idx]]
+                obj = obj[cast(int, path[idx])]
             else:
                 break
             idx += 1
