@@ -100,7 +100,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.lint]
-dependencies = ["mypy[faster-cache]==1.13.0", "ruff==0.8.3"]
+dependencies = ["mypy[faster-cache]==2.1.0", "ruff==0.15.15"]
 
 [tool.hatch.envs.lint.scripts]
 check = ["ruff check", "ruff format --check", "mypy formulaic"]

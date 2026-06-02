@@ -53,7 +53,7 @@ class FormulaMaterializerMeta(InterfaceMeta):
     REGISTERED_NAMES: dict[str, type[FormulaMaterializer]] = {}
     REGISTERED_INPUTS: dict[str, list[type[FormulaMaterializer]]] = defaultdict(list)
 
-    def __register_implementation__(cls) -> None:
+    def __register_implementation__(cls: type[FormulaMaterializer]) -> None:  # type: ignore[misc]
         if "REGISTER_NAME" in cls.__dict__ and cls.REGISTER_NAME:
             cls.REGISTERED_NAMES[cls.REGISTER_NAME] = cls
 
@@ -189,11 +189,11 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
         from formulaic import ModelSpec
 
         # Prepare ModelSpec(s)
-        spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(
+        prepared_spec: Union[ModelSpec, ModelSpecs] = ModelSpec.from_spec(
             spec, context=self.layered_context, **spec_overrides
         )
-        should_simplify = isinstance(spec, ModelSpec)
-        model_specs: ModelSpecs = self._prepare_model_specs(spec)
+        should_simplify = isinstance(prepared_spec, ModelSpec)
+        model_specs: ModelSpecs = self._prepare_model_specs(prepared_spec)
 
         # Step 0: Pool all factors and transform state, ensuring consistency
         # during factor evaluation (esp. which rows get dropped).
@@ -204,10 +204,10 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
 
         # Step 1: Evaluate all factors and cache the results, keeping track of
         # which rows need dropping (if `self.config.na_action == 'drop'`).
-        drop_rows: set[int] = drop_rows if drop_rows is not None else set()
+        drop_rows_set: set[int] = drop_rows if drop_rows is not None else set()
         for factor in factors:
-            self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows)
-        drop_rows: Sequence[int] = sorted(drop_rows)
+            self._evaluate_factor(factor, factor_evaluation_model_spec, drop_rows_set)
+        drop_rows_sorted: Sequence[int] = sorted(drop_rows_set)
 
         # Step 2: Update the structured model specs with the information from
         # the shared transform state pool.
@@ -223,7 +223,7 @@ class FormulaMaterializer(metaclass=FormulaMaterializerMeta):
             ModelMatrices,
             model_specs._map(
                 lambda model_spec: self._build_model_matrix(
-                    model_spec, drop_rows=drop_rows
+                    model_spec, drop_rows=drop_rows_sorted
                 ),
                 as_type=ModelMatrices,
             ),
