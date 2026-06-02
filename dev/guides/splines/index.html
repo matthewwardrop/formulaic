@@ -1637,11 +1637,13 @@ and scaling, and so all methods will result in the same set of polynomials.</p>
         <span class="s2">"x"</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
     <span class="p">}</span>
 <span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span>
-    <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span>
-    <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span>
-    <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span>
-    <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">x</span>
+        <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span>
+        <span class="o">-</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span>
+        <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">df</span><span class="o">.</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span>
+        <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="p">)</span>
 <span class="p">)</span>
 
 <span class="c1"># Generate a model matrix with a polynomial coding in "x".</span>
@@ -1676,11 +1678,13 @@ data = pandas.DataFrame(
         "x": numpy.linspace(0.0, 1.0, 100),
     }
 ).assign(
-    y=lambda df: df.x
-    + 0.2 * df.x**2
-    - 0.7 * df.x**3
-    + 3 * df.x**4
-    + 0.1 * numpy.random.randn(100)
+    y=lambda df: (
+        df.x
+        + 0.2 * df.x**2
+        - 0.7 * df.x**3
+        + 3 * df.x**4
+        + 0.1 * numpy.random.randn(100)
+    )
 )
 
 # Generate a model matrix with a polynomial coding in "x".
@@ -1964,11 +1968,13 @@ all other information must be explicitly specified.</p>
         <span class="s2">"x"</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
     <span class="p">}</span>
 <span class="p">)</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="mi">2</span>
-    <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="o">-</span> <span class="n">x</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
-    <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mi">7</span><span class="p">)</span>
-    <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">y</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="p">(</span>
+        <span class="mi">2</span>
+        <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="o">-</span> <span class="n">x</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
+        <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="mi">7</span><span class="p">)</span>
+        <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+    <span class="p">)</span>
 <span class="p">)</span>
 
 <span class="c1"># Generate a model matrix with a cyclic cubic spline coding in "x".</span>
@@ -1997,11 +2003,13 @@ data = pandas.DataFrame(
         "x": x,
     }
 ).assign(
-    y=lambda df: 2
-    + numpy.sin(x)
-    - x * numpy.sin(2 * x)
-    + 4 * numpy.sin(x / 7)
-    + 0.1 * numpy.random.randn(100)
+    y=lambda df: (
+        2
+        + numpy.sin(x)
+        - x * numpy.sin(2 * x)
+        + 4 * numpy.sin(x / 7)
+        + 0.1 * numpy.random.randn(100)
+    )
 )
 
 # Generate a model matrix with a cyclic cubic spline coding in "x".
