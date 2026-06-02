@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any, Optional
 
 from formulaic.utils.stateful_transforms import stateful_transform
+from formulaic.utils.variables import Variable
 
 from .contrasts import (
     UNSET,
@@ -29,7 +30,11 @@ def Treatment(reference: Any = UNSET) -> TreatmentContrasts:
     return TreatmentContrasts(base=reference)
 
 
-@stateful_transform
+@stateful_transform(
+    get_required_variables=lambda variable, *args, **kwargs: (
+        Variable(variable, roles={Variable.Role.VALUE}),
+    )
+)
 def Q(variable: str, _context: Optional[Mapping[str, Any]] = None) -> Any:
     return _context.data[variable]  # type: ignore
 

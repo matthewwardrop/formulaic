@@ -5,8 +5,9 @@ import ast
 from collections import deque
 from collections.abc import Iterable, Mapping
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
+from formulaic.utils.code import format_expr, sanitize_variable_names
 from formulaic.utils.layered_mapping import LayeredMapping
 
 
@@ -60,6 +61,30 @@ class Variable(str):
         )
 
 
+def get_required_variables(
+    expr: Union[str, ast.AST],
+    context: Optional[Mapping] = None,
+) -> set[Variable]:
+    """
+    Extract the variables that are required to evaluate the nominated Python
+    expression.
+
+    This is similar to `get_expression_variables`, but will first sanitize the
+    expression as performed by `stateful_eval`, allowing it to extract variables
+    from malformed expressions (e.g. those containing non-Pythonic syntax like
+    `log(x)` or `x[1]`).
+
+    Args:
+        expr: The string or AST representing the python expression.
+        context: The context from which variable values will be looked up.
+    """
+    env = LayeredMapping(context)
+    aliases: dict[str, str] = {}
+    if isinstance(expr, str):
+        expr = sanitize_variable_names(expr, env, aliases)
+    return get_expression_variables(expr, env, aliases)
+
+
 def get_expression_variables(
     expr: Union[str, ast.AST],
     context: Optional[Mapping] = None,
@@ -67,6 +92,10 @@ def get_expression_variables(
 ) -> set[Variable]:
     """
     Extract the variables that are used in the nominated Python expression.
+
+    It is assumed that the expression is valid Python code. If this is not true,
+    use `get_required_variables` instead, which will first sanitize the
+    expression as performed by `stateful_eval`.
 
     Args:
         expr: The string or AST representing the python expression.
@@ -77,7 +106,7 @@ def get_expression_variables(
     """
     if isinstance(expr, str):
         expr = ast.parse(expr, mode="eval")
-    variables = _get_ast_node_variables(expr, aliases or {})
+    variables = _get_ast_node_variables(expr, context or {}, aliases or {})
 
     if isinstance(context, LayeredMapping):
         out = set()
@@ -88,12 +117,35 @@ def get_expression_variables(
     return set(variables)
 
 
-def _get_ast_node_variables(node: ast.AST, aliases: Mapping) -> list[Variable]:
+def _get_ast_node_variables(
+    node: ast.AST, env: Mapping, aliases: Mapping
+) -> list[Variable]:
+    from .stateful_transforms import _is_stateful_transform
+
     variables: list[Variable] = []
 
     todo = deque([node])
     while todo:
         node = todo.popleft()
+        if _is_stateful_transform(node, env):
+            # Allow stateful transforms to add further variables to the graph
+            # by evaluating their `<func>.get_required_variables()` method, if
+            # it exists. This allows stateful transforms that, e.g., parse
+            # variables from strings to register their dependence on these
+            # variables.
+            call = cast(ast.Call, node)
+            delegated = ast.Call(
+                func=ast.Attribute(
+                    value=call.func,
+                    attr="get_required_variables",
+                    ctx=ast.Load(),
+                ),
+                args=call.args,
+                keywords=call.keywords,
+            )
+            variables.extend(
+                eval(compile(format_expr(delegated), "", "eval"), {}, env)  # nosec
+            )
         if not isinstance(node, (ast.Call, ast.Attribute, ast.Name)):
             todo.extend(ast.iter_child_nodes(node))
             continue

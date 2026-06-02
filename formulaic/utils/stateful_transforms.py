@@ -1,7 +1,7 @@
 import ast
 import functools
 import inspect
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,7 +18,11 @@ if TYPE_CHECKING:
     from formulaic.model_spec import ModelSpec  # pragma: no cover
 
 
-def stateful_transform(func: Callable) -> Callable:
+def stateful_transform(
+    func: Optional[Callable] = None,
+    *,
+    get_required_variables: Optional[Callable[..., Iterable[Variable]]] = None,
+) -> Callable:
     """
     Transform a callable object into a stateful transform.
 
@@ -34,13 +38,28 @@ def stateful_transform(func: Callable) -> Callable:
     Stateful transforms are also transformed into single dispatches, allowing
     different implementations for incoming data types.
 
+    This can be used either as a bare decorator (`@stateful_transform`) or with
+    optional arguments (`@stateful_transform(...)`).
+
     Args:
         func: The function (or other callable) to be made into a stateful
             transform.
+        get_required_variables: An optional callable that reports the variables
+            required to evaluate the transform. If provided, it is attached to
+            the returned wrapper as `.get_required_variables` so that variable
+            extraction can be delegated to it. It should accept the same
+            arguments as the wrapped function, and return the appropriate
+            `Variable` instances as a sequence.
 
     Returns:
-        The stateful transform callable.
+        The stateful transform callable (or, when called with only keyword
+        arguments, a decorator that produces one).
     """
+    if func is None:
+        return functools.partial(
+            stateful_transform, get_required_variables=get_required_variables
+        )
+
     func = functools.singledispatch(func)
     params = set(inspect.signature(func).parameters.keys())
 
@@ -82,6 +101,9 @@ def stateful_transform(func: Callable) -> Callable:
         )
 
     wrapper.__is_stateful_transform__ = True  # type: ignore[attr-defined]
+    wrapper.get_required_variables = get_required_variables or (  # type: ignore[attr-defined]
+        lambda *args, **kwargs: ()
+    )
     return wrapper
 
 

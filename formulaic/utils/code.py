@@ -1,7 +1,7 @@
 import ast
 import keyword
 import re
-from collections.abc import MutableMapping
+from collections.abc import Container, MutableMapping
 from typing import Union
 
 import numpy
@@ -65,7 +65,9 @@ def sanitize_variable_names(
                 sanitized_expr.append(f"`{variable_name}")
             else:
                 next(expr_parts)
-                new_name = sanitize_variable_name(variable_name, env, template=template)
+                new_name = sanitize_variable_name(
+                    variable_name, env, reserved_names=aliases, template=template
+                )
                 aliases[new_name] = variable_name
                 sanitized_expr.append(f" {new_name} ")
         else:
@@ -75,7 +77,11 @@ def sanitize_variable_names(
 
 
 def sanitize_variable_name(
-    name: str, env: MutableMapping, *, template: str = "{}"
+    name: str,
+    env: MutableMapping,
+    *,
+    reserved_names: Container[str],
+    template: str = "{}",
 ) -> str:
     """
     Generate a valid Python variable name for variable identifier `name`.
@@ -98,7 +104,7 @@ def sanitize_variable_name(
 
     # Verify new name is not in env already, and if not add a random suffix.
     new_name = template.format(base_name)
-    while new_name in env:
+    while new_name in env or new_name in reserved_names:
         new_name = template.format(
             base_name
             + "_"

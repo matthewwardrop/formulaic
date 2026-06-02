@@ -264,6 +264,8 @@ class TestFormula:
         }
         assert Formula("a.fillna(0)").required_variables == {"a"}
         assert Formula("y ~ x").required_variables == {"x", "y"}
+        assert Formula("y ~ Q('x')").required_variables == {"x", "y"}
+        assert Formula("y ~ Q('x+!') + `z?!`").required_variables == {"x+!", "y", "z?!"}
 
 
 class TestSimpleFormula:
