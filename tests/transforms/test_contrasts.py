@@ -1,7 +1,6 @@
 import re
 
 import numpy
-import numpy as np
 import pandas
 import pytest
 import scipy.sparse as spsparse
