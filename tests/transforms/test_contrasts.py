@@ -1,6 +1,7 @@
 import re
 
 import numpy
+import numpy as np
 import pandas
 import pytest
 import scipy.sparse as spsparse
@@ -72,9 +73,9 @@ class TestContrastsTransform:
                 FactorValues(
                     pandas.DataFrame(
                         {
-                            "a": [1, 0, 0, 1, 0, 0],
-                            "b": [0, 1, 0, 0, 1, 0],
-                            "c": [0, 0, 0, 0, 0, 0],
+                            "a": [1, 0, numpy.nan, 1, 0, numpy.nan],
+                            "b": [0, 1, numpy.nan, 0, 1, numpy.nan],
+                            "c": [0, 0, numpy.nan, 0, 0, numpy.nan],
                         }
                     ),
                     kind="categorical",
@@ -85,6 +86,7 @@ class TestContrastsTransform:
                     format_reduced="{name}[T.{field}]",
                     encoded=True,
                 ),
+                comp=lambda x, y: numpy.allclose(x, y, equal_nan=True),
             )
             assert state["categories"] == ["a", "b", "c"]
             assert "contrasts" in state

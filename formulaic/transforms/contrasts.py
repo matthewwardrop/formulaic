@@ -168,6 +168,9 @@ def encode_contrasts(  # pylint: disable=dangerous-default-value  # always repla
     if output in ("narwhals", "pandas", "numpy"):
         categories = list(data.cat.categories)
         encoded = pandas.get_dummies(data)
+        # Missing levels have all False rows
+        # Cast to `boolean` to make nullable; convert to float to prevent nullable boolean <NA> to be cast to object
+        encoded = encoded.astype("boolean").where(encoded.any(axis=1)).astype(float)
     elif output == "sparse":
         categories, encoded = categorical_encode_series_to_sparse_csc_matrix(
             data,
