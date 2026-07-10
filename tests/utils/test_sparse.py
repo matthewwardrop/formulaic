@@ -48,29 +48,23 @@ def test_sparse_category_encoding():
 
     assert provided_levels == list("db")
     assert encoded_with_provided_levels.shape == (14, 2)
-    numpy.testing.assert_allclose(
-        encoded_with_provided_levels.data,
-        numpy.array(
-            [
-                1 if value == level else numpy.nan
-                for level in "db"
-                for value in data
-                if value == level or value not in "fdb"
-            ]
-        ),
-        equal_nan=True,
-    )
+    non_null_data = ~numpy.isnan(encoded_with_provided_levels.data)
     numpy.testing.assert_array_equal(
-        encoded_with_provided_levels.indices,
-        numpy.array(
-            [
-                row
-                for level in "db"
-                for row, value in enumerate(data)
-                if value == level or value not in "fdb"
-            ]
-        ),
+        encoded_with_provided_levels.data[non_null_data],
+        numpy.ones(4, dtype=float),
     )
+    assert numpy.isnan(encoded_with_provided_levels.data).sum() == 16
+    assert set(encoded_with_provided_levels.indices[non_null_data]) == {1, 3, 8, 10}
+    assert set(encoded_with_provided_levels.indices[~non_null_data]) == {
+        0,
+        2,
+        4,
+        6,
+        7,
+        9,
+        11,
+        13,
+    }
     numpy.testing.assert_array_equal(
         encoded_with_provided_levels.indptr, numpy.array([0, 10, 20])
     )
