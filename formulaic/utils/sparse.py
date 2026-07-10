@@ -28,23 +28,40 @@ def categorical_encode_series_to_sparse_csc_matrix(
 
     series = pandas.Categorical(series, levels)
     levels = list(levels or series.categories)
+    null_indices = numpy.nonzero(series.codes == -1)[0]
 
     if not levels:
         return levels, spsparse.csc_matrix((series.shape[0], 0))
 
-    if drop_first:
-        series = series.remove_categories(levels[0])
-        levels = levels[1:]
-
     codes = series.codes
-    non_null_code_indices = codes != -1
+    if drop_first:
+        levels = levels[1:]
+        non_null_code_indices = codes > 0
+        codes = codes[non_null_code_indices] - 1
+    else:
+        non_null_code_indices = codes != -1
+        codes = codes[non_null_code_indices]
     indices = numpy.arange(series.shape[0])[non_null_code_indices]
-    codes = codes[non_null_code_indices]
+    n_columns = len(levels)
     sparse_matrix = spsparse.csc_matrix(
         (
             numpy.ones(codes.shape[0], dtype=float),  # data
             (indices, codes),  # row  # column
         ),
-        shape=(series.shape[0], len(levels)),
+        shape=(series.shape[0], n_columns),
     )
+    if null_indices.size:
+        # Keep track of null indices (which otherwise would be cast to 0)
+        missing_matrix = spsparse.csc_matrix(
+            (
+                numpy.full(null_indices.size * n_columns, numpy.nan),
+                (
+                    numpy.tile(null_indices, n_columns),
+                    numpy.repeat(numpy.arange(n_columns), null_indices.size),
+                ),
+            ),
+            shape=sparse_matrix.shape,
+        )
+        sparse_matrix += missing_matrix
+
     return levels, sparse_matrix

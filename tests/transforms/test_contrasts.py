@@ -181,9 +181,9 @@ class TestContrastsTransform:
                 FactorValues(
                     pandas.DataFrame(
                         {
-                            "a": [1, 0, 0, 1, 0, 0],
-                            "b": [0, 1, 0, 0, 1, 0],
-                            "c": [0, 0, 0, 0, 0, 0],
+                            "a": [1, 0, numpy.nan, 1, 0, numpy.nan],
+                            "b": [0, 1, numpy.nan, 0, 1, numpy.nan],
+                            "c": [0, 0, numpy.nan, 0, 0, numpy.nan],
                         }
                     ).values,
                     kind="categorical",
@@ -194,9 +194,31 @@ class TestContrastsTransform:
                     format_reduced="{name}[T.{field}]",
                     encoded=True,
                 ),
+                comp=lambda x, y: numpy.allclose(x, y, equal_nan=True),
             )
             assert state["categories"] == ["a", "b", "c"]
             assert "contrasts" in state
+
+        with pytest.warns(DataMismatchWarning):
+            _compare_factor_values(
+                encode_contrasts(
+                    data=pandas.Series(["a", "b", "d"]),
+                    reduced_rank=True,
+                    _state=state,
+                    _spec=spec,
+                ),
+                FactorValues(
+                    numpy.array([[0, 0], [1, 0], [numpy.nan, numpy.nan]]),
+                    kind="categorical",
+                    spans_intercept=False,
+                    column_names=("b", "c"),
+                    drop_field=None,
+                    format="{name}[T.{field}]",
+                    format_reduced="{name}[T.{field}]",
+                    encoded=True,
+                ),
+                comp=lambda x, y: numpy.allclose(x, y, equal_nan=True),
+            )
 
     def test_numpy(self):
         assert isinstance(

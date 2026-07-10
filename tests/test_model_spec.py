@@ -168,6 +168,25 @@ class TestModelSpec:
         m3 = model_spec.get_model_matrix(data2, output="sparse")
         assert isinstance(m3, scipy.sparse.spmatrix)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Data has categories outside:formulaic.errors.DataMismatchWarning"
+    )
+    def test_get_model_matrix_sparse_matches_pandas(self, model_spec, data2):
+        pandas_matrix = model_spec.get_model_matrix(data2, output="pandas")
+        sparse_matrix = model_spec.get_model_matrix(data2, output="sparse")
+
+        numpy.testing.assert_allclose(
+            sparse_matrix.todense(), pandas_matrix.to_numpy(), equal_nan=True
+        )
+
+        data2.loc[1, "A"] = "unknown"
+        pandas_matrix = model_spec.get_model_matrix(data2, output="pandas")
+        sparse_matrix = model_spec.get_model_matrix(data2, output="sparse")
+
+        numpy.testing.assert_allclose(
+            sparse_matrix.todense(), pandas_matrix.to_numpy(), equal_nan=True
+        )
+
     def test_get_linear_constraints(self, model_spec):
         lc = model_spec.get_linear_constraints("`A[T.b]` - a = 3")
         assert numpy.allclose(lc.constraint_matrix, [[0.0, -1.0, 1.0, 0, 0.0, 0.0]])

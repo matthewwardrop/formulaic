@@ -48,12 +48,31 @@ def test_sparse_category_encoding():
 
     assert provided_levels == list("db")
     assert encoded_with_provided_levels.shape == (14, 2)
-    numpy.testing.assert_array_equal(
-        encoded_with_provided_levels.data, numpy.ones(4, dtype=float)
+    numpy.testing.assert_allclose(
+        encoded_with_provided_levels.data,
+        numpy.array(
+            [
+                1 if value == level else numpy.nan
+                for level in "db"
+                for value in data
+                if value == level or value not in "fdb"
+            ]
+        ),
+        equal_nan=True,
     )
-    assert set(encoded_with_provided_levels.indices) == {1, 3, 8, 10}
     numpy.testing.assert_array_equal(
-        encoded_with_provided_levels.indptr, numpy.array([0, 2, 4])
+        encoded_with_provided_levels.indices,
+        numpy.array(
+            [
+                row
+                for level in "db"
+                for row, value in enumerate(data)
+                if value == level or value not in "fdb"
+            ]
+        ),
+    )
+    numpy.testing.assert_array_equal(
+        encoded_with_provided_levels.indptr, numpy.array([0, 10, 20])
     )
 
     empty_levels, empty_encoded = categorical_encode_series_to_sparse_csc_matrix(
@@ -68,3 +87,16 @@ def test_sparse_category_encoding():
     ) = categorical_encode_series_to_sparse_csc_matrix([1, 2, 3], levels=[])
     assert explict_missing_levels == []
     assert explict_missing_encoded.shape == (3, 0)
+
+
+def test_sparse_category_encoding_preserves_missing_values():
+    levels, encoded = categorical_encode_series_to_sparse_csc_matrix(
+        ["a", None, "b", "unknown"], levels=["a", "b"]
+    )
+
+    assert levels == ["a", "b"]
+    numpy.testing.assert_allclose(
+        encoded.toarray(),
+        numpy.array([[1, 0], [numpy.nan, numpy.nan], [0, 1], [numpy.nan, numpy.nan]]),
+        equal_nan=True,
+    )
