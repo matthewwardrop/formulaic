@@ -169,7 +169,6 @@ def stateful_eval(
 
     # Mutate stateful nodes to pass in state from a shared dictionary.
     for name, node in stateful_nodes.items():
-        name = name.replace('"', r'\\\\"')
         if name not in state:
             state[name] = {}
         node.keywords.append(
@@ -181,12 +180,12 @@ def stateful_eval(
         node.keywords.append(
             ast.keyword(
                 "_metadata",
-                ast.parse(f'__FORMULAIC_METADATA__.get("{name}")', mode="eval").body,
+                ast.parse(f"__FORMULAIC_METADATA__.get({name!r})", mode="eval").body,
             )
         )
         node.keywords.append(
             ast.keyword(
-                "_state", ast.parse(f'__FORMULAIC_STATE__["{name}"]', mode="eval").body
+                "_state", ast.parse(f"__FORMULAIC_STATE__[{name!r}]", mode="eval").body
             )
         )
         node.keywords.append(

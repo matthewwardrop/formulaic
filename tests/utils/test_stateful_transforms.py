@@ -163,3 +163,28 @@ def test_stateful_eval_func_attr():
 
     with pytest.raises(NameError):
         assert stateful_eval("non_existent.me_too(0)", {}, None, {}, None)
+
+
+@pytest.mark.parametrize(
+    "value", ['a"b', "a'b", "a\\b", "a\nb", "a\tb", "caf\u00e9\\b"]
+)
+def test_regression_stateful_string_literal_keys(value):
+    from formulaic.utils.code import format_expr
+
+    expression = f"dummy_transform({value!r})"
+    name = format_expr(expression)
+    state = {}
+    metadata = {name: {}}
+    result = stateful_eval(
+        expression, {"dummy_transform": dummy_transform}, metadata, state, None
+    )
+    assert result == value
+    assert state == {name: {"data": value}}
+    assert metadata == {name: {"added": True}}
+    state[name]["data"] = "trained"
+    assert (
+        stateful_eval(
+            expression, {"dummy_transform": dummy_transform}, metadata, state, None
+        )
+        == "trained"
+    )
