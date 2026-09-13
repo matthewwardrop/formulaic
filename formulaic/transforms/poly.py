@@ -69,6 +69,9 @@ def poly(  # pylint: disable=dangerous-default-value  # always replaced by state
     """
 
     if raw:
+        x = numpy.asarray(x)
+        if numpy.issubdtype(x.dtype, numpy.integer):
+            x = x.astype(numpy.float64)
         return numpy.stack([numpy.power(x, k) for k in range(1, degree + 1)], axis=1)
 
     x = numpy.array(x, dtype=numpy.float64)

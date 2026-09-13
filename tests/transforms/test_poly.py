@@ -210,3 +210,50 @@ class TestPoly:
             r_reference,
             equal_nan=True,
         )
+
+
+@pytest.mark.parametrize(
+    "dtype, values",
+    [
+        (numpy.int8, [10, 20]),
+        (numpy.int32, [50000, 60000]),
+        (numpy.int64, [4000000000, 5000000000]),
+    ],
+)
+def test_regression_raw_polynomial_integer_overflow(dtype, values):
+    data = numpy.array(values, dtype=dtype)
+    original = data.copy()
+    result = poly(data, degree=3, raw=True)
+    expected = numpy.array(
+        [[value**degree for degree in range(1, 4)] for value in values], dtype=float
+    )
+    numpy.testing.assert_allclose(result, expected)
+    numpy.testing.assert_array_equal(data, original)
+
+
+def test_regression_raw_polynomial_integer_formula():
+    import pandas
+
+    from formulaic import model_matrix
+
+    result = model_matrix(
+        "0 + poly(x, 2, raw=True)",
+        pandas.DataFrame({"x": numpy.array([10, 20], dtype=numpy.int8)}),
+    )
+    numpy.testing.assert_allclose(result, [[10, 100], [20, 400]])
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [numpy.float32, numpy.float64, numpy.longdouble, numpy.complex64, numpy.complex128],
+)
+def test_regression_raw_polynomial_preserves_noninteger_dtype(dtype):
+    values = (
+        [1 + 2j, 3 - 4j]
+        if numpy.issubdtype(dtype, numpy.complexfloating)
+        else [1.5, 2.5]
+    )
+    data = numpy.array(values, dtype=dtype)
+    result = poly(data, degree=2, raw=True)
+    assert result.dtype == data.dtype
+    numpy.testing.assert_array_equal(result, numpy.stack([data, data**2], axis=1))
