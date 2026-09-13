@@ -562,3 +562,22 @@ class TestPandasMaterializer:
         assert isinstance(mm, pandas.DataFrame)
         assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]
         assert mm.shape == (8, 4)
+
+
+@pytest.mark.parametrize("storage", ["python", "pyarrow"])
+@pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+def test_regression_nullable_string_categorical(storage, output):
+    from formulaic import model_matrix
+
+    dtype = pandas.StringDtype(storage=storage)
+    data = pandas.DataFrame({"x": pandas.Series(["a", "b", None, "c"], dtype=dtype)})
+    matrix = model_matrix("x", data, output=output)
+    expected = numpy.array([[1, 0, 0], [1, 1, 0], [1, 0, 1]])
+    values = matrix.toarray() if output == "sparse" else numpy.asarray(matrix)
+    numpy.testing.assert_array_equal(values, expected)
+    assert tuple(matrix.model_spec.column_names) == ("Intercept", "x[T.b]", "x[T.c]")
+    prediction = matrix.model_spec.get_model_matrix(
+        pandas.DataFrame({"x": pandas.Series(["c", "a"], dtype=dtype)})
+    )
+    values = prediction.toarray() if output == "sparse" else numpy.asarray(prediction)
+    numpy.testing.assert_array_equal(values, [[1, 0, 1], [1, 0, 0]])

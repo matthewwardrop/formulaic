@@ -43,7 +43,7 @@ class PandasMaterializer(FormulaMaterializer):
     def _is_categorical(self, values: Any) -> bool:
         if isinstance(values, (pandas.Series, pandas.Categorical)):
             return values.dtype in ("object", "str") or isinstance(
-                values.dtype, pandas.CategoricalDtype
+                values.dtype, (pandas.CategoricalDtype, pandas.StringDtype)
             )
         return super()._is_categorical(values)
 
