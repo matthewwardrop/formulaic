@@ -82,3 +82,9 @@ def test_regression_custom_hash_model_matrix():
         context={"custom_hash": custom_hash},
     )
     numpy.testing.assert_array_equal(matrix, numpy.eye(4)[:3])
+
+
+def test_custom_hash_mixed_integer_widths():
+    hashes = {"a": 0, "b": 2**80, "c": -(2**80)}
+    result = hashed(["a", "b", "c"], levels=7, hash_func=hashes.__getitem__)
+    numpy.testing.assert_array_equal(result, [value % 7 for value in hashes.values()])
