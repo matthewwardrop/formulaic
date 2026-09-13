@@ -62,3 +62,35 @@ def test_center_sparse():
     state = {}
     m = spsparse.csc_matrix([1, 2, 3]).transpose()
     assert numpy.allclose(center(data=m, _state=state), [-1, 0, 1])
+
+
+@pytest.mark.parametrize("centered", [True, False])
+@pytest.mark.parametrize("ddof", [0, 1])
+def test_regression_scale_missing_values(centered, ddof):
+    data = numpy.array([[1, 2], [numpy.nan, 4], [3, numpy.nan], [5, 8]])
+    state = {}
+    result = scale(data, center=centered, ddof=ddof, _state=state)
+    for column in range(data.shape[1]):
+        observed = ~numpy.isnan(data[:, column])
+        expected = scale(data[observed, column], center=centered, ddof=ddof)
+        numpy.testing.assert_allclose(result[observed, column], expected)
+    numpy.testing.assert_array_equal(numpy.isnan(result), numpy.isnan(data))
+    prediction = numpy.array([[7, 10], [9, numpy.nan]])
+    expected = (prediction - state["center"] if centered else prediction) / state[
+        "scale"
+    ]
+    numpy.testing.assert_allclose(
+        scale(prediction, _state=state), expected, equal_nan=True
+    )
+
+
+@pytest.mark.parametrize("transform", ["center", "scale"])
+def test_regression_scaling_formula_retains_observed_rows(transform):
+    import pandas
+
+    from formulaic import model_matrix
+
+    data = pandas.DataFrame({"x": [1, numpy.nan, 2, 3]})
+    matrix = model_matrix(f"{transform}(x)", data)
+    assert list(matrix.index) == [0, 2, 3]
+    numpy.testing.assert_allclose(matrix.iloc[:, 1], [-1, 0, 1])
