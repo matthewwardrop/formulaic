@@ -22,6 +22,7 @@ from interface_meta import InterfaceMeta
 
 from formulaic.errors import DataMismatchWarning
 from formulaic.materializers.types import FactorValues
+from formulaic.utils.null_handling import drop_rows as drop_nulls
 from formulaic.utils.sentinels import UNSET
 from formulaic.utils.sparse import categorical_encode_series_to_sparse_csc_matrix
 from formulaic.utils.stateful_transforms import stateful_transform
@@ -73,7 +74,7 @@ def C(
         values = pandas.Series(
             values.__wrapped__ if isinstance(values, FactorValues) else values
         )
-        values = values.drop(index=values.index[drop_rows])
+        values = drop_nulls(values, drop_rows)
         return encode_contrasts(
             values,
             contrasts=contrasts,
