@@ -35,7 +35,7 @@ def scale(  # pylint: disable=dangerous-default-value  # always replaced by stat
     # Handle centering
     if "center" not in _state:
         if isinstance(center, bool) and center:
-            _state["center"] = numpy.mean(data, axis=0)
+            _state["center"] = numpy.nanmean(data, axis=0)
         elif not isinstance(center, bool):
             _state["center"] = numpy.array(center)
         else:
@@ -47,7 +47,8 @@ def scale(  # pylint: disable=dangerous-default-value  # always replaced by stat
     if "scale" not in _state:
         if isinstance(scale, bool) and scale:
             _state["scale"] = numpy.sqrt(
-                numpy.sum(data**2, axis=0) / (data.shape[0] - ddof)
+                numpy.nansum(data**2, axis=0)
+                / (numpy.sum(~numpy.isnan(data), axis=0) - ddof)
             )
         elif not isinstance(scale, bool):
             _state["scale"] = numpy.array(scale)
