@@ -175,7 +175,7 @@ class NarwhalsMaterializer(FormulaMaterializer):
     ) -> pandas.DataFrame:
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:
-            values = numpy.empty((self.data.shape[0], 0))
+            values = numpy.empty((self.nrows - len(drop_rows), 0))
             if spec.output == "sparse":
                 return spsparse.csc_matrix(values)
             if spec.output == "narwhals":

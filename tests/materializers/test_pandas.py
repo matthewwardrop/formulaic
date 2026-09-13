@@ -562,3 +562,32 @@ class TestPandasMaterializer:
         assert isinstance(mm, pandas.DataFrame)
         assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]
         assert mm.shape == (8, 4)
+
+
+@pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+@pytest.mark.parametrize("backend", ["pandas", "polars", "arrow"])
+def test_regression_zero_column_matrix_missing_rows(output, backend):
+    import polars
+    import pyarrow
+
+    from formulaic import model_matrix
+
+    data = pandas.DataFrame({"y": [1, numpy.nan, 3]})
+    if backend == "polars":
+        data = polars.from_pandas(data)
+    elif backend == "arrow":
+        data = pyarrow.Table.from_pandas(data)
+    matrices = model_matrix("y ~ 0", data, output=output)
+    assert matrices.lhs.shape == (2, 1)
+    assert matrices.rhs.shape == (2, 0)
+
+
+@pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+@pytest.mark.parametrize("dropped", [{1}, {0, 1, 2}])
+def test_regression_zero_column_matrix_explicit_dropped_rows(output, dropped):
+    from formulaic import model_matrix
+
+    matrix = model_matrix(
+        "0", pandas.DataFrame({"y": [1, 2, 3]}), output=output, drop_rows=dropped
+    )
+    assert matrix.shape == (3 - len(dropped), 0)
