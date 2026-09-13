@@ -58,3 +58,24 @@ def test_usage_in_model_matrix(levels, dtype):
 
     assert m.shape == (3, levels + 1)
     assert m.columns.str.startswith("hashed").sum() == levels
+
+
+@pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+def test_regression_hashed_missing_other_factor(output):
+    data = pd.DataFrame({"x": ["a", "b", "c", "d"], "y": [1, numpy.nan, 3, 4]})
+    formula = "hashed(x, levels=5) + y"
+    matrix = model_matrix(formula, data, output=output)
+    expected = model_matrix(formula, data.dropna(), output=output)
+    if output == "sparse":
+        numpy.testing.assert_allclose(matrix.toarray(), expected.toarray())
+    else:
+        numpy.testing.assert_allclose(matrix, expected)
+    prediction_data = pd.DataFrame({"x": ["e", "f", "a"], "y": [numpy.nan, 5, 6]})
+    prediction = matrix.model_spec.get_model_matrix(prediction_data)
+    expected_prediction = model_matrix(formula, prediction_data.dropna(), output=output)
+    if output == "sparse":
+        numpy.testing.assert_allclose(
+            prediction.toarray(), expected_prediction.toarray()
+        )
+    else:
+        numpy.testing.assert_allclose(prediction, expected_prediction)

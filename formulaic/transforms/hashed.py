@@ -57,7 +57,7 @@ def hashed(
         encoder_state: dict[str, Any],
         model_spec: ModelSpec,
     ) -> FactorValues:
-        values = np.array(values)
+        values = np.delete(np.asarray(values), drop_rows, axis=0)
         return encode_contrasts(
             values,
             contrasts=contrasts,
