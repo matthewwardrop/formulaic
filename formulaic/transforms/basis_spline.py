@@ -205,7 +205,7 @@ def basis_spline(  # pylint: disable=dangerous-default-value  # always replaced 
 
     return FactorValues(
         {
-            i: cache[degree % 2][i]
+            i: numpy.where(numpy.isnan(x), numpy.nan, cache[degree % 2][i])
             for i in sorted(cache[degree % 2])
             if i > 0 or include_intercept
         },

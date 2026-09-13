@@ -547,3 +547,47 @@ class TestBasisSpline:
                 extrapolation=extrapolation,
                 _state=state,
             )
+
+
+@pytest.mark.parametrize("extrapolation", ["raise", "clip", "na", "zero", "extend"])
+def test_regression_degree_zero_spline_missing_values(extrapolation):
+    data = numpy.array([0, numpy.nan, 0.75, 1])
+    kwargs = dict(
+        knots=[0.5],
+        degree=0,
+        include_intercept=True,
+        lower_bound=0,
+        upper_bound=1,
+        extrapolation=extrapolation,
+    )
+    result = basis_spline(data, **kwargs)
+    expected = basis_spline(data[[0, 2, 3]], **kwargs)
+    for column in result:
+        assert numpy.isnan(result[column][1])
+        numpy.testing.assert_array_equal(result[column][[0, 2, 3]], expected[column])
+
+
+def test_regression_degree_zero_spline_na_extrapolation():
+    result = basis_spline(
+        numpy.array([-1, 0.25, 2]),
+        knots=[0.5],
+        degree=0,
+        include_intercept=True,
+        lower_bound=0,
+        upper_bound=1,
+        extrapolation="na",
+    )
+    for column in result:
+        assert numpy.isnan(result[column][[0, 2]]).all()
+
+
+def test_regression_degree_zero_spline_formula_drops_missing():
+    import pandas
+
+    from formulaic import model_matrix
+
+    result = model_matrix(
+        "bs(x, knots=[0.5], degree=0)", pandas.DataFrame({"x": [0, numpy.nan, 0.75, 1]})
+    )
+    assert list(result.index) == [0, 2, 3]
+    numpy.testing.assert_array_equal(result, [[1, 0], [1, 1], [1, 1]])
