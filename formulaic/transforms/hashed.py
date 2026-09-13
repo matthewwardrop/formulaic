@@ -69,7 +69,7 @@ def hashed(
     stringified_data = np.array(data).astype(np.str_)
 
     return FactorValues(
-        (np.vectorize(md5_to_int)(stringified_data) % levels).astype(np.int_),
+        (np.vectorize(hash_func)(stringified_data) % levels).astype(np.int_),
         kind="categorical",
         spans_intercept=spans_intercept,
         encoder=encoder,
