@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Any
+from typing import Any, Optional
 
 import narwhals.stable.v1 as narwhals
 import numpy
@@ -30,12 +30,17 @@ def lag(data: Any, k: int = 1) -> Any:
 
 
 @lag.register
-def _(data: pandas.Series, offset: int = 1) -> pandas.Series:
-    return data.shift(offset)
+def _(
+    data: pandas.Series, k: int = 1, *, offset: Optional[int] = None
+) -> pandas.Series:
+    return data.shift(k if offset is None else offset)
 
 
 @lag.register
-def _(data: numpy.ndarray, offset: int = 1) -> numpy.ndarray:
+def _(
+    data: numpy.ndarray, k: int = 1, *, offset: Optional[int] = None
+) -> numpy.ndarray:
+    offset = k if offset is None else offset
     if data.shape == () or offset == 0:
         return data
 
@@ -52,5 +57,7 @@ def _(data: numpy.ndarray, offset: int = 1) -> numpy.ndarray:
 
 
 @lag.register
-def _(data: narwhals.Series, offset: int = 1) -> narwhals.Series:
-    return data.shift(offset)
+def _(
+    data: narwhals.Series, k: int = 1, *, offset: Optional[int] = None
+) -> narwhals.Series:
+    return data.shift(k if offset is None else offset)
