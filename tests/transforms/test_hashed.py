@@ -58,3 +58,33 @@ def test_usage_in_model_matrix(levels, dtype):
 
     assert m.shape == (3, levels + 1)
     assert m.columns.str.startswith("hashed").sum() == levels
+
+
+def test_regression_custom_hash_function():
+    calls = []
+
+    def custom_hash(value):
+        calls.append(value)
+        return (1 << 80) + int(value)
+
+    result = hashed([1, 2, 3], levels=7, hash_func=custom_hash)
+    numpy.testing.assert_array_equal(result, [((1 << 80) + i) % 7 for i in [1, 2, 3]])
+    assert set(calls) == {"1", "2", "3"}
+
+
+def test_regression_custom_hash_model_matrix():
+    def custom_hash(value):
+        return int(value)
+
+    matrix = model_matrix(
+        "0 + hashed(x, levels=4, hash_func=custom_hash)",
+        pd.DataFrame({"x": [0, 1, 2]}),
+        context={"custom_hash": custom_hash},
+    )
+    numpy.testing.assert_array_equal(matrix, numpy.eye(4)[:3])
+
+
+def test_custom_hash_mixed_integer_widths():
+    hashes = {"a": 0, "b": 2**80, "c": -(2**80)}
+    result = hashed(["a", "b", "c"], levels=7, hash_func=hashes.__getitem__)
+    numpy.testing.assert_array_equal(result, [value % 7 for value in hashes.values()])
