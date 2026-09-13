@@ -169,9 +169,7 @@ class PandasMaterializer(FormulaMaterializer):
         if spec.output == "pandas":
             pandas_index = cast(pandas.DataFrame, self.data_context).index
             if drop_rows:
-                pandas_index = pandas_index.drop(
-                    cast(pandas.DataFrame, self.data_context).index[drop_rows]
-                )
+                pandas_index = pandas_index.delete(drop_rows)
 
         # Special case no columns to empty csc_matrix, array, or DataFrame
         if not cols:

@@ -562,3 +562,31 @@ class TestPandasMaterializer:
         assert isinstance(mm, pandas.DataFrame)
         assert list(mm.columns) == ["x[a]", "x[b]", "y[T.d]", "z[T.f]"]
         assert mm.shape == (8, 4)
+
+
+@pytest.mark.parametrize("formula", ["x + y", "x + a", "x + C(a)"])
+@pytest.mark.parametrize("output", ["pandas", "numpy", "sparse"])
+def test_regression_duplicate_index_missing_rows(formula, output):
+    from formulaic import model_matrix
+
+    data = pandas.DataFrame(
+        {"x": [1, numpy.nan, 3, 4], "y": [2, 3, 4, 5], "a": ["a", "b", "b", "a"]},
+        index=[10, 10, 20, 20],
+    )
+    result = model_matrix(formula, data, output=output)
+    expected = model_matrix(
+        formula, data.iloc[[0, 2, 3]].reset_index(drop=True), output=output
+    )
+    if output == "sparse":
+        numpy.testing.assert_allclose(result.toarray(), expected.toarray())
+    else:
+        numpy.testing.assert_allclose(result, expected)
+    if output == "pandas":
+        assert list(result.index) == [10, 20, 20]
+
+
+def test_regression_drop_rows_preserves_duplicate_labels():
+    from formulaic.utils.null_handling import drop_rows
+
+    series = pandas.Series([1, 2, 3], index=[10, 10, 20])
+    pandas.testing.assert_series_equal(drop_rows(series, [1]), series.iloc[[0, 2]])

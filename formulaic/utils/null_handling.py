@@ -137,7 +137,9 @@ def _(values: narwhals.Series, indices: Sequence[int]) -> narwhals.Series:
 
 @drop_rows.register
 def _(values: pandas.Series, indices: Sequence[int]) -> pandas.Series:
-    return values.drop(index=values.index[indices])
+    mask = numpy.ones(len(values), dtype=bool)
+    mask[list(indices)] = False
+    return values.iloc[mask]
 
 
 @drop_rows.register
