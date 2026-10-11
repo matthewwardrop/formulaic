@@ -134,18 +134,20 @@ def _get_ast_node_variables(
             # variables from strings to register their dependence on these
             # variables.
             call = cast(ast.Call, node)
-            delegated = ast.Call(
-                func=ast.Attribute(
-                    value=call.func,
-                    attr="get_required_variables",
-                    ctx=ast.Load(),
-                ),
-                args=call.args,
-                keywords=call.keywords,
+            getter = ast.Attribute(
+                value=call.func,
+                attr="get_required_variables",
+                ctx=ast.Load(),
             )
-            variables.extend(
-                eval(compile(format_expr(delegated), "", "eval"), {}, env)  # nosec
-            )
+            if eval(compile(format_expr(getter), "", "eval"), {}, env) is not None:  # nosec
+                delegated = ast.Call(
+                    func=getter,
+                    args=call.args,
+                    keywords=call.keywords,
+                )
+                variables.extend(
+                    eval(compile(format_expr(delegated), "", "eval"), {}, env)  # nosec
+                )
         if not isinstance(node, (ast.Call, ast.Attribute, ast.Name)):
             todo.extend(ast.iter_child_nodes(node))
             continue

@@ -267,6 +267,26 @@ class TestFormula:
         assert Formula("y ~ Q('x')").required_variables == {"x", "y"}
         assert Formula("y ~ Q('x+!') + `z?!`").required_variables == {"x+!", "y", "z?!"}
 
+    @pytest.mark.parametrize(
+        "expression, variables",
+        [
+            ("center(x)", {"x"}),
+            ("scale(x)", {"x"}),
+            ("standardize(x)", {"x"}),
+            ("bs(x, df=3)", {"x"}),
+            ("poly(x, degree=2)", {"x"}),
+            ("lag(x, 1)", {"x"}),
+            ("center(x + z)", {"x", "z"}),
+            ("center(`x?!`)", {"x?!"}),
+            ("center(Q('x?!'))", {"x?!"}),
+            ("y ~ center(x) + scale(z)", {"x", "y", "z"}),
+            ("Q('x?!')", {"x?!"}),
+            ("C(x)", {"x"}),
+        ],
+    )
+    def test_required_variables_stateful_transforms(self, expression, variables):
+        assert Formula(expression).required_variables == variables
+
 
 class TestSimpleFormula:
     """

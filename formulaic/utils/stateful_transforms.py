@@ -101,9 +101,7 @@ def stateful_transform(
         )
 
     wrapper.__is_stateful_transform__ = True  # type: ignore[attr-defined]
-    wrapper.get_required_variables = get_required_variables or (  # type: ignore[attr-defined]
-        lambda *args, **kwargs: ()
-    )
+    wrapper.get_required_variables = get_required_variables  # type: ignore[attr-defined]
     return wrapper
 
 
