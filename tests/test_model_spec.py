@@ -154,6 +154,35 @@ class TestModelSpec:
         ):
             model_spec.get_slice("missing")
 
+    @pytest.mark.parametrize("output", [None, "pandas", "numpy", "sparse"])
+    @pytest.mark.parametrize("structured", [False, True])
+    @pytest.mark.parametrize("missing", [False, True])
+    def test_subset_get_model_matrix_drop_rows(self, output, structured, missing):
+        train = pandas.DataFrame({"y": [5, 7, 9], "x": [1, 2, 3], "z": [4, 5, 6]})
+        spec = Formula("y ~ x + z").get_model_matrix(train).model_spec
+        spec = spec.subset("y ~ 0 + x") if structured else spec.rhs.subset(["x"])
+        query = pandas.DataFrame(
+            {"y": [10, 20, 30], "x": [4, 5, numpy.nan if missing else 6]},
+            index=[10, 20, 30],
+        )
+        drop_rows = {1}
+        matrices = spec.get_model_matrix(
+            query, drop_rows=drop_rows, **({"output": output} if output else {})
+        )
+        matrix = matrices.rhs if structured else matrices
+        values = matrix.toarray() if output == "sparse" else numpy.asarray(matrix)
+        numpy.testing.assert_array_equal(values, [[4]] if missing else [[4], [6]])
+        assert matrix.model_spec.column_names == ("x",)
+        assert drop_rows == ({1, 2} if missing else {1})
+        if output in (None, "pandas"):
+            assert list(matrix.index) == ([10] if missing else [10, 30])
+        if structured:
+            lhs = matrices.lhs
+            values = lhs.toarray() if output == "sparse" else numpy.asarray(lhs)
+            numpy.testing.assert_array_equal(
+                values, [[10]] if missing else [[10], [30]]
+            )
+
     def test_get_model_matrix(self, model_spec, data2):
         m = model_spec.get_model_matrix(data2)
 

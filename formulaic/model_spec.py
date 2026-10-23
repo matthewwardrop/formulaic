@@ -517,7 +517,9 @@ class ModelSpec:
                 running `ModelSpec.update(**attr_overrides)`.
         """
         if attr_overrides:
-            return self.update(**attr_overrides).get_model_matrix(data, context=context)
+            return self.update(**attr_overrides).get_model_matrix(
+                data, context=context, drop_rows=drop_rows
+            )
         return cast(
             "ModelMatrix",
             self.get_materializer(data, context=context).get_model_matrix(
@@ -738,7 +740,7 @@ class ModelSpecs(Structured[ModelSpec]):
                 materializer = FormulaMaterializer.for_materializer(materializer)
             return materializer(  # type: ignore
                 data, context=context, **(materializer_params or {})
-            ).get_model_matrix(self)
+            ).get_model_matrix(self, drop_rows=drop_rows)
 
         return cast(
             ModelMatrices,
